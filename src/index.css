@@ -8,36 +8,39 @@
 }
 
 :root {
-  --background: oklch(0.08 0 0);
-  --foreground: oklch(0.98 0 0);
+  --background: oklch(0.04 0 0);
+  --foreground: oklch(1.0 0 0);
   
-  --card: oklch(0.14 0 0);
-  --card-foreground: oklch(0.88 0 0);
+  --card: oklch(0.08 0 0);
+  --card-foreground: oklch(0.95 0 0);
   
-  --popover: oklch(0.14 0 0);
-  --popover-foreground: oklch(0.88 0 0);
+  --popover: oklch(0.08 0 0);
+  --popover-foreground: oklch(0.95 0 0);
   
-  --primary: oklch(0.50 0.24 15);
-  --primary-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.54 0.25 15);
+  --primary-foreground: oklch(1.0 0 0);
   
-  --secondary: oklch(0.25 0 0);
-  --secondary-foreground: oklch(0.88 0 0);
+  --secondary: oklch(0.15 0 0);
+  --secondary-foreground: oklch(0.95 0 0);
   
-  --muted: oklch(0.20 0 0);
-  --muted-foreground: oklch(0.48 0 0);
+  --muted: oklch(0.12 0 0);
+  --muted-foreground: oklch(0.40 0 0);
   
-  --accent: oklch(0.72 0.32 330);
-  --accent-foreground: oklch(0.08 0 0);
+  --accent: oklch(0.72 0.20 200);
+  --accent-foreground: oklch(0.04 0 0);
   
-  --toxic: oklch(0.78 0.28 135);
-  --toxic-foreground: oklch(0.08 0 0);
+  --toxic: oklch(0.80 0.25 145);
+  --toxic-foreground: oklch(0.04 0 0);
   
-  --destructive: oklch(0.50 0.24 15);
-  --destructive-foreground: oklch(0.98 0 0);
+  --violet: oklch(0.55 0.26 300);
+  --violet-foreground: oklch(1.0 0 0);
   
-  --border: oklch(0.28 0 0);
-  --input: oklch(0.28 0 0);
-  --ring: oklch(0.72 0.32 330);
+  --destructive: oklch(0.54 0.25 15);
+  --destructive-foreground: oklch(1.0 0 0);
+  
+  --border: oklch(0.18 0 0);
+  --input: oklch(0.18 0 0);
+  --ring: oklch(0.72 0.20 200);
   
   --radius: 0rem;
 }
@@ -59,39 +62,36 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-toxic: var(--toxic);
   --color-toxic-foreground: var(--toxic-foreground);
+  --color-violet: var(--violet);
+  --color-violet-foreground: var(--violet-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --radius-sm: calc(var(--radius) * 0.5);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) * 1.5);
-  --radius-xl: calc(var(--radius) * 2);
-  --radius-2xl: calc(var(--radius) * 3);
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
   --radius-full: 9999px;
   
-  --font-display: 'Bebas Neue', sans-serif;
-  --font-impact: 'Major Mono Display', monospace;
-  --font-data: 'JetBrains Mono', monospace;
-  --font-ui: 'Space Grotesk', sans-serif;
+  --font-display: 'Oswald', sans-serif;
+  --font-data: 'Roboto Mono', monospace;
+  --font-ui: 'Inter', sans-serif;
 }
 
 body {
   font-family: var(--font-ui);
-  cursor: crosshair;
+  cursor: default;
 }
 
 h1, h2, .display-font {
   font-family: var(--font-display);
   text-transform: uppercase;
   letter-spacing: 0.02em;
-}
-
-.impact-font {
-  font-family: var(--font-impact);
-  text-transform: uppercase;
+  font-weight: 700;
 }
 
 .data-font {
@@ -100,8 +100,8 @@ h1, h2, .display-font {
 }
 
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 *::-webkit-scrollbar-track {
@@ -110,9 +110,62 @@ h1, h2, .display-font {
 
 *::-webkit-scrollbar-thumb {
   background: var(--border);
-  border: 1px solid var(--accent);
+  border: 1px solid var(--primary);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
+  background: var(--primary);
+}
+
+@keyframes glitch {
+  0% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(-2px, 2px);
+  }
+  40% {
+    transform: translate(-2px, -2px);
+  }
+  60% {
+    transform: translate(2px, 2px);
+  }
+  80% {
+    transform: translate(2px, -2px);
+  }
+  100% {
+    transform: translate(0);
+  }
+}
+
+.glitch-hover:hover {
+  animation: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes modal-flash {
+  0% {
+    opacity: 0;
+    height: 1px;
+  }
+  10% {
+    opacity: 1;
+    height: 1px;
+  }
+  20% {
+    opacity: 0;
+    height: 1px;
+  }
+  100% {
+    opacity: 0;
+    height: 100%;
+  }
+}
+
+@keyframes terminal-flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.97;
+  }
 }

@@ -40,9 +40,9 @@ export function ChartCategory({ title, tracks, isLoading }: ChartCategoryProps) 
   }
 
   return (
-    <Card className="bg-card border-4 border-border overflow-hidden hover:border-accent transition-colors duration-300">
-      <div className="p-6 border-b-4 border-border bg-secondary/20">
-        <h2 className="display-font text-3xl uppercase text-foreground tracking-wider">{title}</h2>
+    <Card className="bg-card border-2 border-border overflow-hidden hover:border-primary transition-none">
+      <div className="p-5 border-b-2 border-border bg-secondary">
+        <h2 className="display-font text-2xl uppercase text-foreground tracking-tight font-bold">{title}</h2>
       </div>
       <div>
         {topThree.map((track, index) => (
