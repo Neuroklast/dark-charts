@@ -14,6 +14,7 @@ export interface Track {
   fanScore?: number;
   expertScore?: number;
   streamingScore?: number;
+  albumArt?: string;
 }
 
 export interface ChartWeights {

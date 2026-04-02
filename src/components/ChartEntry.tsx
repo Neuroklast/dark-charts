@@ -1,6 +1,7 @@
 import { Track } from '@/types';
 import { CaretUp, CaretDown } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
+import { AlbumArtwork } from './AlbumArtwork';
 
 interface ChartEntryProps {
   track: Track;
@@ -9,6 +10,7 @@ interface ChartEntryProps {
 
 export function ChartEntry({ track, index }: ChartEntryProps) {
   const movementColor = track.movement && track.movement > 0 ? 'text-toxic' : track.movement && track.movement < 0 ? 'text-primary' : 'text-muted-foreground';
+  const glowColor = track.rank === 1 ? 'primary' : track.rank <= 3 ? 'accent' : 'primary';
   
   return (
     <div
@@ -34,6 +36,15 @@ export function ChartEntry({ track, index }: ChartEntryProps) {
           </div>
         )}
       </div>
+
+      <AlbumArtwork
+        src={track.albumArt}
+        alt={`${track.artist} - ${track.title}`}
+        artist={track.artist}
+        title={track.title}
+        size="medium"
+        glowColor={glowColor}
+      />
 
       <div className="flex-1 min-w-0">
         <div className="data-font text-lg font-bold text-foreground truncate group-hover:text-primary instant-transition">
