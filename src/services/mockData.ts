@@ -1,0 +1,205 @@
+import { Track } from '@/types';
+
+export const mockFanCharts: Track[] = [
+  {
+    id: 'fan-1',
+    rank: 1,
+    artist: 'Heilung',
+    title: 'Anoana',
+    genres: ['Dark Wave', 'Industrial'],
+    movement: 2,
+    previousRank: 3,
+    chartType: 'fan',
+    fanScore: 98,
+    expertScore: 85,
+    streamingScore: 72
+  },
+  {
+    id: 'fan-2',
+    rank: 2,
+    artist: 'Wardruna',
+    title: 'Helvegen',
+    genres: ['Gothic Rock', 'Dark Wave'],
+    movement: -1,
+    previousRank: 1,
+    chartType: 'fan',
+    fanScore: 95,
+    expertScore: 92,
+    streamingScore: 88
+  },
+  {
+    id: 'fan-3',
+    rank: 3,
+    artist: 'Perturbator',
+    title: 'Neo Tokyo',
+    genres: ['Synthwave', 'Industrial'],
+    movement: 0,
+    previousRank: 3,
+    chartType: 'fan',
+    fanScore: 93,
+    expertScore: 78,
+    streamingScore: 65
+  },
+  {
+    id: 'fan-4',
+    rank: 4,
+    artist: 'Sisters of Mercy',
+    title: 'Temple of Love',
+    genres: ['Gothic Rock'],
+    movement: 3,
+    previousRank: 7,
+    chartType: 'fan',
+    fanScore: 91,
+    expertScore: 88,
+    streamingScore: 82
+  },
+  {
+    id: 'fan-5',
+    rank: 5,
+    artist: 'Type O Negative',
+    title: 'Black No. 1',
+    genres: ['Gothic Rock', 'Doom Metal'],
+    movement: -2,
+    previousRank: 3,
+    chartType: 'fan',
+    fanScore: 89,
+    expertScore: 90,
+    streamingScore: 79
+  }
+];
+
+export const mockExpertCharts: Track[] = [
+  {
+    id: 'expert-1',
+    rank: 1,
+    artist: 'Neurosis',
+    title: 'Through Silver in Blood',
+    genres: ['Doom Metal', 'Industrial'],
+    movement: 0,
+    previousRank: 1,
+    chartType: 'expert',
+    fanScore: 78,
+    expertScore: 99,
+    streamingScore: 45
+  },
+  {
+    id: 'expert-2',
+    rank: 2,
+    artist: 'Ulver',
+    title: 'Bergtatt',
+    genres: ['Black Metal', 'Dark Wave'],
+    movement: 1,
+    previousRank: 3,
+    chartType: 'expert',
+    fanScore: 82,
+    expertScore: 97,
+    streamingScore: 52
+  },
+  {
+    id: 'expert-3',
+    rank: 3,
+    artist: 'Dead Can Dance',
+    title: 'The Host of Seraphim',
+    genres: ['Gothic Rock', 'Darkwave'],
+    movement: -1,
+    previousRank: 2,
+    chartType: 'expert',
+    fanScore: 85,
+    expertScore: 96,
+    streamingScore: 68
+  },
+  {
+    id: 'expert-4',
+    rank: 4,
+    artist: 'Godflesh',
+    title: 'Streetcleaner',
+    genres: ['Industrial', 'Doom Metal'],
+    movement: 2,
+    previousRank: 6,
+    chartType: 'expert',
+    fanScore: 71,
+    expertScore: 95,
+    streamingScore: 38
+  },
+  {
+    id: 'expert-5',
+    rank: 5,
+    artist: 'Swans',
+    title: 'The Seer',
+    genres: ['Industrial'],
+    movement: 0,
+    previousRank: 5,
+    chartType: 'expert',
+    fanScore: 76,
+    expertScore: 94,
+    streamingScore: 41
+  }
+];
+
+export const mockStreamingCharts: Track[] = [
+  {
+    id: 'streaming-1',
+    rank: 1,
+    artist: 'Ghost',
+    title: 'Square Hammer',
+    genres: ['Gothic Rock'],
+    movement: 0,
+    previousRank: 1,
+    chartType: 'streaming',
+    fanScore: 88,
+    expertScore: 82,
+    streamingScore: 98
+  },
+  {
+    id: 'streaming-2',
+    rank: 2,
+    artist: 'Carpenter Brut',
+    title: 'Turbo Killer',
+    genres: ['Synthwave', 'Industrial'],
+    movement: 1,
+    previousRank: 3,
+    chartType: 'streaming',
+    fanScore: 91,
+    expertScore: 79,
+    streamingScore: 95
+  },
+  {
+    id: 'streaming-3',
+    rank: 3,
+    artist: 'Depeche Mode',
+    title: 'Enjoy the Silence',
+    genres: ['Synthwave', 'Dark Wave'],
+    movement: -1,
+    previousRank: 2,
+    chartType: 'streaming',
+    fanScore: 93,
+    expertScore: 87,
+    streamingScore: 94
+  },
+  {
+    id: 'streaming-4',
+    rank: 4,
+    artist: 'Nine Inch Nails',
+    title: 'Hurt',
+    genres: ['Industrial'],
+    movement: 2,
+    previousRank: 6,
+    chartType: 'streaming',
+    fanScore: 89,
+    expertScore: 91,
+    streamingScore: 92
+  },
+  {
+    id: 'streaming-5',
+    rank: 5,
+    artist: 'The Cure',
+    title: 'A Forest',
+    genres: ['Gothic Rock', 'Dark Wave'],
+    movement: -1,
+    previousRank: 4,
+    chartType: 'streaming',
+    fanScore: 92,
+    expertScore: 88,
+    streamingScore: 91
+  }
+];
