@@ -2,7 +2,6 @@ import { ChartWeights } from '@/types';
 import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
 import { Sliders } from '@phosphor-icons/react';
-import { useEffect } from 'react';
 
 interface WeightingPanelProps {
   weights: ChartWeights;
@@ -10,17 +9,6 @@ interface WeightingPanelProps {
 }
 
 export function WeightingPanel({ weights, onChange }: WeightingPanelProps) {
-  useEffect(() => {
-    const total = weights.fan + weights.expert + weights.streaming;
-    if (total > 100) {
-      const scale = 100 / total;
-      onChange({
-        fan: Math.round(weights.fan * scale),
-        expert: Math.round(weights.expert * scale),
-        streaming: Math.round(weights.streaming * scale)
-      });
-    }
-  }, [weights, onChange]);
 
   const handleFanChange = (value: number[]) => {
     onChange({ ...weights, fan: value[0] });
