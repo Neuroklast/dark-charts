@@ -6,7 +6,7 @@ import { ChartCategory } from '@/components/ChartCategory';
 import { ChartEntry } from '@/components/ChartEntry';
 import { WeightingPanel } from '@/components/WeightingPanel';
 import { Card } from '@/components/ui/card';
-import { Skull, Crosshair } from '@phosphor-icons/react';
+import { Skull } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import logo from '@/assets/images/Gemini_Generated_Image_fa3defa3defa3def.png';
 
@@ -53,10 +53,10 @@ function App() {
   }, [setWeights]);
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden">
-      <svg className="fixed inset-0 w-full h-full pointer-events-none z-[100] opacity-[0.015]" xmlns="http://www.w3.org/2000/svg">
+    <div className="min-h-screen bg-background relative overflow-x-hidden vignette">
+      <svg className="fixed inset-0 w-full h-full pointer-events-none z-[100] opacity-[0.02]" xmlns="http://www.w3.org/2000/svg">
         <filter id="noise">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/>
+          <feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="5" stitchTiles="stitch"/>
           <feColorMatrix type="saturate" values="0"/>
         </filter>
         <rect width="100%" height="100%" filter="url(#noise)"/>
@@ -69,30 +69,25 @@ function App() {
             0deg,
             transparent,
             transparent 2px,
-            rgba(255, 255, 255, 0.01) 2px,
-            rgba(255, 255, 255, 0.01) 4px
+            rgba(255, 255, 255, 0.015) 2px,
+            rgba(255, 255, 255, 0.015) 4px
           )`,
-          animation: 'terminal-flicker 3s infinite'
+          animation: 'terminal-flicker 4s infinite'
         }}
       />
 
       <div className="relative z-10">
         <header className="border-b-2 border-primary bg-background sticky top-0 z-50">
-          <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-6">
-            <div className="flex items-center gap-6">
+          <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-8 md:py-10">
+            <div className="flex flex-col items-center justify-center gap-6">
               <img 
                 src={logo} 
-                alt="DarkTunes Charts" 
-                className="w-14 h-14 md:w-16 md:h-16 object-contain"
+                alt="Dark Charts" 
+                className="w-32 h-32 md:w-48 md:h-48 lg:w-56 lg:h-56 object-contain chromatic-hover"
               />
-              <div className="flex-1">
-                <h1 className="display-font text-4xl md:text-6xl lg:text-7xl uppercase text-foreground tracking-tight leading-none font-bold">
-                  DarkTunes Charts
-                </h1>
-                <p className="font-ui text-xs md:text-sm text-muted-foreground mt-2 tracking-[0.2em] uppercase">
-                  Metal • Gothic • Alternative • Dark Electro
-                </p>
-              </div>
+              <p className="font-ui text-xs md:text-sm text-muted-foreground tracking-[0.3em] uppercase font-medium">
+                Metal • Gothic • Alternative • Dark Electro
+              </p>
             </div>
           </div>
         </header>
@@ -102,25 +97,25 @@ function App() {
             <TabsList className="w-full md:w-auto grid grid-cols-2 md:flex md:gap-0 bg-card border-2 border-border p-0 h-auto">
               <TabsTrigger 
                 value="fan" 
-                className="data-font uppercase tracking-[0.15em] font-bold text-xs md:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-none px-8 py-4 border-r border-border hover:bg-primary hover:text-primary-foreground"
+                className="data-font uppercase tracking-[0.2em] font-bold text-xs md:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground instant-transition px-8 py-4 border-r border-border hover:bg-primary hover:text-primary-foreground hover:glow-primary"
               >
                 Fan Charts
               </TabsTrigger>
               <TabsTrigger 
                 value="expert"
-                className="data-font uppercase tracking-[0.15em] font-bold text-xs md:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-none px-8 py-4 border-r border-border hover:bg-primary hover:text-primary-foreground"
+                className="data-font uppercase tracking-[0.2em] font-bold text-xs md:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground instant-transition px-8 py-4 border-r border-border hover:bg-primary hover:text-primary-foreground hover:glow-primary"
               >
                 Expert Charts
               </TabsTrigger>
               <TabsTrigger 
                 value="streaming"
-                className="data-font uppercase tracking-[0.15em] font-bold text-xs md:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-none px-8 py-4 border-r border-border hover:bg-primary hover:text-primary-foreground"
+                className="data-font uppercase tracking-[0.2em] font-bold text-xs md:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground instant-transition px-8 py-4 border-r border-border hover:bg-primary hover:text-primary-foreground hover:glow-primary"
               >
                 Streaming
               </TabsTrigger>
               <TabsTrigger 
                 value="overall"
-                className="data-font uppercase tracking-[0.15em] font-bold text-xs md:text-sm data-[state=active]:bg-violet data-[state=active]:text-violet-foreground transition-none px-8 py-4 hover:bg-violet hover:text-violet-foreground"
+                className="data-font uppercase tracking-[0.2em] font-bold text-xs md:text-sm data-[state=active]:bg-violet data-[state=active]:text-violet-foreground instant-transition px-8 py-4 hover:bg-violet hover:text-violet-foreground hover:glow-violet"
               >
                 Overall
               </TabsTrigger>
@@ -235,7 +230,7 @@ function App() {
           <div className="max-w-[1800px] mx-auto">
             <div className="grid md:grid-cols-3 gap-8 mb-8">
               <div>
-                <h3 className="display-font text-xl uppercase text-foreground mb-4 tracking-tight font-bold">DarkTunes Charts</h3>
+                <h3 className="display-font text-xl uppercase text-foreground mb-4 tracking-tight font-bold">Dark Charts</h3>
                 <p className="font-ui text-sm text-muted-foreground leading-relaxed">
                   Independent music charts for Metal & Gothic scene. Fair, transparent, and free from pay-to-win mechanics.
                 </p>
@@ -258,7 +253,7 @@ function App() {
             </div>
             <div className="border-t border-border pt-6 text-center">
               <p className="font-ui text-xs text-muted-foreground uppercase tracking-[0.3em]">
-                DarkTunes Charts &copy; {new Date().getFullYear()} — Underground Never Dies
+                Dark Charts &copy; {new Date().getFullYear()} — Underground Never Dies
               </p>
             </div>
           </div>

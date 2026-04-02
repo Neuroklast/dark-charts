@@ -1,5 +1,5 @@
 import { Track } from '@/types';
-import { CaretUp, CaretDown, Crown } from '@phosphor-icons/react';
+import { CaretUp, CaretDown } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
 
 interface ChartEntryProps {
@@ -12,18 +12,15 @@ export function ChartEntry({ track, index }: ChartEntryProps) {
   
   return (
     <div
-      className="flex items-center gap-6 p-6 border-b border-border hover:bg-card transition-none group relative overflow-hidden glitch-hover"
+      className="flex items-center gap-6 p-6 border-b border-border hover:bg-card instant-transition group relative overflow-hidden"
     >
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary opacity-0 group-hover:opacity-100 transition-none" />
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary opacity-0 group-hover:opacity-100 instant-transition group-hover:glow-primary" />
       
       <div className="flex items-center gap-4 min-w-[140px]">
         <div className="relative">
-          <div className={`display-font text-5xl leading-none font-bold ${track.rank === 1 ? 'text-primary' : track.rank <= 3 ? 'text-accent' : 'text-foreground'}`}>
+          <div className={`display-font text-5xl leading-none font-bold instant-transition ${track.rank === 1 ? 'text-primary group-hover:glow-primary' : track.rank <= 3 ? 'text-accent group-hover:glow-accent' : 'text-foreground'}`}>
             {String(track.rank).padStart(2, '0')}
           </div>
-          {track.rank === 1 && (
-            <Crown weight="fill" className="absolute -top-3 -right-3 w-7 h-7 text-primary" />
-          )}
         </div>
         
         {track.movement !== undefined && track.movement !== 0 && (
@@ -39,7 +36,7 @@ export function ChartEntry({ track, index }: ChartEntryProps) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="data-font text-lg font-bold text-foreground truncate group-hover:text-primary transition-none">
+        <div className="data-font text-lg font-bold text-foreground truncate group-hover:text-primary instant-transition">
           {track.artist}
         </div>
         <div className="data-font text-sm text-muted-foreground truncate mt-1">
@@ -50,7 +47,7 @@ export function ChartEntry({ track, index }: ChartEntryProps) {
             <Badge 
               key={idx} 
               variant="outline"
-              className="uppercase text-[9px] font-ui font-bold tracking-[0.1em] border border-border text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-none"
+              className="uppercase text-[9px] font-ui font-bold tracking-[0.1em] border border-border text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary instant-transition"
             >
               {genre}
             </Badge>

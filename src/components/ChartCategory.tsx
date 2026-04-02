@@ -40,7 +40,7 @@ export function ChartCategory({ title, tracks, isLoading }: ChartCategoryProps) 
   }
 
   return (
-    <Card className="bg-card border-2 border-border overflow-hidden hover:border-primary transition-none">
+    <Card className="bg-card border-2 border-border overflow-hidden hover:border-primary instant-transition">
       <div className="p-5 border-b-2 border-border bg-secondary">
         <h2 className="display-font text-2xl uppercase text-foreground tracking-tight font-bold">{title}</h2>
       </div>

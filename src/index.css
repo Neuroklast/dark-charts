@@ -43,6 +43,10 @@
   --ring: oklch(0.72 0.20 200);
   
   --radius: 0rem;
+  
+  --glow-primary: 0 0 10px oklch(0.54 0.25 15 / 0.5), 0 0 20px oklch(0.54 0.25 15 / 0.3);
+  --glow-accent: 0 0 10px oklch(0.72 0.20 200 / 0.5), 0 0 20px oklch(0.72 0.20 200 / 0.3);
+  --glow-violet: 0 0 10px oklch(0.55 0.26 300 / 0.5), 0 0 20px oklch(0.55 0.26 300 / 0.3);
 }
 
 @theme {
@@ -79,7 +83,7 @@
   
   --font-display: 'Oswald', sans-serif;
   --font-data: 'Roboto Mono', monospace;
-  --font-ui: 'Inter', sans-serif;
+  --font-ui: 'Rajdhani', sans-serif;
 }
 
 body {
@@ -90,7 +94,7 @@ body {
 h1, h2, .display-font {
   font-family: var(--font-display);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
   font-weight: 700;
 }
 
@@ -117,31 +121,6 @@ h1, h2, .display-font {
   background: var(--primary);
 }
 
-@keyframes glitch {
-  0% {
-    transform: translate(0);
-  }
-  20% {
-    transform: translate(-2px, 2px);
-  }
-  40% {
-    transform: translate(-2px, -2px);
-  }
-  60% {
-    transform: translate(2px, 2px);
-  }
-  80% {
-    transform: translate(2px, -2px);
-  }
-  100% {
-    transform: translate(0);
-  }
-}
-
-.glitch-hover:hover {
-  animation: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
 @keyframes modal-flash {
   0% {
     opacity: 0;
@@ -166,6 +145,68 @@ h1, h2, .display-font {
     opacity: 1;
   }
   50% {
-    opacity: 0.97;
+    opacity: 0.98;
   }
+}
+
+.chromatic-hover {
+  position: relative;
+  transition: none;
+}
+
+.chromatic-hover:hover::before,
+.chromatic-hover:hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: inherit;
+  background-size: inherit;
+  background-position: inherit;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.chromatic-hover:hover::before {
+  transform: translate(-2px, 0);
+  filter: brightness(1.5) hue-rotate(-15deg);
+  opacity: 0.6;
+}
+
+.chromatic-hover:hover::after {
+  transform: translate(2px, 0);
+  filter: brightness(1.5) hue-rotate(15deg);
+  opacity: 0.6;
+}
+
+.vignette {
+  position: relative;
+}
+
+.vignette::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 0%, transparent 50%, oklch(0.04 0 0 / 0.8) 100%);
+  z-index: 1;
+}
+
+.glow-primary {
+  box-shadow: var(--glow-primary);
+}
+
+.glow-accent {
+  box-shadow: var(--glow-accent);
+}
+
+.glow-violet {
+  box-shadow: var(--glow-violet);
+}
+
+.instant-transition {
+  transition: none !important;
+}
+
+.hard-snap {
+  transition: all 0ms !important;
 }
