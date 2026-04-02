@@ -9,44 +9,37 @@
 
 :root {
   --background: oklch(0.04 0 0);
-  --foreground: oklch(1.0 0 0);
+  --foreground: oklch(0.95 0 0);
   
   --card: oklch(0.08 0 0);
-  --card-foreground: oklch(0.95 0 0);
+  --card-foreground: oklch(0.90 0 0);
   
   --popover: oklch(0.08 0 0);
-  --popover-foreground: oklch(0.95 0 0);
+  --popover-foreground: oklch(0.90 0 0);
   
-  --primary: oklch(0.54 0.25 15);
-  --primary-foreground: oklch(1.0 0 0);
+  --primary: oklch(0.45 0.15 25);
+  --primary-foreground: oklch(0.95 0 0);
   
-  --secondary: oklch(0.15 0 0);
-  --secondary-foreground: oklch(0.95 0 0);
+  --secondary: oklch(0.12 0 0);
+  --secondary-foreground: oklch(0.85 0 0);
   
-  --muted: oklch(0.12 0 0);
-  --muted-foreground: oklch(0.40 0 0);
+  --muted: oklch(0.10 0 0);
+  --muted-foreground: oklch(0.45 0 0);
   
-  --accent: oklch(0.72 0.20 200);
-  --accent-foreground: oklch(0.04 0 0);
+  --accent: oklch(0.55 0.18 200);
+  --accent-foreground: oklch(0.95 0 0);
   
-  --toxic: oklch(0.80 0.25 145);
-  --toxic-foreground: oklch(0.04 0 0);
+  --destructive: oklch(0.45 0.15 25);
+  --destructive-foreground: oklch(0.95 0 0);
   
-  --violet: oklch(0.55 0.26 300);
-  --violet-foreground: oklch(1.0 0 0);
-  
-  --destructive: oklch(0.54 0.25 15);
-  --destructive-foreground: oklch(1.0 0 0);
-  
-  --border: oklch(0.18 0 0);
-  --input: oklch(0.18 0 0);
-  --ring: oklch(0.72 0.20 200);
+  --border: oklch(0.15 0 0);
+  --input: oklch(0.15 0 0);
+  --ring: oklch(0.55 0.18 200);
   
   --radius: 0rem;
   
-  --glow-primary: 0 0 10px oklch(0.54 0.25 15 / 0.5), 0 0 20px oklch(0.54 0.25 15 / 0.3);
-  --glow-accent: 0 0 10px oklch(0.72 0.20 200 / 0.5), 0 0 20px oklch(0.72 0.20 200 / 0.3);
-  --glow-violet: 0 0 10px oklch(0.55 0.26 300 / 0.5), 0 0 20px oklch(0.55 0.26 300 / 0.3);
+  --glow-primary: 0 0 8px oklch(0.45 0.15 25 / 0.4), 0 0 16px oklch(0.45 0.15 25 / 0.2);
+  --glow-accent: 0 0 8px oklch(0.55 0.18 200 / 0.4), 0 0 16px oklch(0.55 0.18 200 / 0.2);
 }
 
 @theme {
@@ -64,10 +57,6 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-toxic: var(--toxic);
-  --color-toxic-foreground: var(--toxic-foreground);
-  --color-violet: var(--violet);
-  --color-violet-foreground: var(--violet-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -81,9 +70,9 @@
   --radius-2xl: 0;
   --radius-full: 9999px;
   
-  --font-display: 'Oswald', sans-serif;
-  --font-data: 'Roboto Mono', monospace;
-  --font-ui: 'Rajdhani', sans-serif;
+  --font-display: 'Teko', sans-serif;
+  --font-data: 'Space Mono', monospace;
+  --font-ui: 'Saira Condensed', sans-serif;
 }
 
 body {
@@ -94,8 +83,8 @@ body {
 h1, h2, .display-font {
   font-family: var(--font-display);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 
 .data-font {
@@ -104,8 +93,8 @@ h1, h2, .display-font {
 }
 
 *::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 *::-webkit-scrollbar-track {
@@ -114,30 +103,10 @@ h1, h2, .display-font {
 
 *::-webkit-scrollbar-thumb {
   background: var(--border);
-  border: 1px solid var(--primary);
 }
 
 *::-webkit-scrollbar-thumb:hover {
   background: var(--primary);
-}
-
-@keyframes modal-flash {
-  0% {
-    opacity: 0;
-    height: 1px;
-  }
-  10% {
-    opacity: 1;
-    height: 1px;
-  }
-  20% {
-    opacity: 0;
-    height: 1px;
-  }
-  100% {
-    opacity: 0;
-    height: 100%;
-  }
 }
 
 @keyframes terminal-flicker {
@@ -151,7 +120,6 @@ h1, h2, .display-font {
 
 .chromatic-hover {
   position: relative;
-  transition: none;
 }
 
 .chromatic-hover:hover::before,
@@ -164,18 +132,20 @@ h1, h2, .display-font {
   background-position: inherit;
   pointer-events: none;
   mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 150ms linear;
 }
 
 .chromatic-hover:hover::before {
-  transform: translate(-2px, 0);
-  filter: brightness(1.5) hue-rotate(-15deg);
-  opacity: 0.6;
+  transform: translate(-1px, 0);
+  filter: brightness(1.2) hue-rotate(-10deg);
+  opacity: 0.5;
 }
 
 .chromatic-hover:hover::after {
-  transform: translate(2px, 0);
-  filter: brightness(1.5) hue-rotate(15deg);
-  opacity: 0.6;
+  transform: translate(1px, 0);
+  filter: brightness(1.2) hue-rotate(10deg);
+  opacity: 0.5;
 }
 
 .vignette {
@@ -187,7 +157,7 @@ h1, h2, .display-font {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse at center, transparent 0%, transparent 50%, oklch(0.04 0 0 / 0.8) 100%);
+  background: radial-gradient(ellipse at center, transparent 0%, transparent 60%, oklch(0.04 0 0 / 0.7) 100%);
   z-index: 1;
 }
 
@@ -199,14 +169,6 @@ h1, h2, .display-font {
   box-shadow: var(--glow-accent);
 }
 
-.glow-violet {
-  box-shadow: var(--glow-violet);
-}
-
-.instant-transition {
-  transition: none !important;
-}
-
-.hard-snap {
-  transition: all 0ms !important;
+.snap-transition {
+  transition: all 150ms linear !important;
 }
