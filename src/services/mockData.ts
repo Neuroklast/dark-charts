@@ -13,7 +13,9 @@ export const mockFanCharts: Track[] = [
     fanScore: 98,
     expertScore: 85,
     streamingScore: 72,
-    albumArt: 'https://picsum.photos/seed/heilung/400/400'
+    albumArt: 'https://picsum.photos/seed/heilung/400/400',
+    spotifyUri: 'spotify:track:3xXBsjrbG1LDIAKigJfA1w',
+    votes: 147
   },
   {
     id: 'fan-2',
@@ -27,7 +29,9 @@ export const mockFanCharts: Track[] = [
     fanScore: 95,
     expertScore: 92,
     streamingScore: 88,
-    albumArt: 'https://picsum.photos/seed/wardruna/400/400'
+    albumArt: 'https://picsum.photos/seed/wardruna/400/400',
+    spotifyUri: 'spotify:track:0FutrWIUM5Mg3434asiwkp',
+    votes: 132
   },
   {
     id: 'fan-3',
@@ -41,7 +45,9 @@ export const mockFanCharts: Track[] = [
     fanScore: 93,
     expertScore: 78,
     streamingScore: 65,
-    albumArt: 'https://picsum.photos/seed/perturbator/400/400'
+    albumArt: 'https://picsum.photos/seed/perturbator/400/400',
+    spotifyUri: 'spotify:track:3h4CwqQnwhPXlJNPKh4feQ',
+    votes: 98
   },
   {
     id: 'fan-4',
@@ -55,7 +61,9 @@ export const mockFanCharts: Track[] = [
     fanScore: 91,
     expertScore: 88,
     streamingScore: 82,
-    albumArt: 'https://picsum.photos/seed/sisters/400/400'
+    albumArt: 'https://picsum.photos/seed/sisters/400/400',
+    spotifyUri: 'spotify:track:1TfqLAPs4K3s2rJMoCokcS',
+    votes: 89
   },
   {
     id: 'fan-5',
@@ -69,7 +77,9 @@ export const mockFanCharts: Track[] = [
     fanScore: 89,
     expertScore: 90,
     streamingScore: 79,
-    albumArt: 'https://picsum.photos/seed/typeo/400/400'
+    albumArt: 'https://picsum.photos/seed/typeo/400/400',
+    spotifyUri: 'spotify:track:7qjCVexNgbYNH0qvMYvkxg',
+    votes: 76
   }
 ];
 
@@ -86,7 +96,9 @@ export const mockExpertCharts: Track[] = [
     fanScore: 78,
     expertScore: 99,
     streamingScore: 45,
-    albumArt: 'https://picsum.photos/seed/neurosis/400/400'
+    albumArt: 'https://picsum.photos/seed/neurosis/400/400',
+    spotifyUri: 'spotify:track:4RVnAU35WRWra6OZ3CbbwA',
+    votes: 203
   },
   {
     id: 'expert-2',
@@ -100,7 +112,9 @@ export const mockExpertCharts: Track[] = [
     fanScore: 82,
     expertScore: 97,
     streamingScore: 52,
-    albumArt: 'https://picsum.photos/seed/ulver/400/400'
+    albumArt: 'https://picsum.photos/seed/ulver/400/400',
+    spotifyUri: 'spotify:track:2ZWlPOoWh0626oTaHrnl2a',
+    votes: 187
   },
   {
     id: 'expert-3',
@@ -114,7 +128,9 @@ export const mockExpertCharts: Track[] = [
     fanScore: 85,
     expertScore: 96,
     streamingScore: 68,
-    albumArt: 'https://picsum.photos/seed/deadcandance/400/400'
+    albumArt: 'https://picsum.photos/seed/deadcandance/400/400',
+    spotifyUri: 'spotify:track:5uLrWiFmE4llLULJ4j3PcW',
+    votes: 164
   },
   {
     id: 'expert-4',
@@ -128,7 +144,9 @@ export const mockExpertCharts: Track[] = [
     fanScore: 71,
     expertScore: 95,
     streamingScore: 38,
-    albumArt: 'https://picsum.photos/seed/godflesh/400/400'
+    albumArt: 'https://picsum.photos/seed/godflesh/400/400',
+    spotifyUri: 'spotify:track:3KjYS5fvP0ThOYbTwW0TZD',
+    votes: 141
   },
   {
     id: 'expert-5',
@@ -142,7 +160,9 @@ export const mockExpertCharts: Track[] = [
     fanScore: 76,
     expertScore: 94,
     streamingScore: 41,
-    albumArt: 'https://picsum.photos/seed/swans/400/400'
+    albumArt: 'https://picsum.photos/seed/swans/400/400',
+    spotifyUri: 'spotify:track:2yvmvDHYpj6l1WkLcxrM6B',
+    votes: 119
   }
 ];
 
@@ -159,7 +179,9 @@ export const mockStreamingCharts: Track[] = [
     fanScore: 88,
     expertScore: 82,
     streamingScore: 98,
-    albumArt: 'https://picsum.photos/seed/ghost/400/400'
+    albumArt: 'https://picsum.photos/seed/ghost/400/400',
+    spotifyUri: 'spotify:track:14HbJBOp8OTzeg5wIRWNOL',
+    votes: 256
   },
   {
     id: 'streaming-2',
@@ -173,7 +195,9 @@ export const mockStreamingCharts: Track[] = [
     fanScore: 91,
     expertScore: 79,
     streamingScore: 95,
-    albumArt: 'https://picsum.photos/seed/carpenter/400/400'
+    albumArt: 'https://picsum.photos/seed/carpenter/400/400',
+    spotifyUri: 'spotify:track:70DdGHW8NsKwTjxBQkW2gq',
+    votes: 221
   },
   {
     id: 'streaming-3',
@@ -187,7 +211,9 @@ export const mockStreamingCharts: Track[] = [
     fanScore: 93,
     expertScore: 87,
     streamingScore: 94,
-    albumArt: 'https://picsum.photos/seed/depeche/400/400'
+    albumArt: 'https://picsum.photos/seed/depeche/400/400',
+    spotifyUri: 'spotify:track:07WXiBgLNo9JuG7qpsvvKg',
+    votes: 198
   },
   {
     id: 'streaming-4',
@@ -201,7 +227,9 @@ export const mockStreamingCharts: Track[] = [
     fanScore: 89,
     expertScore: 91,
     streamingScore: 92,
-    albumArt: 'https://picsum.photos/seed/nin/400/400'
+    albumArt: 'https://picsum.photos/seed/nin/400/400',
+    spotifyUri: 'spotify:track:5T08Ce6VZOi3sQx5kOPLus',
+    votes: 183
   },
   {
     id: 'streaming-5',
@@ -215,6 +243,8 @@ export const mockStreamingCharts: Track[] = [
     fanScore: 92,
     expertScore: 88,
     streamingScore: 91,
-    albumArt: 'https://picsum.photos/seed/cure/400/400'
+    albumArt: 'https://picsum.photos/seed/cure/400/400',
+    spotifyUri: 'spotify:track:1Qhbi2hK9DPqcJGNp7bVag',
+    votes: 167
   }
 ];

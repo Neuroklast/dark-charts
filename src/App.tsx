@@ -1,23 +1,28 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { ChartService } from '@/services/chartService';
-import { Track, ChartWeights, ChartType } from '@/types';
+import { Track, ChartWeights, ChartType, Genre } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChartCategory } from '@/components/ChartCategory';
 import { ChartEntry } from '@/components/ChartEntry';
 import { WeightingPanel } from '@/components/WeightingPanel';
+import { GenreFilters } from '@/components/GenreFilters';
 import { Card } from '@/components/ui/card';
-import { Skull } from '@phosphor-icons/react';
+import { Skull, Funnel } from '@phosphor-icons/react';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { useKV } from '@github/spark/hooks';
 import logo from '@/assets/images/Gemini_Generated_Image_fa3defa3defa3def.png';
+import { DataProvider, useDataService } from '@/contexts/DataContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
-function App() {
+function AppContent() {
+  const dataService = useDataService();
   const [activeTab, setActiveTab] = useState<ChartType>('fan');
   const [fanCharts, setFanCharts] = useState<Track[]>([]);
   const [expertCharts, setExpertCharts] = useState<Track[]>([]);
   const [streamingCharts, setStreamingCharts] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
   
   const [weights, setWeights] = useKV<ChartWeights>('chart-weights', {
     fan: 33,
@@ -29,7 +34,7 @@ function App() {
     const loadCharts = async () => {
       setIsLoading(true);
       try {
-        const data = await ChartService.getAllCharts();
+        const data = await dataService.getAllCharts();
         setFanCharts(data.fanCharts);
         setExpertCharts(data.expertCharts);
         setStreamingCharts(data.streamingCharts);
@@ -44,14 +49,36 @@ function App() {
     };
 
     loadCharts();
-  }, []);
+  }, [dataService]);
+
+  const allGenres: Genre[] = useMemo(() => {
+    const genreSet = new Set<Genre>();
+    [...fanCharts, ...expertCharts, ...streamingCharts].forEach(track => {
+      track.genres.forEach(genre => genreSet.add(genre));
+    });
+    return Array.from(genreSet).sort();
+  }, [fanCharts, expertCharts, streamingCharts]);
+
+  const filterByGenre = useCallback((tracks: Track[]): Track[] => {
+    if (selectedGenres.length === 0) {
+      return tracks;
+    }
+    return tracks.filter(track => 
+      track.genres.some(genre => selectedGenres.includes(genre))
+    );
+  }, [selectedGenres]);
+
+  const filteredFanCharts = useMemo(() => filterByGenre(fanCharts), [fanCharts, filterByGenre]);
+  const filteredExpertCharts = useMemo(() => filterByGenre(expertCharts), [expertCharts, filterByGenre]);
+  const filteredStreamingCharts = useMemo(() => filterByGenre(streamingCharts), [streamingCharts, filterByGenre]);
 
   const overallChart = useMemo(() => {
     if (!fanCharts.length || !expertCharts.length || !streamingCharts.length || !weights) {
       return [];
     }
-    return ChartService.calculateOverallChart(weights);
-  }, [weights, fanCharts, expertCharts, streamingCharts]);
+    const chart = dataService.calculateOverallChart(weights);
+    return filterByGenre(chart);
+  }, [weights, fanCharts, expertCharts, streamingCharts, dataService, filterByGenre]);
 
   const handleWeightsChange = useCallback((newWeights: ChartWeights) => {
     setWeights(newWeights);
@@ -61,23 +88,36 @@ function App() {
     setCurrentTrack(track);
   }, []);
 
+  const handleToggleGenre = useCallback((genre: Genre) => {
+    setSelectedGenres(current => {
+      if (current.includes(genre)) {
+        return current.filter(g => g !== genre);
+      }
+      return [...current, genre];
+    });
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setSelectedGenres([]);
+  }, []);
+
   const handleNext = useCallback(() => {
     if (!currentTrack) return;
-    const allTracks = activeTab === 'fan' ? fanCharts : activeTab === 'expert' ? expertCharts : activeTab === 'streaming' ? streamingCharts : overallChart;
+    const allTracks = activeTab === 'fan' ? filteredFanCharts : activeTab === 'expert' ? filteredExpertCharts : activeTab === 'streaming' ? filteredStreamingCharts : overallChart;
     const currentIndex = allTracks.findIndex(t => t.id === currentTrack.id);
     if (currentIndex < allTracks.length - 1) {
       setCurrentTrack(allTracks[currentIndex + 1]);
     }
-  }, [currentTrack, activeTab, fanCharts, expertCharts, streamingCharts, overallChart]);
+  }, [currentTrack, activeTab, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, overallChart]);
 
   const handlePrevious = useCallback(() => {
     if (!currentTrack) return;
-    const allTracks = activeTab === 'fan' ? fanCharts : activeTab === 'expert' ? expertCharts : activeTab === 'streaming' ? streamingCharts : overallChart;
+    const allTracks = activeTab === 'fan' ? filteredFanCharts : activeTab === 'expert' ? filteredExpertCharts : activeTab === 'streaming' ? filteredStreamingCharts : overallChart;
     const currentIndex = allTracks.findIndex(t => t.id === currentTrack.id);
     if (currentIndex > 0) {
       setCurrentTrack(allTracks[currentIndex - 1]);
     }
-  }, [currentTrack, activeTab, fanCharts, expertCharts, streamingCharts, overallChart]);
+  }, [currentTrack, activeTab, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, overallChart]);
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden pb-24">
@@ -124,6 +164,45 @@ function App() {
         </header>
 
         <main className="max-w-[1800px] mx-auto px-4 md:px-8 py-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="display-font text-2xl uppercase tracking-wider text-foreground font-semibold">
+              Charts
+            </h2>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2 border ${showFilters ? 'bg-accent border-accent text-accent-foreground' : 'bg-card border-border hover:bg-accent/20'} snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold`}
+            >
+              <Funnel weight="bold" className="w-4 h-4" />
+              Filters
+              {selectedGenres.length > 0 && (
+                <span className="ml-1 bg-primary text-primary-foreground w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">
+                  {selectedGenres.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'linear' }}
+                className="overflow-hidden mb-6"
+              >
+                <Card className="bg-card border border-border p-4">
+                  <GenreFilters
+                    availableGenres={allGenres}
+                    selectedGenres={selectedGenres}
+                    onToggleGenre={handleToggleGenre}
+                    onClearFilters={handleClearFilters}
+                  />
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ChartType)} className="space-y-6">
             <TabsList className="w-full md:w-auto grid grid-cols-2 md:flex md:gap-0 bg-card border border-border p-0 h-auto">
               <TabsTrigger 
@@ -154,69 +233,102 @@ function App() {
 
             <TabsContent value="fan" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <ChartCategory title="Fan Charts Top 3" tracks={fanCharts} isLoading={isLoading} />
-                <ChartCategory title="Expert Charts Top 3" tracks={expertCharts} isLoading={isLoading} />
-                <ChartCategory title="Streaming Charts Top 3" tracks={streamingCharts} isLoading={isLoading} />
+                <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts} isLoading={isLoading} />
+                <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts} isLoading={isLoading} />
+                <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts} isLoading={isLoading} />
               </div>
 
-              {!isLoading && fanCharts.length > 3 && (
+              {!isLoading && filteredFanCharts.length > 3 && (
                 <Card className="bg-card border border-border">
                   <div className="p-4 border-b border-border">
                     <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Full Fan Charts</h2>
                   </div>
-                  <div>
-                    {fanCharts.map((track, index) => (
-                      <div key={track.id} onClick={() => handleTrackClick(track)} className="cursor-pointer">
-                        <ChartEntry track={track} index={index} />
-                      </div>
-                    ))}
-                  </div>
+                  <motion.div layout>
+                    <AnimatePresence mode="popLayout">
+                      {filteredFanCharts.map((track, index) => (
+                        <motion.div 
+                          key={track.id} 
+                          onClick={() => handleTrackClick(track)} 
+                          className="cursor-pointer"
+                          layout
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <ChartEntry track={track} index={index} />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </motion.div>
                 </Card>
               )}
             </TabsContent>
 
             <TabsContent value="expert" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <ChartCategory title="Fan Charts Top 3" tracks={fanCharts} isLoading={isLoading} />
-                <ChartCategory title="Expert Charts Top 3" tracks={expertCharts} isLoading={isLoading} />
-                <ChartCategory title="Streaming Charts Top 3" tracks={streamingCharts} isLoading={isLoading} />
+                <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts} isLoading={isLoading} />
+                <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts} isLoading={isLoading} />
+                <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts} isLoading={isLoading} />
               </div>
 
-              {!isLoading && expertCharts.length > 3 && (
+              {!isLoading && filteredExpertCharts.length > 3 && (
                 <Card className="bg-card border border-border">
                   <div className="p-4 border-b border-border">
                     <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Full Expert Charts</h2>
                   </div>
-                  <div>
-                    {expertCharts.map((track, index) => (
-                      <div key={track.id} onClick={() => handleTrackClick(track)} className="cursor-pointer">
-                        <ChartEntry track={track} index={index} />
-                      </div>
-                    ))}
-                  </div>
+                  <motion.div layout>
+                    <AnimatePresence mode="popLayout">
+                      {filteredExpertCharts.map((track, index) => (
+                        <motion.div 
+                          key={track.id} 
+                          onClick={() => handleTrackClick(track)} 
+                          className="cursor-pointer"
+                          layout
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <ChartEntry track={track} index={index} />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </motion.div>
                 </Card>
               )}
             </TabsContent>
 
             <TabsContent value="streaming" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <ChartCategory title="Fan Charts Top 3" tracks={fanCharts} isLoading={isLoading} />
-                <ChartCategory title="Expert Charts Top 3" tracks={expertCharts} isLoading={isLoading} />
-                <ChartCategory title="Streaming Charts Top 3" tracks={streamingCharts} isLoading={isLoading} />
+                <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts} isLoading={isLoading} />
+                <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts} isLoading={isLoading} />
+                <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts} isLoading={isLoading} />
               </div>
 
-              {!isLoading && streamingCharts.length > 3 && (
+              {!isLoading && filteredStreamingCharts.length > 3 && (
                 <Card className="bg-card border border-border">
                   <div className="p-4 border-b border-border">
                     <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Full Streaming Charts</h2>
                   </div>
-                  <div>
-                    {streamingCharts.map((track, index) => (
-                      <div key={track.id} onClick={() => handleTrackClick(track)} className="cursor-pointer">
-                        <ChartEntry track={track} index={index} />
-                      </div>
-                    ))}
-                  </div>
+                  <motion.div layout>
+                    <AnimatePresence mode="popLayout">
+                      {filteredStreamingCharts.map((track, index) => (
+                        <motion.div 
+                          key={track.id} 
+                          onClick={() => handleTrackClick(track)} 
+                          className="cursor-pointer"
+                          layout
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <ChartEntry track={track} index={index} />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </motion.div>
                 </Card>
               )}
             </TabsContent>
@@ -229,13 +341,24 @@ function App() {
                       <div className="p-4 border-b border-border">
                         <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Custom Overall Chart</h2>
                       </div>
-                      <div>
-                        {overallChart.slice(0, 10).map((track, index) => (
-                          <div key={track.id} onClick={() => handleTrackClick(track)} className="cursor-pointer">
-                            <ChartEntry track={track} index={index} />
-                          </div>
-                        ))}
-                      </div>
+                      <motion.div layout>
+                        <AnimatePresence mode="popLayout">
+                          {overallChart.slice(0, 10).map((track, index) => (
+                            <motion.div 
+                              key={track.id} 
+                              onClick={() => handleTrackClick(track)} 
+                              className="cursor-pointer"
+                              layout
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -20 }}
+                              transition={{ duration: 0.15 }}
+                            >
+                              <ChartEntry track={track} index={index} />
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </motion.div>
                     </Card>
                   ) : (
                     <Card className="bg-card border border-border p-12 text-center relative overflow-hidden">
@@ -305,6 +428,14 @@ function App() {
         onPrevious={handlePrevious}
       />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <DataProvider>
+      <AppContent />
+    </DataProvider>
   );
 }
 

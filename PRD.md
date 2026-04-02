@@ -41,11 +41,32 @@ The app presents chart data across multiple categories with custom weighting con
 - Success criteria: Tags visually distinct, readable, and consistent across all chart views
 
 **Track Entry Display**
-- Functionality: Show rank number, artist name, track title, genre tags, and chart movement indicator
-- Purpose: Provide complete track information at a glance with visual hierarchy
+- Functionality: Show rank number, artist name, track title, genre tags, chart movement indicator, Spotify preview player, and voting buttons
+- Purpose: Provide complete track information at a glance with visual hierarchy and interactive elements
 - Trigger: Chart data loads
-- Progression: Data fetches → Entries render with staggered animation → User reads information → Selects for more detail
-- Success criteria: Information hierarchy clear, movement indicators (↑↓) instantly recognizable
+- Progression: Data fetches → Entries render with staggered animation → User reads information → Clicks play for preview or votes → Selects for more detail
+- Success criteria: Information hierarchy clear, movement indicators (↑↓) instantly recognizable, Spotify embed loads smoothly
+
+**Genre Filter System**
+- Functionality: Filter tracks by genre with smooth transitions and category switching
+- Purpose: Allow users to focus on specific subgenres within the dark music scene
+- Trigger: User clicks genre filter button
+- Progression: User clicks genre → Active filter updates → Chart filters with smooth animation → Filtered results display
+- Success criteria: Filter switching feels instant, smooth category transitions, clear active state indication
+
+**Voting System**
+- Functionality: Anonymized vote counter with upvote/downvote buttons and animated count updates
+- Purpose: Enable community engagement while maintaining user privacy
+- Trigger: User clicks vote button (up or down arrow)
+- Progression: User clicks vote → Vote registers → Count animates up/down → Visual feedback confirms action → Vote persists
+- Success criteria: Vote animations smooth (spring physics), counts update within 100ms, no user identification exposed
+
+**Spotify Integration**
+- Functionality: Embedded Spotify player for real song previews
+- Purpose: Allow users to listen to tracks directly within the chart interface
+- Trigger: User clicks play button or track entry
+- Progression: User clicks play → Spotify embed loads → 30s preview plays → User can pause/resume → Player collapses when done
+- Success criteria: Embeds load within 500ms, playback is smooth, controls are intuitive
 
 ## Edge Case Handling
 

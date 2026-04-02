@@ -15,6 +15,8 @@ export interface Track {
   expertScore?: number;
   streamingScore?: number;
   albumArt?: string;
+  spotifyUri?: string;
+  votes?: number;
 }
 
 export interface ChartWeights {
@@ -27,4 +29,24 @@ export interface ChartData {
   fanCharts: Track[];
   expertCharts: Track[];
   streamingCharts: Track[];
+}
+
+export interface Vote {
+  trackId: string;
+  direction: 'up' | 'down';
+  timestamp: number;
+}
+
+export interface IDataService {
+  getAllCharts(): Promise<ChartData>;
+  getChartByType(type: 'fan' | 'expert' | 'streaming'): Promise<Track[]>;
+  calculateOverallChart(weights: ChartWeights): Track[];
+  vote(trackId: string, direction: 'up' | 'down'): Promise<void>;
+  getVotes(trackId: string): Promise<number>;
+  hasUserVoted(trackId: string): Promise<boolean>;
+}
+
+export interface IAuthService {
+  getCurrentUser(): Promise<{ id: string; isAnonymous: boolean } | null>;
+  ensureSession(): Promise<void>;
 }
