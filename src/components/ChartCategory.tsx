@@ -14,21 +14,21 @@ export function ChartCategory({ title, tracks, isLoading }: ChartCategoryProps) 
 
   if (isLoading) {
     return (
-      <Card className="bg-card border-border">
-        <div className="p-6 border-b border-border">
-          <h2 className="display-font text-2xl uppercase text-foreground">{title}</h2>
+      <Card className="bg-card border-4 border-border">
+        <div className="p-6 border-b-4 border-border bg-secondary/20">
+          <h2 className="display-font text-3xl uppercase text-foreground tracking-wider">{title}</h2>
         </div>
         <div>
           {[1, 2, 3].map((i) => (
-            <div key={i} className="p-6 border-b border-border">
+            <div key={i} className="p-6 border-b-2 border-border">
               <div className="flex items-center gap-6">
-                <Skeleton className="w-16 h-16 bg-muted" />
+                <Skeleton className="w-20 h-20 bg-muted" />
                 <div className="flex-1 space-y-3">
-                  <Skeleton className="h-5 w-3/4 bg-muted" />
-                  <Skeleton className="h-4 w-1/2 bg-muted" />
+                  <Skeleton className="h-6 w-3/4 bg-muted" />
+                  <Skeleton className="h-5 w-1/2 bg-muted" />
                   <div className="flex gap-2">
+                    <Skeleton className="h-6 w-24 bg-muted" />
                     <Skeleton className="h-6 w-20 bg-muted" />
-                    <Skeleton className="h-6 w-16 bg-muted" />
                   </div>
                 </div>
               </div>
@@ -40,9 +40,9 @@ export function ChartCategory({ title, tracks, isLoading }: ChartCategoryProps) 
   }
 
   return (
-    <Card className="bg-card border-border overflow-hidden">
-      <div className="p-6 border-b border-border">
-        <h2 className="display-font text-2xl uppercase text-foreground tracking-tight">{title}</h2>
+    <Card className="bg-card border-4 border-border overflow-hidden hover:border-accent transition-colors duration-300">
+      <div className="p-6 border-b-4 border-border bg-secondary/20">
+        <h2 className="display-font text-3xl uppercase text-foreground tracking-wider">{title}</h2>
       </div>
       <div>
         {topThree.map((track, index) => (

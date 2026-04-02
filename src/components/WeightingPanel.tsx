@@ -37,21 +37,21 @@ export function WeightingPanel({ weights, onChange }: WeightingPanelProps) {
   const total = weights.fan + weights.expert + weights.streaming;
 
   return (
-    <Card className="bg-card border-border p-6">
-      <div className="flex items-center gap-3 mb-8">
-        <Sliders weight="bold" className="w-6 h-6 text-accent" />
-        <h3 className="font-ui text-xl font-bold uppercase tracking-widest text-foreground">
-          Custom Weighting
+    <Card className="bg-card border-4 border-border p-8 sticky top-24">
+      <div className="flex items-center gap-4 mb-10 pb-6 border-b-2 border-accent">
+        <Sliders weight="bold" className="w-8 h-8 text-accent" />
+        <h3 className="font-ui text-2xl font-bold uppercase tracking-[0.15em] text-foreground">
+          Weight Control
         </h3>
       </div>
 
-      <div className="space-y-8">
-        <div className="space-y-3">
+      <div className="space-y-10">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <label className="font-ui text-sm font-medium uppercase tracking-wider text-card-foreground">
+            <label className="font-ui text-xs font-bold uppercase tracking-[0.2em] text-card-foreground">
               Fan Charts
             </label>
-            <span className="data-font text-lg font-bold text-accent tabular-nums">
+            <span className="data-font text-2xl font-bold text-accent tabular-nums px-3 py-1 bg-background border-2 border-accent">
               {weights.fan}%
             </span>
           </div>
@@ -60,16 +60,16 @@ export function WeightingPanel({ weights, onChange }: WeightingPanelProps) {
             onValueChange={handleFanChange}
             max={100}
             step={1}
-            className="cursor-pointer"
+            className="cursor-crosshair"
           />
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <label className="font-ui text-sm font-medium uppercase tracking-wider text-card-foreground">
+            <label className="font-ui text-xs font-bold uppercase tracking-[0.2em] text-card-foreground">
               Expert Charts
             </label>
-            <span className="data-font text-lg font-bold text-accent tabular-nums">
+            <span className="data-font text-2xl font-bold text-accent tabular-nums px-3 py-1 bg-background border-2 border-accent">
               {weights.expert}%
             </span>
           </div>
@@ -78,16 +78,16 @@ export function WeightingPanel({ weights, onChange }: WeightingPanelProps) {
             onValueChange={handleExpertChange}
             max={100}
             step={1}
-            className="cursor-pointer"
+            className="cursor-crosshair"
           />
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <label className="font-ui text-sm font-medium uppercase tracking-wider text-card-foreground">
+            <label className="font-ui text-xs font-bold uppercase tracking-[0.2em] text-card-foreground">
               Streaming Charts
             </label>
-            <span className="data-font text-lg font-bold text-accent tabular-nums">
+            <span className="data-font text-2xl font-bold text-accent tabular-nums px-3 py-1 bg-background border-2 border-accent">
               {weights.streaming}%
             </span>
           </div>
@@ -96,22 +96,22 @@ export function WeightingPanel({ weights, onChange }: WeightingPanelProps) {
             onValueChange={handleStreamingChange}
             max={100}
             step={1}
-            className="cursor-pointer"
+            className="cursor-crosshair"
           />
         </div>
 
-        <div className="pt-6 border-t border-border">
-          <div className="flex items-center justify-between">
-            <span className="font-ui text-sm font-bold uppercase tracking-wider text-card-foreground">
+        <div className="pt-8 border-t-4 border-border">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-ui text-sm font-bold uppercase tracking-[0.3em] text-card-foreground">
               Total
             </span>
-            <span className={`data-font text-2xl font-bold tabular-nums ${total > 100 ? 'text-primary' : 'text-accent'}`}>
+            <span className={`data-font text-3xl font-bold tabular-nums px-4 py-2 border-4 ${total > 100 ? 'text-primary border-primary' : 'text-toxic border-toxic'}`}>
               {total}%
             </span>
           </div>
           {total > 100 && (
-            <p className="text-xs text-primary mt-2 font-ui uppercase tracking-wider">
-              Values auto-normalized to 100%
+            <p className="text-xs text-primary mt-3 font-ui uppercase tracking-[0.2em] text-center">
+              ⚠ Auto-normalized to 100%
             </p>
           )}
         </div>

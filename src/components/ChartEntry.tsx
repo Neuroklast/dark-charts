@@ -9,56 +9,58 @@ interface ChartEntryProps {
 }
 
 export function ChartEntry({ track, index }: ChartEntryProps) {
-  const movementColor = track.movement && track.movement > 0 ? 'text-primary' : track.movement && track.movement < 0 ? 'text-muted-foreground' : 'text-muted-foreground';
+  const movementColor = track.movement && track.movement > 0 ? 'text-toxic' : track.movement && track.movement < 0 ? 'text-primary' : 'text-muted-foreground';
   
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.2, ease: 'linear' }}
-      className="flex items-center gap-6 p-6 border-b border-border hover:border-accent transition-colors duration-100 group cursor-pointer"
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.03, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className="flex items-center gap-6 p-6 border-b-2 border-border hover:bg-secondary/30 transition-all duration-150 group cursor-crosshair relative overflow-hidden"
     >
-      <div className="flex items-center gap-4 min-w-[120px]">
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+      
+      <div className="flex items-center gap-4 min-w-[140px]">
         <div className="relative">
-          <div className={`display-font text-5xl leading-none ${track.rank === 1 ? 'text-primary' : 'text-foreground'}`}>
-            {track.rank}
+          <div className={`display-font text-6xl leading-none font-bold ${track.rank === 1 ? 'text-accent' : track.rank <= 3 ? 'text-toxic' : 'text-foreground'}`}>
+            {String(track.rank).padStart(2, '0')}
           </div>
           {track.rank === 1 && (
-            <Crown weight="fill" className="absolute -top-3 -right-3 w-6 h-6 text-primary" />
+            <Crown weight="fill" className="absolute -top-4 -right-4 w-8 h-8 text-accent animate-pulse" style={{ animationDuration: '2s' }} />
           )}
         </div>
         
         {track.movement !== undefined && track.movement !== 0 && (
-          <div className={`flex items-center gap-1 ${movementColor}`}>
+          <div className={`flex flex-col items-center ${movementColor}`}>
             {track.movement > 0 ? (
-              <CaretUp weight="bold" className="w-5 h-5" />
+              <CaretUp weight="fill" className="w-6 h-6" />
             ) : (
-              <CaretDown weight="bold" className="w-5 h-5" />
+              <CaretDown weight="fill" className="w-6 h-6" />
             )}
-            <span className="data-font text-sm font-bold">{Math.abs(track.movement)}</span>
+            <span className="data-font text-xs font-bold">{Math.abs(track.movement)}</span>
           </div>
         )}
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="data-font text-lg font-medium text-foreground truncate">
+        <div className="data-font text-xl font-bold text-foreground truncate group-hover:text-accent transition-colors">
           {track.artist}
         </div>
-        <div className="data-font text-base text-card-foreground truncate mt-1">
+        <div className="data-font text-sm text-muted-foreground truncate mt-1">
           {track.title}
         </div>
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="flex flex-wrap gap-2 mt-4">
           {track.genres.slice(0, 3).map((genre, idx) => (
             <Badge 
               key={idx} 
               variant="outline"
-              className="uppercase text-xs font-ui font-medium tracking-wider border-secondary text-secondary-foreground hover:border-accent hover:text-accent transition-colors duration-100"
+              className="uppercase text-[10px] font-ui font-bold tracking-[0.15em] border-2 border-border text-foreground hover:border-accent hover:text-accent hover:bg-accent/10 transition-all duration-150 cursor-crosshair"
             >
               {genre}
             </Badge>
           ))}
           {track.genres.length > 3 && (
-            <Badge variant="outline" className="uppercase text-xs font-ui font-medium">
+            <Badge variant="outline" className="uppercase text-[10px] font-ui font-bold border-2 border-border">
               +{track.genres.length - 3}
             </Badge>
           )}
