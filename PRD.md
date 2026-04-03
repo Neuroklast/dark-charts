@@ -68,6 +68,13 @@ The app presents chart data across multiple categories with custom weighting con
 - Progression: User clicks play → Spotify embed loads → 30s preview plays → User can pause/resume → Player collapses when done
 - Success criteria: Embeds load within 500ms, playback is smooth, controls are intuitive
 
+**Chart History View**
+- Functionality: Weekly snapshots of chart rankings showing track movements over past 12 weeks
+- Purpose: Track artist progression and historical chart performance
+- Trigger: User navigates to History view via menu
+- Progression: User selects history → View loads with current week → User selects chart type (Fan/Expert/Streaming) → Sees movers section (risers, fallers, new entries, re-entries) → Browses past weeks via dropdown → Rankings display with movement indicators
+- Success criteria: History loads within 300ms, movement indicators (arrows with +/- values) clearly visible, week selection responsive, visual distinction between risers (green), fallers (red), and stable (neutral)
+
 ## Edge Case Handling
 
 - **Empty Chart Data**: Display haunting empty state with skull iconography and "No souls ranked yet" message

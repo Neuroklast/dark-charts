@@ -14,7 +14,7 @@ export type Genre =
 
 export type ChartType = 'fan' | 'expert' | 'streaming' | 'overall';
 
-export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting';
+export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'history';
 
 export interface Track {
   id: string;
@@ -216,4 +216,37 @@ export interface IAuthService {
   login(provider: 'spotify' | 'apple' | 'mock'): Promise<AuthUser>;
   logout(): Promise<void>;
   updateProfile(profile: Partial<UserProfile>): Promise<UserProfile>;
+}
+
+export interface ChartSnapshot {
+  week: number;
+  date: number;
+  fanCharts: Track[];
+  expertCharts: Track[];
+  streamingCharts: Track[];
+}
+
+export interface TrackHistory {
+  trackId: string;
+  artist: string;
+  title: string;
+  history: {
+    week: number;
+    date: number;
+    rank: number;
+    chartType: ChartType;
+    movement: number;
+  }[];
+}
+
+export interface WeeklyMovement {
+  week: number;
+  date: number;
+  movers: {
+    biggest: Track[];
+    risers: Track[];
+    fallers: Track[];
+    newEntries: Track[];
+    reEntries: Track[];
+  };
 }

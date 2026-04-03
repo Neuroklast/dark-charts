@@ -11,6 +11,7 @@ import { ProfileView } from '@/components/ProfileView';
 import { AboutView } from '@/components/AboutView';
 import { CustomChartsView } from '@/components/CustomChartsView';
 import { VotingArea } from '@/components/VotingArea';
+import { ChartHistoryView } from '@/components/ChartHistoryView';
 import { PillarNavigation } from '@/components/PillarNavigation';
 import { MainGenreNavigation } from '@/components/MainGenreNavigation';
 import { SubGenreNavigation } from '@/components/SubGenreNavigation';
@@ -294,6 +295,7 @@ function AppContent() {
               onTrackClick={handleTrackClick}
             />
           )}
+          {currentView === 'history' && <ChartHistoryView />}
           
           {(currentView === 'home' || currentView === 'main-genre') && (
             <>

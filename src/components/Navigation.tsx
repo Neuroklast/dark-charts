@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, ChartLine, Info, Sliders, List, X, ChartBar } from '@phosphor-icons/react';
+import { User, ChartLine, Info, Sliders, List, X, ChartBar, ClockCounterClockwise } from '@phosphor-icons/react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ViewType } from '@/types';
 
@@ -71,6 +71,18 @@ export function Navigation({ currentView, onNavigate }: NavigationProps) {
       >
         <ChartBar weight="bold" className="w-5 h-5" />
         Vote Now
+      </button>
+
+      <button
+        onClick={() => {
+          onNavigate('history');
+          setMobileOpen(false);
+        }}
+        className={`flex items-center gap-3 px-4 py-3 border-b border-border snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold
+          ${currentView === 'history' ? 'bg-accent text-accent-foreground' : 'bg-card hover:bg-accent/20'}`}
+      >
+        <ClockCounterClockwise weight="bold" className="w-5 h-5" />
+        Chart History
       </button>
     </>
   );
