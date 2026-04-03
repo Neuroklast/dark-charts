@@ -502,6 +502,7 @@ function AppContent() {
         currentTrack={currentTrack} 
         onNext={handleNext}
         onPrevious={handlePrevious}
+        allTracks={[...fanCharts, ...expertCharts, ...streamingCharts]}
       />
 
       <TrackDetailModal 

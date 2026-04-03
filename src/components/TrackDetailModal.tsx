@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef } from 'react';
 import { Track, MainGenre, Genre, ChartType } from '@/types';
 import { 
   X, Play, CaretUp, CaretDown, Info, ArrowRight, 
@@ -13,6 +14,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { audioPlayerService } from '@/services/audioPlayerService';
+import { artworkCacheService } from '@/services/artworkCacheService';
 
 interface ChartPosition {
   chartName: string;
@@ -33,6 +36,36 @@ interface TrackDetailModalProps {
 }
 
 export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, allChartPositions = [], onNavigateToChart }: TrackDetailModalProps) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    if (track?.artworkHighRes || track?.albumArt) {
+      const artworkUrl = track.artworkHighRes || track.albumArt;
+      if (artworkUrl) {
+        artworkCacheService.preloadArtwork(artworkUrl);
+      }
+    }
+  }, [track]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioPlayerService.registerAudioElement(audioRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (iframeRef.current && isOpen) {
+      audioPlayerService.registerIframe(iframeRef.current);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      audioPlayerService.stopAll();
+    }
+  }, [isOpen]);
+
   if (!track) return null;
 
   const getSpotifyEmbedId = (uri?: string): string | null => {
@@ -360,6 +393,7 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                       </div>
                       {track.previewUrl ? (
                         <audio 
+                          ref={audioRef}
                           controls 
                           className="w-full"
                           preload="metadata"
@@ -371,6 +405,7 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                       {track.spotifyUri && spotifyId && (
                         <div className="mt-4">
                           <iframe
+                            ref={iframeRef}
                             src={`https://open.spotify.com/embed/track/${spotifyId}?utm_source=generator&theme=0`}
                             width="100%"
                             height="152"
