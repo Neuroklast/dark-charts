@@ -1,17 +1,14 @@
 import { useState } from 'react';
-import { User, ChartLine, Info, Sliders, List, X } from '@phosphor-icons/react';
+import { User, ChartLine, Info, Sliders, List, X, ChartBar } from '@phosphor-icons/react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { MainGenre, ViewType } from '@/types';
+import { ViewType } from '@/types';
 
 interface NavigationProps {
   currentView: ViewType;
-  currentMainGenre?: MainGenre | null;
-  onNavigate: (view: ViewType, mainGenre?: MainGenre) => void;
+  onNavigate: (view: ViewType) => void;
 }
 
-const mainGenres: MainGenre[] = ['Gothic', 'Metal', 'Dark Electro', 'Crossover'];
-
-export function Navigation({ currentView, currentMainGenre, onNavigate }: NavigationProps) {
+export function Navigation({ currentView, onNavigate }: NavigationProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const NavContent = () => (
@@ -25,31 +22,8 @@ export function Navigation({ currentView, currentMainGenre, onNavigate }: Naviga
           ${currentView === 'home' ? 'bg-primary text-primary-foreground' : 'bg-card hover:bg-primary/20'}`}
       >
         <ChartLine weight="bold" className="w-5 h-5" />
-        Overall Charts
+        Startseite
       </button>
-
-      <div className="border-b border-border">
-        <div className="px-4 py-2 bg-secondary/30">
-          <span className="font-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold">
-            Main Genres
-          </span>
-        </div>
-        {mainGenres.map((genre) => (
-          <button
-            key={genre}
-            onClick={() => {
-              onNavigate('main-genre', genre);
-              setMobileOpen(false);
-            }}
-            className={`w-full text-left px-6 py-3 border-b border-border snap-transition font-ui text-xs uppercase tracking-[0.12em] font-semibold
-              ${currentView === 'main-genre' && currentMainGenre === genre 
-                ? 'bg-accent text-accent-foreground' 
-                : 'bg-card hover:bg-accent/20'}`}
-          >
-            {genre}
-          </button>
-        ))}
-      </div>
 
       <button
         onClick={() => {
@@ -84,7 +58,18 @@ export function Navigation({ currentView, currentMainGenre, onNavigate }: Naviga
           ${currentView === 'about' ? 'bg-accent text-accent-foreground' : 'bg-card hover:bg-accent/20'}`}
       >
         <Info weight="bold" className="w-5 h-5" />
-        About / Voting System
+        About
+      </button>
+
+      <button
+        onClick={() => {
+          onNavigate('about');
+          setMobileOpen(false);
+        }}
+        className={`flex items-center gap-3 px-4 py-3 border-b border-border snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold bg-card hover:bg-accent/20`}
+      >
+        <ChartBar weight="bold" className="w-5 h-5" />
+        Voting System
       </button>
     </>
   );
