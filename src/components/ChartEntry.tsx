@@ -8,15 +8,17 @@ import { SpotifyEmbed } from './SpotifyEmbed';
 interface ChartEntryProps {
   track: Track;
   index: number;
+  onClick?: (track: Track) => void;
 }
 
-export function ChartEntry({ track, index }: ChartEntryProps) {
+export function ChartEntry({ track, index, onClick }: ChartEntryProps) {
   const movementColor = track.movement && track.movement > 0 ? 'text-accent' : track.movement && track.movement < 0 ? 'text-primary' : 'text-muted-foreground';
   const glowColor = track.rank === 1 ? 'primary' : track.rank <= 3 ? 'accent' : 'primary';
   
   return (
     <div
-      className="cyber-card flex flex-col gap-3 p-4 border-b group overflow-hidden"
+      className="cyber-card flex flex-col gap-3 p-4 border-b group overflow-hidden cursor-pointer"
+      onClick={() => onClick?.(track)}
     >
       <div className="cyber-scanline" />
       

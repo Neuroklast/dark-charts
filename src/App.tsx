@@ -233,16 +233,14 @@ function AppContent() {
                         <AnimatePresence mode="popLayout">
                           {filteredFanCharts.map((track, index) => (
                             <motion.div 
-                              key={track.id} 
-                              onClick={() => handleTrackClick(track)} 
-                              className="cursor-pointer"
+                              key={track.id}
                               layout
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -20 }}
                               transition={{ duration: 0.15 }}
                             >
-                              <ChartEntry track={track} index={index} />
+                              <ChartEntry track={track} index={index} onClick={handleTrackClick} />
                             </motion.div>
                           ))}
                         </AnimatePresence>
@@ -269,16 +267,14 @@ function AppContent() {
                         <AnimatePresence mode="popLayout">
                           {filteredExpertCharts.map((track, index) => (
                             <motion.div 
-                              key={track.id} 
-                              onClick={() => handleTrackClick(track)} 
-                              className="cursor-pointer"
+                              key={track.id}
                               layout
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -20 }}
                               transition={{ duration: 0.15 }}
                             >
-                              <ChartEntry track={track} index={index} />
+                              <ChartEntry track={track} index={index} onClick={handleTrackClick} />
                             </motion.div>
                           ))}
                         </AnimatePresence>
@@ -305,16 +301,14 @@ function AppContent() {
                         <AnimatePresence mode="popLayout">
                           {filteredStreamingCharts.map((track, index) => (
                             <motion.div 
-                              key={track.id} 
-                              onClick={() => handleTrackClick(track)} 
-                              className="cursor-pointer"
+                              key={track.id}
                               layout
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -20 }}
                               transition={{ duration: 0.15 }}
                             >
-                              <ChartEntry track={track} index={index} />
+                              <ChartEntry track={track} index={index} onClick={handleTrackClick} />
                             </motion.div>
                           ))}
                         </AnimatePresence>
