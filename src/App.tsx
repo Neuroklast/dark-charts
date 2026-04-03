@@ -318,21 +318,13 @@ function AppContent() {
                 }}
                 className="mb-6"
               />
-
-              {currentMainGenre !== 'overall' && (
-                <SubGenreNavigation
-                  mainGenre={currentMainGenre}
-                  activeSubGenre={currentSubGenre}
-                  onSubGenreChange={setCurrentSubGenre}
-                  className="mb-8"
-                />
-              )}
             </>
           )}
 
           {currentView === 'main-genre' && currentMainGenre && currentMainGenre !== 'overall' && (
             <GenreCharts 
               mainGenre={currentMainGenre}
+              activePillar={activePillar}
               fanCharts={fanCharts}
               expertCharts={expertCharts}
               streamingCharts={streamingCharts}
