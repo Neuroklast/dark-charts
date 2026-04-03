@@ -133,16 +133,20 @@ export function GenreCharts({
           <AnimatePresence mode="popLayout">
             {tracks.map((track, index) => (
               <motion.div 
-                key={track.id} 
-                onClick={() => onTrackClick(track)} 
-                className="cursor-pointer"
+                key={track.id}
+                layoutId={`track-${track.id}`}
                 layout
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.15 }}
+                transition={{ 
+                  layout: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                  opacity: { duration: 0.15 }
+                }}
+                onClick={() => onTrackClick(track)} 
+                className="cursor-pointer"
               >
-                <ChartEntry track={{ ...track, rank: index + 1 }} index={index} />
+                <ChartEntry track={{ ...track, rank: index + 1 }} index={index} animate={true} />
               </motion.div>
             ))}
           </AnimatePresence>

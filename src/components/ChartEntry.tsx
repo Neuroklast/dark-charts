@@ -4,14 +4,16 @@ import { Badge } from '@/components/ui/badge';
 import { AlbumArtwork } from './AlbumArtwork';
 import { VoteButtons } from './VoteButtons';
 import { SpotifyEmbed } from './SpotifyEmbed';
+import { motion } from 'framer-motion';
 
 interface ChartEntryProps {
   track: Track;
   index: number;
   onClick?: (track: Track) => void;
+  animate?: boolean;
 }
 
-export function ChartEntry({ track, index, onClick }: ChartEntryProps) {
+export function ChartEntry({ track, index, onClick, animate = false }: ChartEntryProps) {
   const movementColor = track.movement && track.movement > 0 ? 'text-accent' : track.movement && track.movement < 0 ? 'text-primary' : 'text-muted-foreground';
   const glowColor = track.rank === 1 ? 'primary' : track.rank <= 3 ? 'accent' : 'primary';
   
@@ -27,9 +29,22 @@ export function ChartEntry({ track, index, onClick }: ChartEntryProps) {
       <div className="flex items-center gap-4 relative z-10">
         <div className="flex items-center gap-3 min-w-[100px]">
           <div className="relative">
-            <div className={`display-font text-4xl leading-none font-semibold snap-transition ${track.rank === 1 ? 'text-primary' : track.rank <= 3 ? 'text-accent' : 'text-foreground/80'}`}>
-              {String(track.rank).padStart(2, '0')}
-            </div>
+            {animate ? (
+              <motion.div 
+                key={`rank-${track.id}-${track.rank}`}
+                initial={{ opacity: 0, scale: 0.5, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.5, y: 20 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className={`display-font text-4xl leading-none font-semibold ${track.rank === 1 ? 'text-primary' : track.rank <= 3 ? 'text-accent' : 'text-foreground/80'}`}
+              >
+                {String(track.rank).padStart(2, '0')}
+              </motion.div>
+            ) : (
+              <div className={`display-font text-4xl leading-none font-semibold snap-transition ${track.rank === 1 ? 'text-primary' : track.rank <= 3 ? 'text-accent' : 'text-foreground/80'}`}>
+                {String(track.rank).padStart(2, '0')}
+              </div>
+            )}
           </div>
           
           {track.movement !== undefined && track.movement !== 0 && (

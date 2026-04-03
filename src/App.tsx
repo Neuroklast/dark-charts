@@ -357,13 +357,17 @@ function AppContent() {
                           {filteredFanCharts.map((track, index) => (
                             <motion.div 
                               key={track.id}
+                              layoutId={`track-${track.id}`}
                               layout
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -20 }}
-                              transition={{ duration: 0.15 }}
+                              transition={{ 
+                                layout: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                                opacity: { duration: 0.15 }
+                              }}
                             >
-                              <ChartEntry track={track} index={index} onClick={handleTrackClick} />
+                              <ChartEntry track={track} index={index} onClick={handleTrackClick} animate={true} />
                             </motion.div>
                           ))}
                         </AnimatePresence>
@@ -385,13 +389,17 @@ function AppContent() {
                           {filteredExpertCharts.map((track, index) => (
                             <motion.div 
                               key={track.id}
+                              layoutId={`track-${track.id}`}
                               layout
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -20 }}
-                              transition={{ duration: 0.15 }}
+                              transition={{ 
+                                layout: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                                opacity: { duration: 0.15 }
+                              }}
                             >
-                              <ChartEntry track={track} index={index} onClick={handleTrackClick} />
+                              <ChartEntry track={track} index={index} onClick={handleTrackClick} animate={true} />
                             </motion.div>
                           ))}
                         </AnimatePresence>
@@ -413,13 +421,17 @@ function AppContent() {
                           {filteredStreamingCharts.map((track, index) => (
                             <motion.div 
                               key={track.id}
+                              layoutId={`track-${track.id}`}
                               layout
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -20 }}
-                              transition={{ duration: 0.15 }}
+                              transition={{ 
+                                layout: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                                opacity: { duration: 0.15 }
+                              }}
                             >
-                              <ChartEntry track={track} index={index} onClick={handleTrackClick} />
+                              <ChartEntry track={track} index={index} onClick={handleTrackClick} animate={true} />
                             </motion.div>
                           ))}
                         </AnimatePresence>
