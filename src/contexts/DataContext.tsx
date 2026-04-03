@@ -1,6 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { IDataService, IAuthService } from '@/types';
-import { MockDataService } from '@/services/mockDataService';
+import { ComprehensiveDataService } from '@/services/comprehensiveDataService';
 import { MockAuthService } from '@/services/mockAuthService';
 
 interface DataContextType {
@@ -18,7 +18,7 @@ interface DataProviderProps {
 
 export const DataProvider: React.FC<DataProviderProps> = ({ 
   children, 
-  dataService = new MockDataService(),
+  dataService = new ComprehensiveDataService(),
   authService = new MockAuthService()
 }) => {
   return (
