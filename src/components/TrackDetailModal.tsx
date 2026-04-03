@@ -95,15 +95,17 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
       };
 
       Object.entries(platforms).forEach(([key, value]) => {
-        const platformName = platformMapping[key] || key.charAt(0).toUpperCase() + key.slice(1);
-        links.push({ 
-          platform: platformName, 
-          url: value.url, 
-          available: true 
-        });
+        if (value && value.url) {
+          const platformName = platformMapping[key] || key.charAt(0).toUpperCase() + key.slice(1);
+          links.push({ 
+            platform: platformName, 
+            url: value.url, 
+            available: true 
+          });
+        }
       });
     } else {
-      if (track.spotifyUri) {
+      if (track.spotifyUri && spotifyId) {
         links.push({ platform: 'Spotify', url: `https://open.spotify.com/track/${spotifyId}`, available: true });
       }
       if (track.appleMusicUrl) {
@@ -383,7 +385,7 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                     </div>
                   )}
 
-                  {streamingLinks.length > 0 && (
+                  {streamingLinks.length > 0 ? (
                     <div className="pt-4 border-t border-border">
                       <div className="flex items-center justify-between mb-4">
                         <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground">
@@ -424,6 +426,21 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                           </a>
                         </div>
                       )}
+                    </div>
+                  ) : (
+                    <div className="pt-4 border-t border-border">
+                      <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground mb-3">
+                        Streaming-Verfügbarkeit / Streaming Availability
+                      </div>
+                      <div className="p-4 bg-secondary/30 border border-border/50">
+                        <p className="text-sm font-ui text-muted-foreground text-center">
+                          Streaming-Links werden geladen... / Loading streaming links...
+                        </p>
+                        <p className="text-xs font-ui text-muted-foreground/70 text-center mt-2">
+                          Falls keine Links angezeigt werden, ist dieser Track möglicherweise nicht auf Streaming-Plattformen verfügbar.
+                          / If no links appear, this track may not be available on streaming platforms.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>

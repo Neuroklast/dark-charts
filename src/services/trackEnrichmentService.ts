@@ -2,15 +2,34 @@ import { Track, OdesliData, CachedTrackData } from '@/types';
 
 const ODESLI_API_BASE = 'https://api.song.link/v1-alpha.1/links';
 const ITUNES_SEARCH_API = 'https://itunes.apple.com/search';
-const CACHE_DURATION = 24 * 60 * 60 * 1000;
+const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000;
+const FAILED_LOOKUP_CACHE_DURATION = 24 * 60 * 60 * 1000;
 const ITUNES_RATE_LIMIT = 20;
 const ITUNES_RATE_WINDOW = 60 * 1000;
+const ODESLI_RATE_LIMIT = 10;
+const ODESLI_RATE_WINDOW = 60 * 1000;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
+
+interface FailedLookup {
+  trackId: string;
+  timestamp: number;
+  retryCount: number;
+  error: string;
+}
 
 class ThrottledRequestQueue {
   private queue: Array<() => Promise<void>> = [];
   private requestCount = 0;
   private windowStart = Date.now();
   private processing = false;
+  private maxRequests: number;
+  private windowDuration: number;
+
+  constructor(maxRequests: number, windowDuration: number) {
+    this.maxRequests = maxRequests;
+    this.windowDuration = windowDuration;
+  }
 
   async enqueue<T>(fn: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
@@ -37,13 +56,13 @@ class ThrottledRequestQueue {
     while (this.queue.length > 0) {
       const now = Date.now();
       
-      if (now - this.windowStart > ITUNES_RATE_WINDOW) {
+      if (now - this.windowStart > this.windowDuration) {
         this.requestCount = 0;
         this.windowStart = now;
       }
 
-      if (this.requestCount >= ITUNES_RATE_LIMIT) {
-        const waitTime = ITUNES_RATE_WINDOW - (now - this.windowStart);
+      if (this.requestCount >= this.maxRequests) {
+        const waitTime = this.windowDuration - (now - this.windowStart);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         this.requestCount = 0;
         this.windowStart = Date.now();
@@ -62,10 +81,12 @@ class ThrottledRequestQueue {
 }
 
 class TrackEnrichmentService {
-  private throttleQueue = new ThrottledRequestQueue();
-  private cacheKey = 'track-enrichment-cache';
+  private itunesQueue = new ThrottledRequestQueue(ITUNES_RATE_LIMIT, ITUNES_RATE_WINDOW);
+  private odesliQueue = new ThrottledRequestQueue(ODESLI_RATE_LIMIT, ODESLI_RATE_WINDOW);
+  private cacheKey = 'track-enrichment-cache-v2';
   private lastSyncKey = 'track-enrichment-last-sync';
   private syncInProgressKey = 'track-enrichment-sync-in-progress';
+  private failedLookupsKey = 'track-enrichment-failed-lookups';
 
   async getCache(): Promise<Map<string, CachedTrackData>> {
     try {
@@ -85,6 +106,54 @@ class TrackEnrichmentService {
     }
   }
 
+  async getFailedLookups(): Promise<Map<string, FailedLookup>> {
+    try {
+      const failed = await window.spark.kv.get<Record<string, FailedLookup>>(this.failedLookupsKey);
+      return new Map(Object.entries(failed || {}));
+    } catch {
+      return new Map();
+    }
+  }
+
+  async setFailedLookups(failed: Map<string, FailedLookup>): Promise<void> {
+    try {
+      const obj = Object.fromEntries(failed);
+      await window.spark.kv.set(this.failedLookupsKey, obj);
+    } catch (error) {
+      console.error('Failed to save failed lookups:', error);
+    }
+  }
+
+  async markLookupAsFailed(trackId: string, error: string, retryCount: number = 0): Promise<void> {
+    const failed = await this.getFailedLookups();
+    failed.set(trackId, {
+      trackId,
+      timestamp: Date.now(),
+      retryCount,
+      error
+    });
+    await this.setFailedLookups(failed);
+  }
+
+  async shouldRetryFailedLookup(trackId: string): Promise<boolean> {
+    const failed = await this.getFailedLookups();
+    const lookup = failed.get(trackId);
+    
+    if (!lookup) return true;
+    
+    const timeSinceFailed = Date.now() - lookup.timestamp;
+    
+    if (timeSinceFailed > FAILED_LOOKUP_CACHE_DURATION) {
+      return true;
+    }
+    
+    if (lookup.retryCount < MAX_RETRIES && timeSinceFailed > RETRY_DELAY * Math.pow(2, lookup.retryCount)) {
+      return true;
+    }
+    
+    return false;
+  }
+
   async getCachedTrackData(trackId: string): Promise<CachedTrackData | null> {
     const cache = await this.getCache();
     const cached = cache.get(trackId);
@@ -99,37 +168,76 @@ class TrackEnrichmentService {
     return cached;
   }
 
-  async fetchOdesliData(spotifyUri?: string, isrc?: string): Promise<OdesliData | null> {
+  async fetchOdesliData(spotifyUri?: string, isrc?: string, trackId?: string): Promise<OdesliData | null> {
     if (!spotifyUri && !isrc) return null;
 
-    try {
-      let url = ODESLI_API_BASE;
-      const params = new URLSearchParams();
-      
-      if (spotifyUri) {
-        const spotifyId = spotifyUri.replace('spotify:track:', '');
-        params.append('url', `https://open.spotify.com/track/${spotifyId}`);
-      } else if (isrc) {
-        params.append('url', `isrc:${isrc}`);
-      }
-
-      const response = await fetch(`${url}?${params.toString()}`);
-      
-      if (!response.ok) {
-        console.warn('Odesli API request failed:', response.status);
+    if (trackId) {
+      const shouldRetry = await this.shouldRetryFailedLookup(`odesli-${trackId}`);
+      if (!shouldRetry) {
         return null;
       }
-
-      const data = await response.json();
-      return data as OdesliData;
-    } catch (error) {
-      console.error('Error fetching Odesli data:', error);
-      return null;
     }
+
+    return this.odesliQueue.enqueue(async () => {
+      try {
+        let url = ODESLI_API_BASE;
+        const params = new URLSearchParams();
+        
+        if (spotifyUri) {
+          const spotifyId = spotifyUri.replace('spotify:track:', '');
+          params.append('url', `https://open.spotify.com/track/${spotifyId}`);
+        } else if (isrc) {
+          params.append('url', `isrc:${isrc}`);
+        }
+
+        const response = await fetch(`${url}?${params.toString()}`, {
+          headers: {
+            'User-Agent': 'DarkCharts/1.0'
+          }
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          if (trackId) {
+            const failed = await this.getFailedLookups();
+            const existing = failed.get(`odesli-${trackId}`);
+            await this.markLookupAsFailed(`odesli-${trackId}`, `HTTP ${response.status}: ${errorText}`, (existing?.retryCount || 0) + 1);
+          }
+          console.warn('Odesli API request failed:', response.status, errorText);
+          return null;
+        }
+
+        const data = await response.json();
+        
+        if (trackId) {
+          const failed = await this.getFailedLookups();
+          failed.delete(`odesli-${trackId}`);
+          await this.setFailedLookups(failed);
+        }
+        
+        return data as OdesliData;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        if (trackId) {
+          const failed = await this.getFailedLookups();
+          const existing = failed.get(`odesli-${trackId}`);
+          await this.markLookupAsFailed(`odesli-${trackId}`, errorMessage, (existing?.retryCount || 0) + 1);
+        }
+        console.error('Error fetching Odesli data:', error);
+        return null;
+      }
+    });
   }
 
-  async fetchItunesArtwork(artist: string, title: string): Promise<{ artworkUrl?: string; previewUrl?: string }> {
-    return this.throttleQueue.enqueue(async () => {
+  async fetchItunesArtwork(artist: string, title: string, trackId?: string): Promise<{ artworkUrl?: string; previewUrl?: string }> {
+    if (trackId) {
+      const shouldRetry = await this.shouldRetryFailedLookup(`itunes-${trackId}`);
+      if (!shouldRetry) {
+        return {};
+      }
+    }
+
+    return this.itunesQueue.enqueue(async () => {
       try {
         const query = `${artist} ${title}`;
         const params = new URLSearchParams({
@@ -142,6 +250,11 @@ class TrackEnrichmentService {
         const response = await fetch(`${ITUNES_SEARCH_API}?${params.toString()}`);
         
         if (!response.ok) {
+          if (trackId) {
+            const failed = await this.getFailedLookups();
+            const existing = failed.get(`itunes-${trackId}`);
+            await this.markLookupAsFailed(`itunes-${trackId}`, `HTTP ${response.status}`, (existing?.retryCount || 0) + 1);
+          }
           return {};
         }
 
@@ -149,14 +262,33 @@ class TrackEnrichmentService {
         
         if (data.results && data.results.length > 0) {
           const result = data.results[0];
+          
+          if (trackId) {
+            const failed = await this.getFailedLookups();
+            failed.delete(`itunes-${trackId}`);
+            await this.setFailedLookups(failed);
+          }
+          
           return {
             artworkUrl: result.artworkUrl100?.replace('100x100', '600x600'),
             previewUrl: result.previewUrl
           };
         }
 
+        if (trackId) {
+          const failed = await this.getFailedLookups();
+          const existing = failed.get(`itunes-${trackId}`);
+          await this.markLookupAsFailed(`itunes-${trackId}`, 'No results found', (existing?.retryCount || 0) + 1);
+        }
+
         return {};
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        if (trackId) {
+          const failed = await this.getFailedLookups();
+          const existing = failed.get(`itunes-${trackId}`);
+          await this.markLookupAsFailed(`itunes-${trackId}`, errorMessage, (existing?.retryCount || 0) + 1);
+        }
         console.error('Error fetching iTunes artwork:', error);
         return {};
       }
@@ -177,8 +309,8 @@ class TrackEnrichmentService {
     }
 
     const [odesliData, itunesData] = await Promise.all([
-      this.fetchOdesliData(track.spotifyUri, track.isrc),
-      this.fetchItunesArtwork(track.artist, track.title)
+      this.fetchOdesliData(track.spotifyUri, track.isrc, track.id),
+      this.fetchItunesArtwork(track.artist, track.title, track.id)
     ]);
 
     const enrichedTrack: Track = {
@@ -253,6 +385,26 @@ class TrackEnrichmentService {
         console.error('Background sync failed:', error);
       }
     }, 1000);
+  }
+
+  async clearFailedLookups(): Promise<void> {
+    await window.spark.kv.delete(this.failedLookupsKey);
+  }
+
+  async getStats(): Promise<{
+    cachedTracks: number;
+    failedLookups: number;
+    lastSync?: number;
+  }> {
+    const cache = await this.getCache();
+    const failed = await this.getFailedLookups();
+    const lastSync = await window.spark.kv.get<number>(this.lastSyncKey);
+
+    return {
+      cachedTracks: cache.size,
+      failedLookups: failed.size,
+      lastSync: lastSync || undefined
+    };
   }
 }
 
