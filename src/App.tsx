@@ -25,6 +25,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminArtistManagement } from '@/components/AdminArtistManagement';
 import { trackEnrichmentService } from '@/services/trackEnrichmentService';
+import { nightlySyncService } from '@/services/nightlySyncService';
 
 function AppContent() {
   const dataService = useDataService();
@@ -63,6 +64,8 @@ function AppContent() {
 
         const allTracks = [...data.fanCharts, ...data.expertCharts, ...data.streamingCharts];
         trackEnrichmentService.startBackgroundSync(allTracks);
+        
+        nightlySyncService.initialize();
       } catch (error) {
         console.error('Failed to load charts:', error);
       } finally {

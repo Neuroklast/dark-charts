@@ -14,6 +14,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SpotifyAuthButton } from '@/components/SpotifyAuthButton';
+import { SyncJobManager } from '@/components/SyncJobManager';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function AdminArtistManagement() {
   const { t } = useLanguage();
@@ -198,14 +200,27 @@ export function AdminArtistManagement() {
           <p className="text-sm text-muted-foreground mt-1">{t('admin.subtitle')}</p>
         </div>
         <div className="flex gap-2">
-          <Button
-            onClick={handleSyncAll}
-            disabled={isSyncing}
-            variant="outline"
-            className="gap-2"
-          >
-            <ArrowsClockwise weight="bold" className={isSyncing ? 'animate-spin' : ''} />
-            {t('admin.syncAll')}
+          <SpotifyAuthButton />
+        </div>
+      </div>
+
+      <Tabs defaultValue="artists" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="artists">{t('Artist Management')}</TabsTrigger>
+          <TabsTrigger value="sync">{t('Sync Jobs')}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="artists" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSyncAll}
+                disabled={isSyncing}
+                variant="outline"
+                className="gap-2"
+              >
+                <ArrowsClockwise weight="bold" className={isSyncing ? 'animate-spin' : ''} />
+                {t('admin.syncAll')}
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -377,6 +392,12 @@ export function AdminArtistManagement() {
           </DialogContent>
         </Dialog>
       )}
+        </TabsContent>
+
+        <TabsContent value="sync">
+          <SyncJobManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
