@@ -15,7 +15,13 @@ export const mockFanCharts: Track[] = [
     streamingScore: 72,
     albumArt: 'https://picsum.photos/seed/heilung/400/400',
     spotifyUri: 'spotify:track:3xXBsjrbG1LDIAKigJfA1w',
-    votes: 147
+    votes: 147,
+    album: 'Futha',
+    releaseDate: '2019-06-28',
+    label: 'Season of Mist',
+    appleMusicUrl: 'https://music.apple.com/album/anoana',
+    amazonMusicUrl: 'https://music.amazon.com/albums/anoana',
+    youtubeUrl: 'https://www.youtube.com/watch?v=SVbc_Fwbt50'
   },
   {
     id: 'fan-2',
@@ -31,7 +37,13 @@ export const mockFanCharts: Track[] = [
     streamingScore: 88,
     albumArt: 'https://picsum.photos/seed/wardruna/400/400',
     spotifyUri: 'spotify:track:0FutrWIUM5Mg3434asiwkp',
-    votes: 132
+    votes: 132,
+    album: 'Runaljod - Yggdrasil',
+    releaseDate: '2013-03-15',
+    label: 'Indie Recordings',
+    appleMusicUrl: 'https://music.apple.com/album/helvegen',
+    amazonMusicUrl: 'https://music.amazon.com/albums/helvegen',
+    youtubeUrl: 'https://www.youtube.com/watch?v=DD65K4VR6Mk'
   },
   {
     id: 'fan-3',
@@ -47,7 +59,13 @@ export const mockFanCharts: Track[] = [
     streamingScore: 65,
     albumArt: 'https://picsum.photos/seed/perturbator/400/400',
     spotifyUri: 'spotify:track:3h4CwqQnwhPXlJNPKh4feQ',
-    votes: 98
+    votes: 98,
+    album: 'Dangerous Days',
+    releaseDate: '2014-05-05',
+    label: 'Blood Music',
+    appleMusicUrl: 'https://music.apple.com/album/neo-tokyo',
+    amazonMusicUrl: 'https://music.amazon.com/albums/neo-tokyo',
+    youtubeUrl: 'https://www.youtube.com/watch?v=PrJUSps__fU'
   },
   {
     id: 'fan-4',
@@ -63,7 +81,13 @@ export const mockFanCharts: Track[] = [
     streamingScore: 82,
     albumArt: 'https://picsum.photos/seed/sisters/400/400',
     spotifyUri: 'spotify:track:1TfqLAPs4K3s2rJMoCokcS',
-    votes: 89
+    votes: 89,
+    album: 'Some Girls Wander by Mistake',
+    releaseDate: '1992-05-18',
+    label: 'Merciful Release',
+    appleMusicUrl: 'https://music.apple.com/album/temple-of-love',
+    amazonMusicUrl: 'https://music.amazon.com/albums/temple-of-love',
+    youtubeUrl: 'https://www.youtube.com/watch?v=Fa0b2Kd2xhU'
   },
   {
     id: 'fan-5',
@@ -79,7 +103,13 @@ export const mockFanCharts: Track[] = [
     streamingScore: 79,
     albumArt: 'https://picsum.photos/seed/typeo/400/400',
     spotifyUri: 'spotify:track:7qjCVexNgbYNH0qvMYvkxg',
-    votes: 76
+    votes: 76,
+    album: 'Bloody Kisses',
+    releaseDate: '1993-09-17',
+    label: 'Roadrunner Records',
+    appleMusicUrl: 'https://music.apple.com/album/black-no-1',
+    amazonMusicUrl: 'https://music.amazon.com/albums/black-no-1',
+    youtubeUrl: 'https://www.youtube.com/watch?v=vFwYJYl5GUQ'
   }
 ];
 

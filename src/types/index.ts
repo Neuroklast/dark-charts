@@ -31,6 +31,12 @@ export interface Track {
   albumArt?: string;
   spotifyUri?: string;
   votes?: number;
+  album?: string;
+  releaseDate?: string;
+  label?: string;
+  appleMusicUrl?: string;
+  amazonMusicUrl?: string;
+  youtubeUrl?: string;
 }
 
 export interface ChartWeights {

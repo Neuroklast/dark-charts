@@ -13,6 +13,7 @@ import { CustomChartsView } from '@/components/CustomChartsView';
 import { PillarNavigation } from '@/components/PillarNavigation';
 import { MainGenreNavigation } from '@/components/MainGenreNavigation';
 import { SubGenreNavigation } from '@/components/SubGenreNavigation';
+import { TrackDetailModal } from '@/components/TrackDetailModal';
 import { useKV } from '@github/spark/hooks';
 import logo from '@/assets/images/Gemini_Generated_Image_fa3defa3defa3def.png';
 import { DataProvider, useDataService } from '@/contexts/DataContext';
@@ -33,6 +34,8 @@ function AppContent() {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedTrackForModal, setSelectedTrackForModal] = useState<Track | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const [weights, setWeights] = useKV<ChartWeights>('chart-weights', {
     fan: 33,
@@ -95,6 +98,8 @@ function AppContent() {
   }, [setWeights]);
 
   const handleTrackClick = useCallback((track: Track) => {
+    setSelectedTrackForModal(track);
+    setIsModalOpen(true);
     setCurrentTrack(track);
   }, []);
 
@@ -360,6 +365,12 @@ function AppContent() {
         currentTrack={currentTrack} 
         onNext={handleNext}
         onPrevious={handlePrevious}
+      />
+
+      <TrackDetailModal 
+        track={selectedTrackForModal}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
       />
     </div>
   );
