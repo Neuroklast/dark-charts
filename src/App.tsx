@@ -12,6 +12,7 @@ import { Navigation } from '@/components/Navigation';
 import { GenreCharts } from '@/components/GenreCharts';
 import { ProfileView } from '@/components/ProfileView';
 import { AboutView } from '@/components/AboutView';
+import { CustomChartsView } from '@/components/CustomChartsView';
 import { useKV } from '@github/spark/hooks';
 import logo from '@/assets/images/Gemini_Generated_Image_fa3defa3defa3def.png';
 import { DataProvider, useDataService } from '@/contexts/DataContext';
@@ -153,7 +154,16 @@ function AppContent() {
         background: 'radial-gradient(ellipse at center, transparent 0%, transparent 70%, oklch(0.04 0 0 / 0.6) 100%)'
       }} />
 
-      <div className="relative z-10">
+      <Navigation 
+        currentView={currentView} 
+        currentMainGenre={currentMainGenre}
+        onNavigate={(view, genre) => {
+          setCurrentView(view);
+          setCurrentMainGenre(genre || null);
+        }}
+      />
+
+      <div className="relative z-10 md:ml-64">
         <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
           <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-6 md:py-8">
             <div className="flex flex-col items-center justify-center gap-4">
@@ -170,44 +180,60 @@ function AppContent() {
         </header>
 
         <main className="max-w-[1800px] mx-auto px-4 md:px-8 py-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="display-font text-2xl uppercase tracking-wider text-foreground font-semibold">
-              Charts
-            </h2>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2 border ${showFilters ? 'bg-accent border-accent text-accent-foreground' : 'bg-card border-border hover:bg-accent/20'} snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold`}
-            >
-              <Funnel weight="bold" className="w-4 h-4" />
-              Filters
-              {selectedGenres.length > 0 && (
-                <span className="ml-1 bg-primary text-primary-foreground w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">
-                  {selectedGenres.length}
-                </span>
-              )}
-            </button>
-          </div>
+          {currentView === 'profile' && <ProfileView />}
+          {currentView === 'about' && <AboutView />}
+          {currentView === 'custom-charts' && <CustomChartsView />}
+          {currentView === 'main-genre' && currentMainGenre && (
+            <GenreCharts 
+              mainGenre={currentMainGenre}
+              fanCharts={fanCharts}
+              expertCharts={expertCharts}
+              streamingCharts={streamingCharts}
+              isLoading={isLoading}
+              onTrackClick={handleTrackClick}
+            />
+          )}
+          
+          {currentView === 'home' && (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="display-font text-2xl uppercase tracking-wider text-foreground font-semibold">
+                  Charts
+                </h2>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-2 px-4 py-2 border ${showFilters ? 'bg-accent border-accent text-accent-foreground' : 'bg-card border-border hover:bg-accent/20'} snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold`}
+                >
+                  <Funnel weight="bold" className="w-4 h-4" />
+                  Filters
+                  {selectedGenres.length > 0 && (
+                    <span className="ml-1 bg-primary text-primary-foreground w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">
+                      {selectedGenres.length}
+                    </span>
+                  )}
+                </button>
+              </div>
 
-          <AnimatePresence>
-            {showFilters && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2, ease: 'linear' }}
-                className="overflow-hidden mb-6"
-              >
-                <Card className="bg-card border border-border p-4">
-                  <GenreFilters
-                    availableGenres={allGenres}
-                    selectedGenres={selectedGenres}
-                    onToggleGenre={handleToggleGenre}
-                    onClearFilters={handleClearFilters}
-                  />
-                </Card>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              <AnimatePresence>
+                {showFilters && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: 'linear' }}
+                    className="overflow-hidden mb-6"
+                  >
+                    <Card className="bg-card border border-border p-4">
+                      <GenreFilters
+                        availableGenres={allGenres}
+                        selectedGenres={selectedGenres}
+                        onToggleGenre={handleToggleGenre}
+                        onClearFilters={handleClearFilters}
+                      />
+                    </Card>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ChartType)} className="space-y-6">
             <TabsList className="w-full md:w-auto grid grid-cols-2 md:flex md:gap-0 bg-card border border-border p-0 h-auto">
@@ -392,6 +418,8 @@ function AppContent() {
               </div>
             </TabsContent>
           </Tabs>
+            </>
+          )}
         </main>
 
         <footer className="border-t border-border py-8 px-4 md:px-8 mt-16 bg-secondary/50">
