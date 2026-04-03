@@ -1,53 +1,141 @@
+import { Track } from '@/types';
+
+interface PreloadPriority {
+  url: string;
+  priority: number;
+  timestamp: number;
+}
+
 class ArtworkCacheService {
   private cache: Map<string, string> = new Map();
-  private preloadQueue: Set<string> = new Set();
+  private preloadQueue: Map<string, PreloadPriority> = new Map();
   private isPreloading = false;
+  private loadingPromises: Map<string, Promise<string>> = new Map();
+  private failedUrls: Set<string> = new Set();
+  private maxCacheSize = 200;
 
-  async preloadArtwork(url: string): Promise<string> {
+  async preloadArtwork(url: string, priority: number = 0): Promise<string> {
+    if (!url) return '';
+    
     if (this.cache.has(url)) {
       return this.cache.get(url)!;
     }
 
-    return new Promise((resolve, reject) => {
+    if (this.failedUrls.has(url)) {
+      return '';
+    }
+
+    if (this.loadingPromises.has(url)) {
+      return this.loadingPromises.get(url)!;
+    }
+
+    const loadPromise = new Promise<string>((resolve, reject) => {
       const img = new Image();
+      img.crossOrigin = 'anonymous';
       
       img.onload = () => {
         this.cache.set(url, url);
+        this.loadingPromises.delete(url);
+        this.preloadQueue.delete(url);
+        
+        if (this.cache.size > this.maxCacheSize) {
+          this.evictOldestEntries();
+        }
+        
         resolve(url);
       };
       
       img.onerror = () => {
-        console.warn(`Failed to preload artwork: ${url}`);
-        reject(new Error(`Failed to load ${url}`));
+        this.loadingPromises.delete(url);
+        this.preloadQueue.delete(url);
+        this.failedUrls.add(url);
+        resolve('');
       };
       
       img.src = url;
     });
+
+    this.loadingPromises.set(url, loadPromise);
+    return loadPromise;
   }
 
-  async preloadMultiple(urls: string[]): Promise<void> {
-    if (this.isPreloading) {
-      urls.forEach(url => this.preloadQueue.add(url));
+  async preloadMultiple(urls: string[], priority: number = 0): Promise<void> {
+    const validUrls = urls.filter(url => url && !this.cache.has(url) && !this.failedUrls.has(url));
+    
+    validUrls.forEach(url => {
+      this.preloadQueue.set(url, {
+        url,
+        priority,
+        timestamp: Date.now()
+      });
+    });
+
+    if (!this.isPreloading) {
+      this.processQueue();
+    }
+  }
+
+  private async processQueue(): Promise<void> {
+    if (this.isPreloading || this.preloadQueue.size === 0) {
       return;
     }
 
     this.isPreloading = true;
 
-    const uniqueUrls = [...new Set([...urls, ...Array.from(this.preloadQueue)])];
-    this.preloadQueue.clear();
+    const sortedQueue = Array.from(this.preloadQueue.values())
+      .sort((a, b) => b.priority - a.priority || a.timestamp - b.timestamp);
 
-    const batchSize = 5;
-    for (let i = 0; i < uniqueUrls.length; i += batchSize) {
-      const batch = uniqueUrls.slice(i, i + batchSize);
+    const batchSize = 3;
+    
+    while (sortedQueue.length > 0) {
+      const batch = sortedQueue.splice(0, batchSize);
       await Promise.allSettled(
-        batch.map(url => this.preloadArtwork(url))
+        batch.map(item => this.preloadArtwork(item.url, item.priority))
       );
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     this.isPreloading = false;
 
     if (this.preloadQueue.size > 0) {
-      await this.preloadMultiple([]);
+      this.processQueue();
+    }
+  }
+
+  preloadUpcomingTracks(currentTrack: Track, allTracks: Track[], lookAhead: number = 3): void {
+    const currentIndex = allTracks.findIndex(t => t.id === currentTrack.id);
+    if (currentIndex === -1) return;
+
+    const upcomingTracks = allTracks.slice(currentIndex + 1, currentIndex + 1 + lookAhead);
+    const previousTracks = allTracks.slice(Math.max(0, currentIndex - lookAhead), currentIndex);
+
+    const upcomingUrls = upcomingTracks
+      .map(t => t.artworkHighRes || t.albumArt)
+      .filter((url): url is string => !!url);
+
+    const previousUrls = previousTracks
+      .map(t => t.artworkHighRes || t.albumArt)
+      .filter((url): url is string => !!url);
+
+    this.preloadMultiple(upcomingUrls, 10);
+    this.preloadMultiple(previousUrls, 5);
+  }
+
+  preloadVisibleTracks(tracks: Track[], priority: number = 8): void {
+    const urls = tracks
+      .map(t => t.artworkHighRes || t.albumArt)
+      .filter((url): url is string => !!url);
+    
+    this.preloadMultiple(urls, priority);
+  }
+
+  private evictOldestEntries(): void {
+    const entriesToRemove = this.cache.size - this.maxCacheSize + 20;
+    const entries = Array.from(this.cache.keys());
+    
+    for (let i = 0; i < entriesToRemove && i < entries.length; i++) {
+      this.cache.delete(entries[i]);
     }
   }
 
@@ -62,6 +150,8 @@ class ArtworkCacheService {
   clearCache(): void {
     this.cache.clear();
     this.preloadQueue.clear();
+    this.loadingPromises.clear();
+    this.failedUrls.clear();
   }
 
   getCacheSize(): number {
@@ -72,8 +162,14 @@ class ArtworkCacheService {
     return {
       cached: this.cache.size,
       queued: this.preloadQueue.size,
-      isPreloading: this.isPreloading
+      isPreloading: this.isPreloading,
+      loading: this.loadingPromises.size,
+      failed: this.failedUrls.size
     };
+  }
+
+  resetFailedUrls(): void {
+    this.failedUrls.clear();
   }
 }
 

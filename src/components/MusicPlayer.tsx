@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Play, Pause, SkipBack, SkipForward } from '@phosphor-icons/react';
 import { Track } from '@/types';
 import { audioPlayerService } from '@/services/audioPlayerService';
-import { artworkCacheService } from '@/services/artworkCacheService';
 
 interface MusicPlayerProps {
   currentTrack: Track | null;
@@ -11,7 +10,7 @@ interface MusicPlayerProps {
   allTracks?: Track[];
 }
 
-export function MusicPlayer({ currentTrack, onNext, onPrevious, allTracks = [] }: MusicPlayerProps) {
+export function MusicPlayer({ currentTrack, onNext, onPrevious }: MusicPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
@@ -20,17 +19,6 @@ export function MusicPlayer({ currentTrack, onNext, onPrevious, allTracks = [] }
     });
     return unsubscribe;
   }, []);
-
-  useEffect(() => {
-    if (allTracks.length > 0) {
-      const artworkUrls = allTracks
-        .filter(track => track.albumArt || track.artworkHighRes)
-        .map(track => track.artworkHighRes || track.albumArt)
-        .filter((url): url is string => !!url);
-      
-      artworkCacheService.preloadMultiple(artworkUrls);
-    }
-  }, [allTracks]);
 
   if (!currentTrack) {
     return (

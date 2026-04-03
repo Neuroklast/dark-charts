@@ -27,6 +27,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AdminArtistManagement } from '@/components/AdminArtistManagement';
 import { trackEnrichmentService } from '@/services/trackEnrichmentService';
 import { nightlySyncService } from '@/services/nightlySyncService';
+import { useUpcomingTrackPreloader, useVisibleTracksPreloader } from '@/hooks/use-artwork-cache';
 
 function AppContent() {
   const dataService = useDataService();
@@ -123,6 +124,37 @@ function AppContent() {
     const chart = dataService.calculateOverallChart(weights);
     return filterByGenre(chart).slice(0, 10);
   }, [weights, fanCharts, expertCharts, streamingCharts, dataService, filterByGenre]);
+
+  const currentVisibleTracks = useMemo(() => {
+    if (currentView === 'home') {
+      if (activePillar === 'overview') {
+        return [...filteredFanCharts.slice(0, 3), ...filteredExpertCharts.slice(0, 3), ...filteredStreamingCharts.slice(0, 3)];
+      } else if (activePillar === 'fan') {
+        return filteredFanCharts;
+      } else if (activePillar === 'expert') {
+        return filteredExpertCharts;
+      } else if (activePillar === 'streaming') {
+        return filteredStreamingCharts;
+      }
+    }
+    return [];
+  }, [currentView, activePillar, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts]);
+
+  const allTracksForPlayer = useMemo(() => {
+    if (activePillar === 'overview') {
+      return overallChart;
+    } else if (activePillar === 'fan') {
+      return filteredFanCharts;
+    } else if (activePillar === 'expert') {
+      return filteredExpertCharts;
+    } else if (activePillar === 'streaming') {
+      return filteredStreamingCharts;
+    }
+    return [...fanCharts, ...expertCharts, ...streamingCharts];
+  }, [activePillar, overallChart, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, fanCharts, expertCharts, streamingCharts]);
+
+  useUpcomingTrackPreloader(currentTrack, allTracksForPlayer, 5);
+  useVisibleTracksPreloader(currentVisibleTracks, 10);
 
   const handleWeightsChange = useCallback((newWeights: ChartWeights) => {
     setWeights(newWeights);
