@@ -75,37 +75,29 @@ export function Navigation({ currentView, onNavigate }: NavigationProps) {
   );
 
   return (
-    <>
-      <nav className="hidden md:block w-64 border-r border-border bg-card fixed left-0 top-0 bottom-0 overflow-y-auto z-40">
-        <div className="pt-8">
+    <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+      <SheetTrigger asChild>
+        <button 
+          className="fixed top-4 left-4 z-50 p-3 bg-card border border-border hover:bg-primary snap-transition"
+          aria-label="Open menu"
+        >
+          <List weight="bold" className="w-6 h-6" />
+        </button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-[280px] p-0 bg-card border-r border-border">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <span className="font-ui text-sm uppercase tracking-[0.15em] font-bold">Menu</span>
+          <button 
+            onClick={() => setMobileOpen(false)}
+            className="p-2 hover:bg-primary/20 snap-transition"
+          >
+            <X weight="bold" className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="pt-4">
           <NavContent />
         </div>
-      </nav>
-
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetTrigger asChild>
-          <button 
-            className="md:hidden fixed top-4 left-4 z-50 p-3 bg-card border border-border hover:bg-primary snap-transition"
-            aria-label="Open menu"
-          >
-            <List weight="bold" className="w-6 h-6" />
-          </button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-[280px] p-0 bg-card border-r border-border">
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            <span className="font-ui text-sm uppercase tracking-[0.15em] font-bold">Menu</span>
-            <button 
-              onClick={() => setMobileOpen(false)}
-              className="p-2 hover:bg-primary/20 snap-transition"
-            >
-              <X weight="bold" className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="pt-4">
-            <NavContent />
-          </div>
-        </SheetContent>
-      </Sheet>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }

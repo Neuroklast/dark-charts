@@ -159,7 +159,7 @@ function AppContent() {
         }}
       />
 
-      <div className="relative z-10 md:ml-64">
+      <div className="relative z-10">
         <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
           <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-6 md:py-8">
             <div className="flex flex-col items-center justify-center gap-4">
