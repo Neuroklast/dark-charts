@@ -82,16 +82,16 @@ function AppContent() {
     );
   }, [selectedGenres]);
 
-  const filteredFanCharts = useMemo(() => filterByGenre(fanCharts), [fanCharts, filterByGenre]);
-  const filteredExpertCharts = useMemo(() => filterByGenre(expertCharts), [expertCharts, filterByGenre]);
-  const filteredStreamingCharts = useMemo(() => filterByGenre(streamingCharts), [streamingCharts, filterByGenre]);
+  const filteredFanCharts = useMemo(() => filterByGenre(fanCharts).slice(0, 10), [fanCharts, filterByGenre]);
+  const filteredExpertCharts = useMemo(() => filterByGenre(expertCharts).slice(0, 10), [expertCharts, filterByGenre]);
+  const filteredStreamingCharts = useMemo(() => filterByGenre(streamingCharts).slice(0, 10), [streamingCharts, filterByGenre]);
 
   const overallChart = useMemo(() => {
     if (!fanCharts.length || !expertCharts.length || !streamingCharts.length || !weights) {
       return [];
     }
     const chart = dataService.calculateOverallChart(weights);
-    return filterByGenre(chart);
+    return filterByGenre(chart).slice(0, 10);
   }, [weights, fanCharts, expertCharts, streamingCharts, dataService, filterByGenre]);
 
   const handleWeightsChange = useCallback((newWeights: ChartWeights) => {
@@ -115,6 +115,99 @@ function AppContent() {
 
   const handleClearFilters = useCallback(() => {
     setSelectedGenres([]);
+  }, []);
+
+  const getAllChartPositions = useCallback((track: Track) => {
+    const positions: { chartName: string; position: number; chartType?: ChartType; mainGenre?: MainGenre; subGenre?: Genre }[] = [];
+    
+    const fanIndex = fanCharts.findIndex(t => t.id === track.id);
+    if (fanIndex !== -1 && fanIndex < 10) {
+      positions.push({ chartName: 'Fan Charts', position: fanIndex + 1, chartType: 'fan' });
+    }
+    
+    const expertIndex = expertCharts.findIndex(t => t.id === track.id);
+    if (expertIndex !== -1 && expertIndex < 10) {
+      positions.push({ chartName: 'Expert Charts', position: expertIndex + 1, chartType: 'expert' });
+    }
+    
+    const streamingIndex = streamingCharts.findIndex(t => t.id === track.id);
+    if (streamingIndex !== -1 && streamingIndex < 10) {
+      positions.push({ chartName: 'Streaming Charts', position: streamingIndex + 1, chartType: 'streaming' });
+    }
+    
+    const overallIndex = overallChart.findIndex(t => t.id === track.id);
+    if (overallIndex !== -1) {
+      positions.push({ chartName: 'Overall Charts', position: overallIndex + 1 });
+    }
+
+    const mainGenreMap: Record<MainGenre, Genre[]> = {
+      'Gothic': [
+        'Gothic Rock', 'Dark Wave', 'Post Punk', 'Deathrock', 'Cold Wave',
+        'Ethereal Wave', 'Neoklassik', 'Neue Deutsche Todeskunst', 'Batcave',
+        'Neofolk', 'Pagan Folk', 'Nordic Folk', 'Ritual Ambient'
+      ],
+      'Metal': [
+        'Gothic Metal', 'Dark Metal', 'Symphonic Metal', 'Doom Metal',
+        'Symphonic Black Metal', 'Atmospheric Black Metal', 'Death Doom', 'Pagan Metal'
+      ],
+      'Dark Electro': [
+        'Electronic Body Music', 'Dark Electro', 'Electro Industrial', 'Aggrotech',
+        'Future Pop', 'Industrial', 'Rhythmic Noise', 'Dark Synthpop', 'Harsh EBM'
+      ],
+      'Crossover': [
+        'Industrial Metal', 'Neue Deutsche Härte', 'Mittelalter Rock', 'Darksynth',
+        'Cybergoth', 'Death Industrial', 'Folk Metal', 'Dark Techno',
+        'Industrial Techno', 'Darkstep', 'Crossbreed', 'Techstep', 'Neurofunk'
+      ]
+    };
+
+    Object.entries(mainGenreMap).forEach(([mainGenre, subGenres]) => {
+      const mainGenreTracks = [...fanCharts, ...expertCharts, ...streamingCharts].filter(t =>
+        t.genres.some(g => subGenres.includes(g))
+      );
+      const mainGenreIndex = mainGenreTracks.findIndex(t => t.id === track.id);
+      if (mainGenreIndex !== -1 && mainGenreIndex < 10) {
+        positions.push({
+          chartName: `${mainGenre} Charts`,
+          position: mainGenreIndex + 1,
+          mainGenre: mainGenre as MainGenre
+        });
+      }
+
+      track.genres.forEach(genre => {
+        if (subGenres.includes(genre)) {
+          const subGenreTracks = mainGenreTracks.filter(t => t.genres.includes(genre));
+          const subGenreIndex = subGenreTracks.findIndex(t => t.id === track.id);
+          if (subGenreIndex !== -1 && subGenreIndex < 10) {
+            positions.push({
+              chartName: `${genre}`,
+              position: subGenreIndex + 1,
+              mainGenre: mainGenre as MainGenre,
+              subGenre: genre
+            });
+          }
+        }
+      });
+    });
+
+    return positions;
+  }, [fanCharts, expertCharts, streamingCharts, overallChart]);
+
+  const handleNavigateToChart = useCallback((chartType?: ChartType, mainGenre?: MainGenre, subGenre?: Genre) => {
+    if (mainGenre) {
+      setCurrentView('main-genre');
+      setCurrentMainGenre(mainGenre);
+      if (subGenre) {
+        setCurrentSubGenre(subGenre);
+      } else {
+        setCurrentSubGenre(null);
+      }
+    } else if (chartType) {
+      setCurrentView('home');
+      setCurrentMainGenre('overall');
+      setCurrentSubGenre(null);
+      setActivePillar(chartType === 'overall' ? 'overview' : chartType);
+    }
   }, []);
 
   const handleNext = useCallback(() => {
@@ -374,6 +467,8 @@ function AppContent() {
         track={selectedTrackForModal}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        allChartPositions={selectedTrackForModal ? getAllChartPositions(selectedTrackForModal) : []}
+        onNavigateToChart={handleNavigateToChart}
       />
     </div>
   );

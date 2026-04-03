@@ -60,7 +60,8 @@ export function GenreCharts({
   const allTracks = useMemo(() => {
     const combined = [...fanCharts, ...expertCharts, ...streamingCharts];
     const mainGenreTracks = filterByMainGenre(combined);
-    return filterBySubGenre(mainGenreTracks);
+    const filtered = filterBySubGenre(mainGenreTracks);
+    return filtered.slice(0, 10);
   }, [fanCharts, expertCharts, streamingCharts, filterByMainGenre, filterBySubGenre]);
 
   return (
@@ -120,7 +121,7 @@ export function GenreCharts({
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.15 }}
                 >
-                  <ChartEntry track={track} index={index} />
+                  <ChartEntry track={{ ...track, rank: index + 1 }} index={index} />
                 </motion.div>
               ))}
             </AnimatePresence>

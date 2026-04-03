@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Track } from '@/types';
-import { X, Play, CaretUp, CaretDown, Info, TrendUp } from '@phosphor-icons/react';
+import { Track, MainGenre, Genre, ChartType } from '@/types';
+import { X, Play, CaretUp, CaretDown, Info, TrendUp, ArrowRight } from '@phosphor-icons/react';
 import { SpotifyEmbed } from '@/components/SpotifyEmbed';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,15 +11,25 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+interface ChartPosition {
+  chartName: string;
+  position: number;
+  chartType?: ChartType;
+  mainGenre?: MainGenre;
+  subGenre?: Genre;
+}
+
 interface TrackDetailModalProps {
   track: Track | null;
   isOpen: boolean;
   onClose: () => void;
   onVote?: (trackId: string, direction: 'up' | 'down') => void;
   userVote?: 'up' | 'down' | null;
+  allChartPositions?: ChartPosition[];
+  onNavigateToChart?: (chartType?: ChartType, mainGenre?: MainGenre, subGenre?: Genre) => void;
 }
 
-export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote }: TrackDetailModalProps) {
+export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, allChartPositions = [], onNavigateToChart }: TrackDetailModalProps) {
   if (!track) return null;
 
   const getSpotifyEmbedId = (uri?: string): string | null => {
@@ -29,6 +39,13 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote }: T
   };
 
   const spotifyId = getSpotifyEmbedId(track.spotifyUri);
+
+  const handleChartClick = (position: ChartPosition) => {
+    if (onNavigateToChart) {
+      onNavigateToChart(position.chartType, position.mainGenre, position.subGenre);
+      onClose();
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -156,35 +173,11 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote }: T
                         </div>
                       </div>
 
-                      {track.overallRank && track.overallRank !== track.rank && (
-                        <div className="p-4 bg-accent/10 border border-accent/30">
-                          <div className="flex items-center gap-2 mb-1">
-                            <TrendUp size={16} className="text-accent" />
-                            <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground">
-                              Overall Charts Position
-                            </div>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info size={14} className="text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="font-ui text-xs">Combined ranking across all chart types</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                          <div className="text-3xl font-display text-accent data-font">
-                            #{track.overallRank}
-                          </div>
-                        </div>
-                      )}
-
-                      {track.subGenreRanks && Object.keys(track.subGenreRanks).length > 0 && (
+                      {allChartPositions.length > 0 && (
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground">
-                              Sub-Genre Rankings
+                              All Chart Positions
                             </div>
                             <TooltipProvider>
                               <Tooltip>
@@ -192,21 +185,28 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote }: T
                                   <Info size={14} className="text-muted-foreground cursor-help" />
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p className="font-ui text-xs">Track position in specific sub-genre charts</p>
+                                  <p className="font-ui text-xs">Click to navigate to any chart where this track appears</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           </div>
-                          <div className="grid grid-cols-1 gap-2">
-                            {Object.entries(track.subGenreRanks).slice(0, 5).map(([genre, rank]) => (
-                              <div key={genre} className="flex items-center justify-between p-2 bg-secondary/30 border border-border">
-                                <span className="font-ui text-xs uppercase tracking-wider text-foreground">
-                                  {genre}
+                          <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto scrollbar-hide">
+                            {allChartPositions.map((position, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => handleChartClick(position)}
+                                className="flex items-center justify-between p-3 bg-secondary/30 border border-border hover:border-primary hover:bg-primary/10 transition-all group"
+                              >
+                                <span className="font-ui text-xs uppercase tracking-wider text-foreground text-left flex-1">
+                                  {position.chartName}
                                 </span>
-                                <span className="font-display text-lg text-primary data-font">
-                                  #{rank}
-                                </span>
-                              </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-display text-lg text-primary data-font">
+                                    #{position.position}
+                                  </span>
+                                  <ArrowRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                                </div>
+                              </button>
                             ))}
                           </div>
                         </div>
