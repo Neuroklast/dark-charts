@@ -1,18 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Track, ChartWeights, ChartType, Genre, ViewType, MainGenre } from '@/types';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChartCategory } from '@/components/ChartCategory';
 import { ChartEntry } from '@/components/ChartEntry';
-import { WeightingPanel } from '@/components/WeightingPanel';
-import { GenreFilters } from '@/components/GenreFilters';
 import { Card } from '@/components/ui/card';
-import { Skull, Funnel } from '@phosphor-icons/react';
+import { Skull } from '@phosphor-icons/react';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { Navigation } from '@/components/Navigation';
 import { GenreCharts } from '@/components/GenreCharts';
 import { ProfileView } from '@/components/ProfileView';
 import { AboutView } from '@/components/AboutView';
 import { CustomChartsView } from '@/components/CustomChartsView';
+import { PillarNavigation } from '@/components/PillarNavigation';
+import { MainGenreNavigation } from '@/components/MainGenreNavigation';
+import { SubGenreNavigation } from '@/components/SubGenreNavigation';
 import { useKV } from '@github/spark/hooks';
 import logo from '@/assets/images/Gemini_Generated_Image_fa3defa3defa3def.png';
 import { DataProvider, useDataService } from '@/contexts/DataContext';
@@ -21,8 +21,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 function AppContent() {
   const dataService = useDataService();
   const [currentView, setCurrentView] = useState<ViewType>('home');
-  const [currentMainGenre, setCurrentMainGenre] = useState<MainGenre | null>(null);
-  const [activeTab, setActiveTab] = useState<ChartType>('fan');
+  const [currentMainGenre, setCurrentMainGenre] = useState<MainGenre | 'overall'>('overall');
+  const [currentSubGenre, setCurrentSubGenre] = useState<Genre | null>(null);
+  const [activePillar, setActivePillar] = useState<ChartType>('fan');
   const [fanCharts, setFanCharts] = useState<Track[]>([]);
   const [expertCharts, setExpertCharts] = useState<Track[]>([]);
   const [streamingCharts, setStreamingCharts] = useState<Track[]>([]);
@@ -110,21 +111,21 @@ function AppContent() {
 
   const handleNext = useCallback(() => {
     if (!currentTrack) return;
-    const allTracks = activeTab === 'fan' ? filteredFanCharts : activeTab === 'expert' ? filteredExpertCharts : activeTab === 'streaming' ? filteredStreamingCharts : overallChart;
+    const allTracks = activePillar === 'fan' ? filteredFanCharts : activePillar === 'expert' ? filteredExpertCharts : activePillar === 'streaming' ? filteredStreamingCharts : overallChart;
     const currentIndex = allTracks.findIndex(t => t.id === currentTrack.id);
     if (currentIndex < allTracks.length - 1) {
       setCurrentTrack(allTracks[currentIndex + 1]);
     }
-  }, [currentTrack, activeTab, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, overallChart]);
+  }, [currentTrack, activePillar, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, overallChart]);
 
   const handlePrevious = useCallback(() => {
     if (!currentTrack) return;
-    const allTracks = activeTab === 'fan' ? filteredFanCharts : activeTab === 'expert' ? filteredExpertCharts : activeTab === 'streaming' ? filteredStreamingCharts : overallChart;
+    const allTracks = activePillar === 'fan' ? filteredFanCharts : activePillar === 'expert' ? filteredExpertCharts : activePillar === 'streaming' ? filteredStreamingCharts : overallChart;
     const currentIndex = allTracks.findIndex(t => t.id === currentTrack.id);
     if (currentIndex > 0) {
       setCurrentTrack(allTracks[currentIndex - 1]);
     }
-  }, [currentTrack, activeTab, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, overallChart]);
+  }, [currentTrack, activePillar, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, overallChart]);
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden pb-24">
@@ -156,10 +157,10 @@ function AppContent() {
 
       <Navigation 
         currentView={currentView} 
-        currentMainGenre={currentMainGenre}
+        currentMainGenre={currentMainGenre === 'overall' ? null : currentMainGenre}
         onNavigate={(view, genre) => {
           setCurrentView(view);
-          setCurrentMainGenre(genre || null);
+          setCurrentMainGenre(genre || 'overall');
         }}
       />
 
@@ -183,7 +184,7 @@ function AppContent() {
           {currentView === 'profile' && <ProfileView />}
           {currentView === 'about' && <AboutView />}
           {currentView === 'custom-charts' && <CustomChartsView />}
-          {currentView === 'main-genre' && currentMainGenre && (
+          {currentView === 'main-genre' && currentMainGenre && currentMainGenre !== 'overall' && (
             <GenreCharts 
               mainGenre={currentMainGenre}
               fanCharts={fanCharts}
@@ -196,186 +197,46 @@ function AppContent() {
           
           {currentView === 'home' && (
             <>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="display-font text-2xl uppercase tracking-wider text-foreground font-semibold">
-                  Charts
-                </h2>
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 px-4 py-2 border ${showFilters ? 'bg-accent border-accent text-accent-foreground' : 'bg-card border-border hover:bg-accent/20'} snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold`}
-                >
-                  <Funnel weight="bold" className="w-4 h-4" />
-                  Filters
-                  {selectedGenres.length > 0 && (
-                    <span className="ml-1 bg-primary text-primary-foreground w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">
-                      {selectedGenres.length}
-                    </span>
-                  )}
-                </button>
-              </div>
+              <PillarNavigation 
+                activePillar={activePillar}
+                onPillarChange={setActivePillar}
+                className="mb-6 md:sticky md:top-0 md:z-40 bg-background/95 backdrop-blur-sm py-4 border-b border-border fixed top-0 left-0 right-0 z-50"
+              />
 
-              <AnimatePresence>
-                {showFilters && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: 'linear' }}
-                    className="overflow-hidden mb-6"
-                  >
-                    <Card className="bg-card border border-border p-4">
-                      <GenreFilters
-                        availableGenres={allGenres}
-                        selectedGenres={selectedGenres}
-                        onToggleGenre={handleToggleGenre}
-                        onClearFilters={handleClearFilters}
-                      />
-                    </Card>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <MainGenreNavigation
+                activeGenre={currentMainGenre}
+                onGenreChange={(genre) => {
+                  setCurrentMainGenre(genre);
+                  setCurrentSubGenre(null);
+                }}
+                className="mb-6"
+              />
 
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ChartType)} className="space-y-6">
-            <TabsList className="w-full md:w-auto grid grid-cols-2 md:flex md:gap-0 bg-card border border-border p-0 h-auto">
-              <TabsTrigger 
-                value="fan" 
-                className="data-font uppercase tracking-[0.15em] font-bold text-[10px] md:text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground snap-transition px-6 py-3 border-r border-border hover:bg-primary/20"
-              >
-                Fan Charts
-              </TabsTrigger>
-              <TabsTrigger 
-                value="expert"
-                className="data-font uppercase tracking-[0.15em] font-bold text-[10px] md:text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground snap-transition px-6 py-3 border-r border-border hover:bg-primary/20"
-              >
-                Expert Charts
-              </TabsTrigger>
-              <TabsTrigger 
-                value="streaming"
-                className="data-font uppercase tracking-[0.15em] font-bold text-[10px] md:text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground snap-transition px-6 py-3 border-r border-border hover:bg-primary/20"
-              >
-                Streaming
-              </TabsTrigger>
-              <TabsTrigger 
-                value="overall"
-                className="data-font uppercase tracking-[0.15em] font-bold text-[10px] md:text-xs data-[state=active]:bg-accent data-[state=active]:text-accent-foreground snap-transition px-6 py-3 hover:bg-accent/20"
-              >
-                Overall
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="fan" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts} isLoading={isLoading} />
-                <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts} isLoading={isLoading} />
-                <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts} isLoading={isLoading} />
-              </div>
-
-              {!isLoading && filteredFanCharts.length > 3 && (
-                <Card className="bg-card border border-border">
-                  <div className="p-4 border-b border-border">
-                    <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Full Fan Charts</h2>
-                  </div>
-                  <motion.div layout>
-                    <AnimatePresence mode="popLayout">
-                      {filteredFanCharts.map((track, index) => (
-                        <motion.div 
-                          key={track.id} 
-                          onClick={() => handleTrackClick(track)} 
-                          className="cursor-pointer"
-                          layout
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.15 }}
-                        >
-                          <ChartEntry track={track} index={index} />
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </motion.div>
-                </Card>
+              {currentMainGenre !== 'overall' && (
+                <SubGenreNavigation
+                  mainGenre={currentMainGenre}
+                  activeSubGenre={currentSubGenre}
+                  onSubGenreChange={setCurrentSubGenre}
+                  className="mb-8"
+                />
               )}
-            </TabsContent>
 
-            <TabsContent value="expert" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts} isLoading={isLoading} />
-                <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts} isLoading={isLoading} />
-                <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts} isLoading={isLoading} />
-              </div>
-
-              {!isLoading && filteredExpertCharts.length > 3 && (
-                <Card className="bg-card border border-border">
-                  <div className="p-4 border-b border-border">
-                    <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Full Expert Charts</h2>
+              {activePillar === 'fan' && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts} isLoading={isLoading} />
+                    <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts} isLoading={isLoading} />
+                    <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts} isLoading={isLoading} />
                   </div>
-                  <motion.div layout>
-                    <AnimatePresence mode="popLayout">
-                      {filteredExpertCharts.map((track, index) => (
-                        <motion.div 
-                          key={track.id} 
-                          onClick={() => handleTrackClick(track)} 
-                          className="cursor-pointer"
-                          layout
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.15 }}
-                        >
-                          <ChartEntry track={track} index={index} />
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </motion.div>
-                </Card>
-              )}
-            </TabsContent>
 
-            <TabsContent value="streaming" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts} isLoading={isLoading} />
-                <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts} isLoading={isLoading} />
-                <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts} isLoading={isLoading} />
-              </div>
-
-              {!isLoading && filteredStreamingCharts.length > 3 && (
-                <Card className="bg-card border border-border">
-                  <div className="p-4 border-b border-border">
-                    <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Full Streaming Charts</h2>
-                  </div>
-                  <motion.div layout>
-                    <AnimatePresence mode="popLayout">
-                      {filteredStreamingCharts.map((track, index) => (
-                        <motion.div 
-                          key={track.id} 
-                          onClick={() => handleTrackClick(track)} 
-                          className="cursor-pointer"
-                          layout
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.15 }}
-                        >
-                          <ChartEntry track={track} index={index} />
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </motion.div>
-                </Card>
-              )}
-            </TabsContent>
-
-            <TabsContent value="overall" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2">
-                  {overallChart.length > 0 ? (
+                  {!isLoading && filteredFanCharts.length > 3 && (
                     <Card className="bg-card border border-border">
                       <div className="p-4 border-b border-border">
-                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Custom Overall Chart</h2>
+                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Full Fan Charts</h2>
                       </div>
                       <motion.div layout>
                         <AnimatePresence mode="popLayout">
-                          {overallChart.slice(0, 10).map((track, index) => (
+                          {filteredFanCharts.map((track, index) => (
                             <motion.div 
                               key={track.id} 
                               onClick={() => handleTrackClick(track)} 
@@ -392,32 +253,81 @@ function AppContent() {
                         </AnimatePresence>
                       </motion.div>
                     </Card>
-                  ) : (
-                    <Card className="bg-card border border-border p-12 text-center relative overflow-hidden">
-                      <div className="absolute inset-0 opacity-5">
-                        <div className="absolute inset-0" style={{
-                          backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 8px, var(--border) 8px, var(--border) 16px)`
-                        }} />
+                  )}
+                </div>
+              )}
+
+              {activePillar === 'expert' && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts} isLoading={isLoading} />
+                    <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts} isLoading={isLoading} />
+                    <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts} isLoading={isLoading} />
+                  </div>
+
+                  {!isLoading && filteredExpertCharts.length > 3 && (
+                    <Card className="bg-card border border-border">
+                      <div className="p-4 border-b border-border">
+                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Full Expert Charts</h2>
                       </div>
-                      <div className="relative">
-                        <Skull weight="duotone" className="w-20 h-20 mx-auto text-muted-foreground mb-4 opacity-40" />
-                        <h3 className="display-font text-3xl md:text-4xl uppercase text-muted-foreground mb-3 tracking-tight font-semibold">
-                          No Data Yet
-                        </h3>
-                        <p className="font-ui text-muted-foreground uppercase tracking-[0.2em] text-xs">
-                          Adjust the weights to generate your chart
-                        </p>
-                      </div>
+                      <motion.div layout>
+                        <AnimatePresence mode="popLayout">
+                          {filteredExpertCharts.map((track, index) => (
+                            <motion.div 
+                              key={track.id} 
+                              onClick={() => handleTrackClick(track)} 
+                              className="cursor-pointer"
+                              layout
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -20 }}
+                              transition={{ duration: 0.15 }}
+                            >
+                              <ChartEntry track={track} index={index} />
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </motion.div>
                     </Card>
                   )}
                 </div>
+              )}
 
-                <div>
-                  {weights && <WeightingPanel weights={weights} onChange={handleWeightsChange} />}
+              {activePillar === 'streaming' && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts} isLoading={isLoading} />
+                    <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts} isLoading={isLoading} />
+                    <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts} isLoading={isLoading} />
+                  </div>
+
+                  {!isLoading && filteredStreamingCharts.length > 3 && (
+                    <Card className="bg-card border border-border">
+                      <div className="p-4 border-b border-border">
+                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Full Streaming Charts</h2>
+                      </div>
+                      <motion.div layout>
+                        <AnimatePresence mode="popLayout">
+                          {filteredStreamingCharts.map((track, index) => (
+                            <motion.div 
+                              key={track.id} 
+                              onClick={() => handleTrackClick(track)} 
+                              className="cursor-pointer"
+                              layout
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -20 }}
+                              transition={{ duration: 0.15 }}
+                            >
+                              <ChartEntry track={track} index={index} />
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </motion.div>
+                    </Card>
+                  )}
                 </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+              )}
             </>
           )}
         </main>
