@@ -86,7 +86,7 @@ export function ChartCategory({ title, tracks, isLoading, onTrackClick }: ChartC
                 alt={`${track.artist} - ${track.title}`}
                 artist={track.artist}
                 title={track.title}
-                size="large"
+                size="medium"
                 glowColor={glowColor}
               />
 

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Track, MainGenre, Genre, ChartType } from '@/types';
 import { 
   X, Play, CaretUp, CaretDown, Info, ArrowRight, 
@@ -38,11 +38,16 @@ interface TrackDetailModalProps {
 export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, allChartPositions = [], onNavigateToChart }: TrackDetailModalProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [artworkLoaded, setArtworkLoaded] = useState(false);
+  const [spotifyLoaded, setSpotifyLoaded] = useState(false);
 
   useEffect(() => {
     if (track?.artworkHighRes || track?.albumArt) {
       const artworkUrl = track.artworkHighRes || track.albumArt;
       if (artworkUrl) {
+        const img = new Image();
+        img.onload = () => setArtworkLoaded(true);
+        img.src = artworkUrl;
         artworkCacheService.preloadArtwork(artworkUrl);
       }
     }
@@ -63,6 +68,8 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
   useEffect(() => {
     if (!isOpen) {
       audioPlayerService.stopAll();
+      setArtworkLoaded(false);
+      setSpotifyLoaded(false);
     }
   }, [isOpen]);
 
@@ -196,11 +203,21 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                     <div className="space-y-4">
                       <div className="aspect-square w-full bg-muted relative overflow-hidden group">
                         {artworkUrl ? (
-                          <img
-                            src={artworkUrl}
-                            alt={`${track.title} by ${track.artist}`}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
+                          <>
+                            {!artworkLoaded && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-muted animate-pulse">
+                                <Play size={64} className="text-muted-foreground/30" weight="fill" />
+                              </div>
+                            )}
+                            <img
+                              src={artworkUrl}
+                              alt={`${track.title} by ${track.artist}`}
+                              className={`w-full h-full object-cover transition-all duration-300 ${
+                                artworkLoaded ? 'opacity-100 group-hover:scale-105' : 'opacity-0'
+                              }`}
+                              onLoad={() => setArtworkLoaded(true)}
+                            />
+                          </>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <Play size={64} className="text-muted-foreground" weight="fill" />
@@ -403,7 +420,12 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                         </audio>
                       ) : null}
                       {track.spotifyUri && spotifyId && (
-                        <div className="mt-4">
+                        <div className="mt-4 relative">
+                          {!spotifyLoaded && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-secondary/50 border border-border animate-pulse">
+                              <div className="text-xs text-muted-foreground font-ui">Loading Spotify Player...</div>
+                            </div>
+                          )}
                           <iframe
                             ref={iframeRef}
                             src={`https://open.spotify.com/embed/track/${spotifyId}?utm_source=generator&theme=0`}
@@ -411,9 +433,10 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                             height="152"
                             frameBorder="0"
                             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                            loading="lazy"
+                            loading="eager"
                             title={`${track.artist} - ${track.title}`}
                             className="border border-border"
+                            onLoad={() => setSpotifyLoaded(true)}
                           />
                         </div>
                       )}
