@@ -134,7 +134,6 @@ function AppContent() {
       <Toaster position="top-right" />
       
       <div className="cyber-crt-overlay" />
-      <div className="cyber-crt-vignette" />
       
       <svg className="fixed inset-0 w-full h-full pointer-events-none z-[2] opacity-[0.015]" xmlns="http://www.w3.org/2000/svg">
         <filter id="noise">
