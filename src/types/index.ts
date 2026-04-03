@@ -14,7 +14,7 @@ export type Genre =
 
 export type ChartType = 'fan' | 'expert' | 'streaming' | 'overall';
 
-export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'history';
+export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'history' | 'admin';
 
 export interface Track {
   id: string;
@@ -249,4 +249,49 @@ export interface WeeklyMovement {
     newEntries: Track[];
     reEntries: Track[];
   };
+}
+
+export interface Artist {
+  id: string;
+  name: string;
+  spotifyId?: string;
+  appleMusicId?: string;
+  genres: Genre[];
+  artwork?: string;
+  bio?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Release {
+  id: string;
+  artistId: string;
+  artistName: string;
+  title: string;
+  releaseDate: string;
+  albumArt?: string;
+  spotifyUri?: string;
+  appleMusicUrl?: string;
+  type: 'album' | 'single' | 'ep';
+  tracks?: ReleaseTrack[];
+  createdAt: number;
+  lastCached: number;
+}
+
+export interface ReleaseTrack {
+  id: string;
+  title: string;
+  duration: number;
+  trackNumber: number;
+  spotifyUri?: string;
+  previewUrl?: string;
+}
+
+export interface ArtistCacheStatus {
+  artistId: string;
+  lastSync: number;
+  nextSync: number;
+  releaseCount: number;
+  status: 'syncing' | 'success' | 'error';
+  errorMessage?: string;
 }

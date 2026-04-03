@@ -23,6 +23,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { Toaster } from '@/components/ui/sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AdminArtistManagement } from '@/components/AdminArtistManagement';
 import { trackEnrichmentService } from '@/services/trackEnrichmentService';
 
 function AppContent() {
@@ -292,6 +293,7 @@ function AppContent() {
           {currentView === 'profile' && <ProfileView />}
           {currentView === 'about' && <AboutView />}
           {currentView === 'custom-charts' && <CustomChartsView />}
+          {currentView === 'admin' && <AdminArtistManagement />}
           {currentView === 'voting' && (
             <VotingArea 
               allTracks={[...fanCharts, ...expertCharts, ...streamingCharts]}
