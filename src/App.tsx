@@ -179,6 +179,40 @@ function AppContent() {
           {currentView === 'profile' && <ProfileView />}
           {currentView === 'about' && <AboutView />}
           {currentView === 'custom-charts' && <CustomChartsView />}
+          
+          {(currentView === 'home' || currentView === 'main-genre') && (
+            <>
+              <PillarNavigation 
+                activePillar={activePillar}
+                onPillarChange={setActivePillar}
+                className="mb-6 md:sticky md:top-0 md:z-40 bg-background/95 backdrop-blur-sm py-4 border-b border-border fixed top-0 left-0 right-0 z-50"
+              />
+
+              <MainGenreNavigation
+                activeGenre={currentMainGenre}
+                onGenreChange={(genre) => {
+                  setCurrentMainGenre(genre);
+                  setCurrentSubGenre(null);
+                  if (genre !== 'overall') {
+                    setCurrentView('main-genre');
+                  } else {
+                    setCurrentView('home');
+                  }
+                }}
+                className="mb-6"
+              />
+
+              {currentMainGenre !== 'overall' && (
+                <SubGenreNavigation
+                  mainGenre={currentMainGenre}
+                  activeSubGenre={currentSubGenre}
+                  onSubGenreChange={setCurrentSubGenre}
+                  className="mb-8"
+                />
+              )}
+            </>
+          )}
+
           {currentView === 'main-genre' && currentMainGenre && currentMainGenre !== 'overall' && (
             <GenreCharts 
               mainGenre={currentMainGenre}
@@ -192,30 +226,6 @@ function AppContent() {
           
           {currentView === 'home' && (
             <>
-              <PillarNavigation 
-                activePillar={activePillar}
-                onPillarChange={setActivePillar}
-                className="mb-6 md:sticky md:top-0 md:z-40 bg-background/95 backdrop-blur-sm py-4 border-b border-border fixed top-0 left-0 right-0 z-50"
-              />
-
-              <MainGenreNavigation
-                activeGenre={currentMainGenre}
-                onGenreChange={(genre) => {
-                  setCurrentMainGenre(genre);
-                  setCurrentSubGenre(null);
-                }}
-                className="mb-6"
-              />
-
-              {currentMainGenre !== 'overall' && (
-                <SubGenreNavigation
-                  mainGenre={currentMainGenre}
-                  activeSubGenre={currentSubGenre}
-                  onSubGenreChange={setCurrentSubGenre}
-                  className="mb-8"
-                />
-              )}
-
               {activePillar === 'overview' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
