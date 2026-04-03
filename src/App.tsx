@@ -116,10 +116,11 @@ function AppContent() {
     setWeights(newWeights);
   }, [setWeights]);
 
-  const handleTrackClick = useCallback((track: Track) => {
-    setSelectedTrackForModal(track);
+  const handleTrackClick = useCallback(async (track: Track) => {
+    const enrichedTrack = await trackEnrichmentService.enrichTrack(track);
+    setSelectedTrackForModal(enrichedTrack);
     setIsModalOpen(true);
-    setCurrentTrack(track);
+    setCurrentTrack(enrichedTrack);
   }, []);
 
   const handleToggleGenre = useCallback((genre: Genre) => {

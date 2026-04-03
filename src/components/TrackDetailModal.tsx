@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Track, MainGenre, Genre, ChartType } from '@/types';
-import { X, Play, CaretUp, CaretDown, Info, TrendUp, ArrowRight } from '@phosphor-icons/react';
-import { SpotifyEmbed } from '@/components/SpotifyEmbed';
+import { X, Play, CaretUp, CaretDown, Info, ArrowRight } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,6 +46,57 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
     }
   };
 
+  const getStreamingLinks = () => {
+    const links: Array<{ platform: string; url: string; available: boolean }> = [];
+
+    if (track.odesliData?.linksByPlatform) {
+      const platforms = track.odesliData.linksByPlatform;
+      
+      if (platforms.spotify) {
+        links.push({ platform: 'Spotify', url: platforms.spotify.url, available: true });
+      }
+      if (platforms.appleMusic) {
+        links.push({ platform: 'Apple Music', url: platforms.appleMusic.url, available: true });
+      }
+      if (platforms.youtube) {
+        links.push({ platform: 'YouTube', url: platforms.youtube.url, available: true });
+      }
+      if (platforms.youtubeMusic) {
+        links.push({ platform: 'YouTube Music', url: platforms.youtubeMusic.url, available: true });
+      }
+      if (platforms.amazonMusic) {
+        links.push({ platform: 'Amazon Music', url: platforms.amazonMusic.url, available: true });
+      }
+      if (platforms.deezer) {
+        links.push({ platform: 'Deezer', url: platforms.deezer.url, available: true });
+      }
+      if (platforms.tidal) {
+        links.push({ platform: 'Tidal', url: platforms.tidal.url, available: true });
+      }
+      if (platforms.pandora) {
+        links.push({ platform: 'Pandora', url: platforms.pandora.url, available: true });
+      }
+    } else {
+      if (track.spotifyUri) {
+        links.push({ platform: 'Spotify', url: `https://open.spotify.com/track/${spotifyId}`, available: true });
+      }
+      if (track.appleMusicUrl) {
+        links.push({ platform: 'Apple Music', url: track.appleMusicUrl, available: true });
+      }
+      if (track.amazonMusicUrl) {
+        links.push({ platform: 'Amazon Music', url: track.amazonMusicUrl, available: true });
+      }
+      if (track.youtubeUrl) {
+        links.push({ platform: 'YouTube', url: track.youtubeUrl, available: true });
+      }
+    }
+
+    return links;
+  };
+
+  const streamingLinks = getStreamingLinks();
+  const artworkUrl = track.artworkHighRes || track.albumArt;
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -84,9 +134,9 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                   <div className="grid md:grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <div className="aspect-square w-full bg-muted relative overflow-hidden group">
-                        {track.albumArt ? (
+                        {artworkUrl ? (
                           <img
-                            src={track.albumArt}
+                            src={artworkUrl}
                             alt={`${track.title} by ${track.artist}`}
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
@@ -289,63 +339,57 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                           <source src={track.previewUrl} type="audio/mpeg" />
                           Your browser does not support the audio element.
                         </audio>
-                      ) : track.spotifyUri ? (
-                        <SpotifyEmbed 
-                          spotifyUri={track.spotifyUri}
-                          artist={track.artist}
-                          title={track.title}
-                        />
                       ) : null}
+                      {track.spotifyUri && spotifyId && (
+                        <div className="mt-4">
+                          <iframe
+                            src={`https://open.spotify.com/embed/track/${spotifyId}?utm_source=generator&theme=0`}
+                            width="100%"
+                            height="152"
+                            frameBorder="0"
+                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                            loading="lazy"
+                            title={`${track.artist} - ${track.title}`}
+                            className="border border-border"
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  <div className="pt-4 border-t border-border">
-                    <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground mb-4">
-                      Listen On
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {track.spotifyUri && (
-                        <a
-                          href={`https://open.spotify.com/track/${spotifyId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-4 bg-secondary border border-border hover:border-primary transition-all flex items-center justify-center gap-2 font-ui text-sm uppercase tracking-wider hover:bg-primary/10"
-                        >
-                          Spotify
-                        </a>
-                      )}
-                      {track.appleMusicUrl && (
-                        <a
-                          href={track.appleMusicUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-4 bg-secondary border border-border hover:border-primary transition-all flex items-center justify-center gap-2 font-ui text-sm uppercase tracking-wider hover:bg-primary/10"
-                        >
-                          Apple Music
-                        </a>
-                      )}
-                      {track.amazonMusicUrl && (
-                        <a
-                          href={track.amazonMusicUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-4 bg-secondary border border-border hover:border-primary transition-all flex items-center justify-center gap-2 font-ui text-sm uppercase tracking-wider hover:bg-primary/10"
-                        >
-                          Amazon Music
-                        </a>
-                      )}
-                      {track.youtubeUrl && (
-                        <a
-                          href={track.youtubeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-4 bg-secondary border border-border hover:border-primary transition-all flex items-center justify-center gap-2 font-ui text-sm uppercase tracking-wider hover:bg-primary/10"
-                        >
-                          YouTube
-                        </a>
+                  {streamingLinks.length > 0 && (
+                    <div className="pt-4 border-t border-border">
+                      <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground mb-4">
+                        Höre auf / Listen On
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {streamingLinks.map((link) => (
+                          <a
+                            key={link.platform}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-4 bg-secondary border border-border hover:border-primary transition-all flex items-center justify-center gap-2 font-ui text-sm uppercase tracking-wider hover:bg-primary/10"
+                          >
+                            {link.platform}
+                          </a>
+                        ))}
+                      </div>
+                      {track.odesliData?.pageUrl && (
+                        <div className="mt-3">
+                          <a
+                            href={track.odesliData.pageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-ui text-muted-foreground hover:text-primary transition-colors uppercase tracking-wider inline-flex items-center gap-2"
+                          >
+                            Mehr Streaming-Optionen / More Streaming Options
+                            <ArrowRight size={12} />
+                          </a>
+                        </div>
                       )}
                     </div>
-                  </div>
+                  )}
                 </div>
               </motion.div>
             </div>
