@@ -7,9 +7,10 @@ interface ChartCategoryProps {
   title: string;
   tracks: Track[];
   isLoading?: boolean;
+  onTrackClick?: (track: Track) => void;
 }
 
-export function ChartCategory({ title, tracks, isLoading }: ChartCategoryProps) {
+export function ChartCategory({ title, tracks, isLoading, onTrackClick }: ChartCategoryProps) {
   const topThree = tracks.slice(0, 3);
 
   if (isLoading) {
@@ -48,7 +49,7 @@ export function ChartCategory({ title, tracks, isLoading }: ChartCategoryProps) 
       </div>
       <div className="relative z-10">
         {topThree.map((track, index) => (
-          <ChartEntry key={track.id} track={track} index={index} />
+          <ChartEntry key={track.id} track={track} index={index} onClick={onTrackClick} />
         ))}
       </div>
     </div>
