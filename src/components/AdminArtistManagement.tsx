@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Artist, Release, ArtistCacheStatus } from '@/types';
 import { artistManagementService } from '@/services/artistManagementService';
+import { spotifyService } from '@/services/spotifyService';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Trash, Pencil, ArrowsClockwise, MusicNote, SpotifyLogo, Check, X, Warning } from '@phosphor-icons/react';
+import { Plus, Trash, Pencil, ArrowsClockwise, MusicNote, SpotifyLogo, Check, X, Warning, MagnifyingGlass } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SpotifyAuthButton } from '@/components/SpotifyAuthButton';
 
 export function AdminArtistManagement() {
   const { t } = useLanguage();

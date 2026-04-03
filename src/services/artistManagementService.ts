@@ -1,4 +1,5 @@
 import { Artist, Release, ReleaseTrack, ArtistCacheStatus } from '@/types';
+import { spotifyService } from './spotifyService';
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000;
 const SYNC_INTERVAL = 7 * 24 * 60 * 60 * 1000;
@@ -124,6 +125,29 @@ class ArtistManagementService {
   }
 
   private async syncSpotifyReleases(artistId: string, spotifyId: string, artistName: string): Promise<void> {
+    try {
+      const isAuthenticated = await spotifyService.isAuthenticated();
+      
+      if (!isAuthenticated) {
+        console.warn('Spotify not authenticated, using mock data');
+        await this.syncMockReleases(artistId, spotifyId, artistName);
+        return;
+      }
+
+      const artist = await this.getArtist(artistId);
+      if (!artist) {
+        throw new Error('Artist not found');
+      }
+
+      const releases = await spotifyService.syncArtistReleases(artist);
+      console.log(`Synced ${releases.length} releases for ${artistName}`);
+    } catch (error) {
+      console.error('Failed to sync Spotify releases, falling back to mock:', error);
+      await this.syncMockReleases(artistId, spotifyId, artistName);
+    }
+  }
+
+  private async syncMockReleases(artistId: string, spotifyId: string, artistName: string): Promise<void> {
     const mockReleases: Release[] = [
       {
         id: `release-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
