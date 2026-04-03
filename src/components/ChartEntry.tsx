@@ -16,16 +16,13 @@ export function ChartEntry({ track, index }: ChartEntryProps) {
   
   return (
     <div
-      className="signal-static-card flex flex-col gap-3 p-4 border-b group overflow-hidden"
+      className="cyber-card flex flex-col gap-3 p-4 border-b group overflow-hidden"
     >
-      <div className="signal-static-card-corner corner-tl" />
-      <div className="signal-static-card-corner corner-tr" />
-      <div className="signal-static-card-corner corner-bl" />
-      <div className="signal-static-card-corner corner-br" />
+      <div className="cyber-scanline" />
       
       <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary opacity-0 group-hover:opacity-100 instant-transition" />
       
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 relative z-10">
         <div className="flex items-center gap-3 min-w-[100px]">
           <div className="relative">
             <div className={`display-font text-4xl leading-none font-semibold snap-transition ${track.rank === 1 ? 'text-primary' : track.rank <= 3 ? 'text-accent' : 'text-foreground/80'}`}>
@@ -40,7 +37,7 @@ export function ChartEntry({ track, index }: ChartEntryProps) {
               ) : (
                 <CaretDown weight="fill" className="w-5 h-5" />
               )}
-              <span className="data-font text-[10px] font-bold">{Math.abs(track.movement)}</span>
+              <span className="cyber-data-label">{Math.abs(track.movement)}</span>
             </div>
           )}
         </div>
@@ -55,7 +52,7 @@ export function ChartEntry({ track, index }: ChartEntryProps) {
         />
 
         <div className="flex-1 min-w-0">
-          <div className="data-font text-base font-bold text-foreground truncate group-hover:text-primary snap-transition">
+          <div className="cyber-hover-chromatic data-font text-base font-bold text-foreground truncate">
             {track.artist}
           </div>
           <div className="data-font text-xs text-muted-foreground truncate mt-0.5">

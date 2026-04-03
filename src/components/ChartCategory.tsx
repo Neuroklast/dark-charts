@@ -14,15 +14,12 @@ export function ChartCategory({ title, tracks, isLoading }: ChartCategoryProps) 
 
   if (isLoading) {
     return (
-      <div className="signal-static-card">
-        <div className="signal-static-card-corner corner-tl" />
-        <div className="signal-static-card-corner corner-tr" />
-        <div className="signal-static-card-corner corner-bl" />
-        <div className="signal-static-card-corner corner-br" />
-        <div className="p-4 border-b border-border">
-          <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">{title}</h2>
+      <div className="cyber-card relative">
+        <div className="cyber-scanline" />
+        <div className="p-4 border-b border-border relative z-10">
+          <h2 className="cyber-hover-chromatic display-font text-xl uppercase text-foreground tracking-tight font-semibold">{title}</h2>
         </div>
-        <div>
+        <div className="relative z-10">
           {[1, 2, 3].map((i) => (
             <div key={i} className="p-4 border-b border-border">
               <div className="flex items-center gap-4">
@@ -44,15 +41,12 @@ export function ChartCategory({ title, tracks, isLoading }: ChartCategoryProps) 
   }
 
   return (
-    <div className="signal-static-card overflow-hidden">
-      <div className="signal-static-card-corner corner-tl" />
-      <div className="signal-static-card-corner corner-tr" />
-      <div className="signal-static-card-corner corner-bl" />
-      <div className="signal-static-card-corner corner-br" />
-      <div className="p-4 border-b border-border">
-        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">{title}</h2>
+    <div className="cyber-card overflow-hidden relative">
+      <div className="cyber-scanline" />
+      <div className="p-4 border-b border-border relative z-10">
+        <h2 className="cyber-hover-chromatic display-font text-xl uppercase text-foreground tracking-tight font-semibold">{title}</h2>
       </div>
-      <div>
+      <div className="relative z-10">
         {topThree.map((track, index) => (
           <ChartEntry key={track.id} track={track} index={index} />
         ))}
