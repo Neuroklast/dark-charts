@@ -1,9 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
-import { MainGenre, Genre, Track, ChartType } from '@/types';
+import { MainGenre, Genre, Track } from '@/types';
 import { Card } from '@/components/ui/card';
 import { ChartEntry } from '@/components/ChartEntry';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface GenreChartsProps {
   mainGenre: MainGenre;
@@ -44,7 +43,6 @@ export function GenreCharts({
   onTrackClick 
 }: GenreChartsProps) {
   const [selectedSubGenre, setSelectedSubGenre] = useState<Genre | null>(null);
-  const [activeChartType, setActiveChartType] = useState<ChartType>('fan');
 
   const subGenres = subGenresByMainGenre[mainGenre];
 
@@ -59,25 +57,29 @@ export function GenreCharts({
     return tracks.filter(track => track.genres.includes(selectedSubGenre));
   }, [selectedSubGenre]);
 
-  const filteredFanTracks = useMemo(() => {
-    const mainGenreTracks = filterByMainGenre(fanCharts);
+  const combinedAndFilteredTracks = useMemo(() => {
+    const allTracks = [...fanCharts, ...expertCharts, ...streamingCharts];
+    const mainGenreTracks = filterByMainGenre(allTracks);
     const filtered = filterBySubGenre(mainGenreTracks);
-    return filtered.slice(0, 10);
-  }, [fanCharts, filterByMainGenre, filterBySubGenre]);
+    
+    const uniqueTracksMap = new Map<string, Track>();
+    filtered.forEach(track => {
+      if (!uniqueTracksMap.has(track.id)) {
+        uniqueTracksMap.set(track.id, track);
+      }
+    });
+    
+    const uniqueTracks = Array.from(uniqueTracksMap.values());
+    uniqueTracks.sort((a, b) => {
+      const scoreA = (a.fanScore || 0) + (a.expertScore || 0) + (a.streamingScore || 0);
+      const scoreB = (b.fanScore || 0) + (b.expertScore || 0) + (b.streamingScore || 0);
+      return scoreB - scoreA;
+    });
+    
+    return uniqueTracks.slice(0, 10);
+  }, [fanCharts, expertCharts, streamingCharts, filterByMainGenre, filterBySubGenre]);
 
-  const filteredExpertTracks = useMemo(() => {
-    const mainGenreTracks = filterByMainGenre(expertCharts);
-    const filtered = filterBySubGenre(mainGenreTracks);
-    return filtered.slice(0, 10);
-  }, [expertCharts, filterByMainGenre, filterBySubGenre]);
-
-  const filteredStreamingTracks = useMemo(() => {
-    const mainGenreTracks = filterByMainGenre(streamingCharts);
-    const filtered = filterBySubGenre(mainGenreTracks);
-    return filtered.slice(0, 10);
-  }, [streamingCharts, filterByMainGenre, filterBySubGenre]);
-
-  const renderChartSection = (tracks: Track[], chartTypeLabel: string) => {
+  const renderChartSection = (tracks: Track[]) => {
     if (tracks.length === 0) {
       return (
         <Card className="bg-card border border-border p-12 text-center">
@@ -92,7 +94,7 @@ export function GenreCharts({
       <Card className="bg-card border border-border">
         <div className="p-4 border-b border-border">
           <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">
-            {mainGenre} • {chartTypeLabel} Charts{selectedSubGenre && ` • ${selectedSubGenre}`}
+            {mainGenre}{selectedSubGenre && ` • ${selectedSubGenre}`} Charts
           </h2>
         </div>
         <motion.div layout>
@@ -154,31 +156,9 @@ export function GenreCharts({
         </div>
       </div>
 
-      <Tabs value={activeChartType} onValueChange={(value) => setActiveChartType(value as ChartType)} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-secondary/50">
-          <TabsTrigger value="fan" className="font-ui text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            Fan Charts
-          </TabsTrigger>
-          <TabsTrigger value="expert" className="font-ui text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            Expert Charts
-          </TabsTrigger>
-          <TabsTrigger value="streaming" className="font-ui text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            Streaming Charts
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="fan" className="mt-6">
-          {renderChartSection(filteredFanTracks, 'Fan')}
-        </TabsContent>
-        
-        <TabsContent value="expert" className="mt-6">
-          {renderChartSection(filteredExpertTracks, 'Expert')}
-        </TabsContent>
-        
-        <TabsContent value="streaming" className="mt-6">
-          {renderChartSection(filteredStreamingTracks, 'Streaming')}
-        </TabsContent>
-      </Tabs>
+      <div className="mt-6">
+        {renderChartSection(combinedAndFilteredTracks)}
+      </div>
     </div>
   );
 }

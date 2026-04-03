@@ -100,7 +100,7 @@ export interface ChartData {
 
 export interface Vote {
   trackId: string;
-  direction: 'up' | 'down';
+  credits: number;
   timestamp: number;
 }
 
@@ -108,9 +108,10 @@ export interface IDataService {
   getAllCharts(): Promise<ChartData>;
   getChartByType(type: 'fan' | 'expert' | 'streaming'): Promise<Track[]>;
   calculateOverallChart(weights: ChartWeights): Track[];
-  vote(trackId: string, direction: 'up' | 'down'): Promise<void>;
+  vote(trackId: string, credits: number): Promise<void>;
   getVotes(trackId: string): Promise<number>;
-  hasUserVoted(trackId: string): Promise<boolean>;
+  getUserVotesForTrack(trackId: string): Promise<number>;
+  getNextChartPublicationDate(): Date;
 }
 
 export type UserType = 'fan' | 'band' | 'dj' | 'label';

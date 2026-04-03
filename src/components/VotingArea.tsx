@@ -1,11 +1,11 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Track, Genre, MainGenre } from '@/types';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { Track, Genre } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { CaretUp, CaretDown, MagnifyingGlass, Info, Lightning } from '@phosphor-icons/react';
-import { useDataService } from '@/contexts/DataContext';
+import { MagnifyingGlass, Info, Lightning, Coins, Calendar } from '@phosphor-icons/react';
+import { useKV } from '@github/spark/hooks';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -16,33 +16,48 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Slider } from '@/components/ui/slider';
 
 interface VotingAreaProps {
   allTracks: Track[];
   onTrackClick: (track: Track) => void;
 }
 
+const MAX_CREDITS = 150;
+
+function getNextMonday(): Date {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
+  const nextMonday = new Date(today);
+  nextMonday.setDate(today.getDate() + daysUntilMonday);
+  nextMonday.setHours(0, 0, 0, 0);
+  return nextMonday;
+}
+
+function calculateQuadraticCost(credits: number): number {
+  return credits * credits;
+}
+
 export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
-  const dataService = useDataService();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
-  const [userVotes, setUserVotes] = useState<Record<string, 'up' | 'down'>>({});
-  const [trackVotes, setTrackVotes] = useState<Record<string, number>>({});
-  const [simulatedRankings, setSimulatedRankings] = useState<Track[]>([]);
-  const [isCalculating, setIsCalculating] = useState(false);
+  const [userVotes, setUserVotes] = useKV<Record<string, number>>('user-votes', {});
+  const [creditsRemaining, setCreditsRemaining] = useKV<number>('voting-credits', MAX_CREDITS);
+  const [tempVoteValues, setTempVoteValues] = useState<Record<string, number>>({});
+  const [nextPublishDate] = useState<Date>(getNextMonday());
+
+  const totalCreditsSpent = useMemo(() => {
+    if (!userVotes) return 0;
+    return Object.values(userVotes).reduce((sum, credits) => {
+      return sum + calculateQuadraticCost(credits);
+    }, 0);
+  }, [userVotes]);
 
   useEffect(() => {
-    const loadVoteData = async () => {
-      const votes: Record<string, number> = {};
-      for (const track of allTracks) {
-        votes[track.id] = track.votes || 0;
-      }
-      setTrackVotes(votes);
-      calculateSimulatedRankings(votes);
-    };
-    loadVoteData();
-  }, [allTracks]);
+    setCreditsRemaining(MAX_CREDITS - totalCreditsSpent);
+  }, [totalCreditsSpent, setCreditsRemaining]);
 
   const allGenres = useMemo(() => {
     const genreSet = new Set<Genre>();
@@ -72,132 +87,156 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
     return filtered;
   }, [allTracks, searchTerm, selectedGenres]);
 
-  const calculateSimulatedRankings = (votes: Record<string, number>) => {
-    setIsCalculating(true);
-    
-    const tracksWithVotes = allTracks.map(track => ({
-      ...track,
-      votes: votes[track.id] || track.votes || 0
-    }));
+  const tracksWithSimulatedVotes = useMemo(() => {
+    return filteredTracks.map(track => {
+      const userCredit = (userVotes && userVotes[track.id]) || 0;
+      const baseVotes = track.votes || 0;
+      return {
+        ...track,
+        simulatedVotes: baseVotes + userCredit,
+        userCredits: userCredit
+      };
+    }).sort((a, b) => b.simulatedVotes - a.simulatedVotes);
+  }, [filteredTracks, userVotes]);
 
-    const sorted = [...tracksWithVotes].sort((a, b) => {
-      const voteDiff = (b.votes || 0) - (a.votes || 0);
-      if (voteDiff !== 0) return voteDiff;
-      return (b.fanScore || 0) - (a.fanScore || 0);
-    });
-
-    const ranked = sorted.map((track, index) => ({
-      ...track,
-      rank: index + 1,
-      movement: track.rank ? track.rank - (index + 1) : 0
-    }));
-
-    setSimulatedRankings(ranked);
-    setTimeout(() => setIsCalculating(false), 300);
-  };
-
-  const handleVote = async (trackId: string, direction: 'up' | 'down') => {
-    if (!user) {
-      toast.error('Please log in to vote');
-      return;
-    }
-
-    const previousVote = userVotes[trackId];
-    const previousVotes = trackVotes[trackId] || 0;
-
-    let newVoteCount = previousVotes;
-    let newUserVote: 'up' | 'down' | undefined;
-
-    if (previousVote === direction) {
-      newUserVote = undefined;
-      newVoteCount += direction === 'up' ? -1 : 1;
-    } else if (previousVote) {
-      newUserVote = direction;
-      newVoteCount += direction === 'up' ? 2 : -2;
-    } else {
-      newUserVote = direction;
-      newVoteCount += direction === 'up' ? 1 : -1;
-    }
-
-    const updatedUserVotes = { ...userVotes };
-    if (newUserVote) {
-      updatedUserVotes[trackId] = newUserVote;
-    } else {
-      delete updatedUserVotes[trackId];
-    }
-    setUserVotes(updatedUserVotes);
-
-    const updatedTrackVotes = { ...trackVotes, [trackId]: newVoteCount };
-    setTrackVotes(updatedTrackVotes);
-    calculateSimulatedRankings(updatedTrackVotes);
-
-    try {
-      await dataService.vote(trackId, direction);
-      const actualVotes = await dataService.getVotes(trackId);
-      const finalVotes = { ...trackVotes, [trackId]: actualVotes };
-      setTrackVotes(finalVotes);
-      calculateSimulatedRankings(finalVotes);
-      
-      toast.success(direction === 'up' ? '🔥 Voted up!' : '👎 Voted down', {
-        duration: 2000
-      });
-    } catch (error) {
-      setUserVotes(userVotes);
-      const revertedVotes = { ...trackVotes, [trackId]: previousVotes };
-      setTrackVotes(revertedVotes);
-      calculateSimulatedRankings(revertedVotes);
-      toast.error('Vote failed. Please try again.');
-    }
-  };
-
-  const handleToggleGenre = (genre: Genre) => {
+  const handleToggleGenre = useCallback((genre: Genre) => {
     setSelectedGenres(current =>
       current.includes(genre)
         ? current.filter(g => g !== genre)
         : [...current, genre]
     );
-  };
+  }, []);
 
-  const getCurrentRank = (trackId: string): number => {
-    const track = simulatedRankings.find(t => t.id === trackId);
-    return track?.rank || 0;
-  };
+  const handleVoteChange = useCallback((trackId: string, newCredits: number) => {
+    if (!user) {
+      toast.error('Please log in to vote');
+      return;
+    }
 
-  const getRankChange = (trackId: string): number => {
-    const track = simulatedRankings.find(t => t.id === trackId);
-    return track?.movement || 0;
-  };
+    const currentCredits = (userVotes && userVotes[trackId]) || 0;
+    const currentCost = calculateQuadraticCost(currentCredits);
+    const newCost = calculateQuadraticCost(newCredits);
+    const costDifference = newCost - currentCost;
+    const remainingCredits = creditsRemaining || MAX_CREDITS;
+
+    if (costDifference > remainingCredits) {
+      toast.error(`Not enough credits! You need ${costDifference} but only have ${remainingCredits} remaining.`);
+      return;
+    }
+
+    setUserVotes((current) => {
+      const updated = { ...(current || {}) };
+      if (newCredits === 0) {
+        delete updated[trackId];
+      } else {
+        updated[trackId] = newCredits;
+      }
+      return updated;
+    });
+
+    setTempVoteValues(current => {
+      const updated = { ...current };
+      delete updated[trackId];
+      return updated;
+    });
+
+    toast.success(`Allocated ${newCredits} credits (cost: ${newCost})`, {
+      duration: 2000
+    });
+  }, [user, userVotes, creditsRemaining, setUserVotes]);
+
+  const handleSliderChange = useCallback((trackId: string, value: number[]) => {
+    setTempVoteValues(current => ({
+      ...current,
+      [trackId]: value[0]
+    }));
+  }, []);
+
+  const daysUntilPublish = useMemo(() => {
+    const now = new Date();
+    const diff = nextPublishDate.getTime() - now.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }, [nextPublishDate]);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-4">
-        <div className="flex-1">
-          <h1 className="display-font text-4xl uppercase tracking-wider text-foreground font-semibold mb-2">
-            Voting Area
-          </h1>
-          <p className="font-ui text-sm text-muted-foreground">
-            Vote for your favorite tracks and see real-time impact on the charts
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="display-font text-4xl uppercase tracking-wider text-foreground font-semibold mb-2">
+              Voting Area
+            </h1>
+            <p className="font-ui text-sm text-muted-foreground">
+              Use quadratic voting to support your favorite tracks
+            </p>
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" className="shrink-0">
+                  <Info size={20} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-sm" side="left">
+                <p className="font-ui text-xs leading-relaxed">
+                  <strong>Quadratic Voting:</strong><br/>
+                  • You have {MAX_CREDITS} credits to allocate<br/>
+                  • Cost = credits²  (1 credit = 1 cost, 5 credits = 25 cost)<br/>
+                  • Allocate credits across multiple tracks<br/>
+                  • Charts publish weekly every Monday<br/>
+                  • Credits reset after each publication<br/>
+                  • No downvoting - only positive support
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" className="shrink-0">
-                <Info size={20} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs" side="left">
-              <p className="font-ui text-xs leading-relaxed">
-                <strong>How Voting Works:</strong><br/>
-                • Vote UP to increase a track's rank<br/>
-                • Vote DOWN to decrease it<br/>
-                • See instant impact on chart positions<br/>
-                • Your votes combine with fan, expert, and streaming data<br/>
-                • Change your vote anytime by clicking again
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+
+        <Card className="bg-card border border-border p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary/20 border border-primary flex items-center justify-center">
+                <Coins size={24} weight="fill" className="text-primary" />
+              </div>
+              <div>
+                <div className="font-display text-2xl text-foreground data-font">
+                  {creditsRemaining}
+                </div>
+                <div className="font-ui text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                  Credits Remaining
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-accent/20 border border-accent flex items-center justify-center">
+                <Lightning size={24} weight="fill" className="text-accent" />
+              </div>
+              <div>
+                <div className="font-display text-2xl text-foreground data-font">
+                  {totalCreditsSpent}
+                </div>
+                <div className="font-ui text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                  Total Cost Spent
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-secondary border border-border flex items-center justify-center">
+                <Calendar size={24} weight="fill" className="text-foreground" />
+              </div>
+              <div>
+                <div className="font-display text-2xl text-foreground data-font">
+                  {daysUntilPublish}
+                </div>
+                <div className="font-ui text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                  Days Until Charts
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
 
       <Card className="bg-card border border-border p-4 space-y-4">
@@ -214,23 +253,14 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
               className="pl-10 font-ui"
             />
           </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="outline"
-                  onClick={() => setSelectedGenres([])}
-                  disabled={selectedGenres.length === 0}
-                  className="font-ui uppercase tracking-wider"
-                >
-                  Clear Filters
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="font-ui text-xs">Remove all genre filters</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Button 
+            variant="outline"
+            onClick={() => setSelectedGenres([])}
+            disabled={selectedGenres.length === 0}
+            className="font-ui uppercase tracking-wider"
+          >
+            Clear Filters
+          </Button>
         </div>
 
         {allGenres.length > 0 && (
@@ -239,16 +269,6 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
               <span className="font-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold">
                 Filter by Genre
               </span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info size={14} className="text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="font-ui text-xs">Click genres to filter the track list</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
             <div className="flex flex-wrap gap-2">
               {allGenres.slice(0, 15).map(genre => (
@@ -268,11 +288,12 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
 
       <div className="grid grid-cols-1 gap-4">
         <AnimatePresence mode="popLayout">
-          {filteredTracks.slice(0, 50).map((track) => {
-            const currentRank = getCurrentRank(track.id);
-            const rankChange = getRankChange(track.id);
-            const vote = userVotes[track.id];
-            const votes = trackVotes[track.id] || track.votes || 0;
+          {tracksWithSimulatedVotes.slice(0, 50).map((track, simulatedIndex) => {
+            const userCredits = (userVotes && userVotes[track.id]) || 0;
+            const tempValue = tempVoteValues[track.id];
+            const sliderValue = tempValue !== undefined ? tempValue : userCredits;
+            const remainingCredits = creditsRemaining || MAX_CREDITS;
+            const maxAffordable = Math.floor(Math.sqrt(remainingCredits + calculateQuadraticCost(userCredits)));
 
             return (
               <motion.div
@@ -283,10 +304,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.15 }}
               >
-                <Card className={cn(
-                  "bg-card border border-border transition-all hover:border-primary/50",
-                  isCalculating && "opacity-70"
-                )}>
+                <Card className="bg-card border border-border transition-all hover:border-primary/50">
                   <div className="p-4">
                     <div className="flex items-start gap-4">
                       <div className="flex flex-col items-center gap-1 min-w-[60px]">
@@ -294,26 +312,8 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                           Rank
                         </div>
                         <div className="text-2xl font-display text-primary data-font">
-                          #{currentRank || track.rank}
+                          #{simulatedIndex + 1}
                         </div>
-                        {rankChange !== 0 && (
-                          <div className={cn(
-                            "text-xs font-ui flex items-center gap-1",
-                            rankChange > 0 ? "text-accent" : "text-destructive"
-                          )}>
-                            {rankChange > 0 ? (
-                              <>
-                                <CaretUp size={12} weight="bold" />
-                                +{rankChange}
-                              </>
-                            ) : (
-                              <>
-                                <CaretDown size={12} weight="bold" />
-                                {rankChange}
-                              </>
-                            )}
-                          </div>
-                        )}
                       </div>
 
                       {track.albumArt && (
@@ -329,94 +329,92 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                         </div>
                       )}
 
-                      <div className="flex-1 min-w-0">
-                        <h3 
-                          className="font-display text-lg uppercase tracking-tight text-foreground mb-1 truncate cursor-pointer hover:text-primary transition-colors"
-                          onClick={() => onTrackClick(track)}
-                        >
-                          {track.title}
-                        </h3>
-                        <div className="font-ui text-sm text-muted-foreground mb-2">
-                          {track.artist}
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {track.genres.slice(0, 3).map(genre => (
-                            <Badge 
-                              key={genre} 
-                              variant="secondary" 
-                              className="font-ui text-[9px] uppercase tracking-wider"
-                            >
-                              {genre}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-center gap-3 shrink-0">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                onClick={() => handleVote(track.id, 'up')}
-                                variant={vote === 'up' ? 'default' : 'outline'}
-                                size="icon"
-                                className={cn(
-                                  "transition-all",
-                                  vote === 'up' && "shadow-lg shadow-primary/50"
-                                )}
-                              >
-                                <CaretUp size={20} weight="bold" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="font-ui text-xs">
-                                {vote === 'up' ? 'Remove your upvote' : 'Vote this track up'}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-
-                        <div className="flex flex-col items-center">
-                          <Lightning 
-                            size={16} 
-                            weight="fill" 
-                            className="text-accent mb-1" 
-                          />
-                          <motion.div
-                            key={votes}
-                            initial={{ scale: 1.3, opacity: 0.5 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="data-font text-lg font-bold text-foreground"
+                      <div className="flex-1 min-w-0 space-y-3">
+                        <div>
+                          <h3 
+                            className="font-display text-lg uppercase tracking-tight text-foreground mb-1 truncate cursor-pointer hover:text-primary transition-colors"
+                            onClick={() => onTrackClick(track)}
                           >
-                            {votes}
-                          </motion.div>
-                          <div className="text-[9px] font-ui uppercase tracking-wider text-muted-foreground">
-                            votes
+                            {track.title}
+                          </h3>
+                          <div className="font-ui text-sm text-muted-foreground mb-2">
+                            {track.artist}
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {track.genres.slice(0, 3).map(genre => (
+                              <Badge 
+                                key={genre} 
+                                variant="secondary" 
+                                className="font-ui text-[9px] uppercase tracking-wider"
+                              >
+                                {genre}
+                              </Badge>
+                            ))}
                           </div>
                         </div>
 
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                onClick={() => handleVote(track.id, 'down')}
-                                variant={vote === 'down' ? 'destructive' : 'outline'}
-                                size="icon"
-                                className={cn(
-                                  "transition-all",
-                                  vote === 'down' && "shadow-lg shadow-destructive/50"
-                                )}
-                              >
-                                <CaretDown size={20} weight="bold" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="font-ui text-xs">
-                                {vote === 'down' ? 'Remove your downvote' : 'Vote this track down'}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex-1">
+                              <Slider
+                                value={[sliderValue]}
+                                onValueChange={(value) => handleSliderChange(track.id, value)}
+                                onValueCommit={(value) => handleVoteChange(track.id, value[0])}
+                                max={Math.max(maxAffordable, userCredits)}
+                                step={1}
+                                className="w-full"
+                                disabled={!user}
+                              />
+                            </div>
+                            <div className="flex items-center gap-2 min-w-[120px]">
+                              <div className="text-center">
+                                <div className="data-font text-lg font-bold text-foreground">
+                                  {sliderValue}
+                                </div>
+                                <div className="text-[9px] font-ui uppercase tracking-wider text-muted-foreground">
+                                  Credits
+                                </div>
+                              </div>
+                              <div className="text-muted-foreground font-ui text-xs">=</div>
+                              <div className="text-center">
+                                <div className="data-font text-lg font-bold text-accent">
+                                  {calculateQuadraticCost(sliderValue)}
+                                </div>
+                                <div className="text-[9px] font-ui uppercase tracking-wider text-muted-foreground">
+                                  Cost
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {userCredits > 0 && (
+                            <div className="flex items-center gap-2 px-3 py-2 bg-accent/10 border border-accent/30">
+                              <Lightning size={14} weight="fill" className="text-accent" />
+                              <span className="font-ui text-[10px] uppercase tracking-wider text-accent">
+                                You allocated {userCredits} credits to this track
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-center gap-1 min-w-[80px]">
+                        <Lightning 
+                          size={20} 
+                          weight="fill" 
+                          className="text-accent" 
+                        />
+                        <motion.div
+                          key={track.simulatedVotes}
+                          initial={{ scale: 1.3, opacity: 0.5 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="data-font text-2xl font-bold text-foreground"
+                        >
+                          {track.simulatedVotes}
+                        </motion.div>
+                        <div className="text-[9px] font-ui uppercase tracking-wider text-muted-foreground text-center">
+                          Total Votes
+                        </div>
                       </div>
                     </div>
                   </div>
