@@ -15,7 +15,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { audioPlayerService } from '@/services/audioPlayerService';
-import { artworkCacheService } from '@/services/artworkCacheService';
+import { useTrackData } from '@/hooks/use-track-data';
 
 interface ChartPosition {
   chartName: string;
@@ -40,18 +40,28 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [artworkLoaded, setArtworkLoaded] = useState(false);
   const [spotifyLoaded, setSpotifyLoaded] = useState(false);
+  
+  const {
+    enrichedTrack,
+    isLoadingArtwork,
+    isLoadingPreview,
+    isLoadingStreamingLinks,
+    artworkUrl,
+    previewUrl,
+    hasStreamingLinks
+  } = useTrackData(isOpen ? track : null);
 
   useEffect(() => {
-    if (track?.artworkHighRes || track?.albumArt) {
-      const artworkUrl = track.artworkHighRes || track.albumArt;
-      if (artworkUrl) {
-        const img = new Image();
-        img.onload = () => setArtworkLoaded(true);
-        img.src = artworkUrl;
-        artworkCacheService.preloadArtwork(artworkUrl);
-      }
+    if (!isOpen || !artworkUrl) {
+      setArtworkLoaded(false);
+      return;
     }
-  }, [track]);
+
+    const img = new Image();
+    img.onload = () => setArtworkLoaded(true);
+    img.onerror = () => setArtworkLoaded(true);
+    img.src = artworkUrl;
+  }, [artworkUrl, isOpen]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -68,7 +78,6 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
   useEffect(() => {
     if (!isOpen) {
       audioPlayerService.stopAll();
-      setArtworkLoaded(false);
       setSpotifyLoaded(false);
     }
   }, [isOpen]);
@@ -107,8 +116,9 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
   const getStreamingLinks = () => {
     const links: Array<{ platform: string; url: string; available: boolean }> = [];
 
-    if (track.odesliData?.linksByPlatform) {
-      const platforms = track.odesliData.linksByPlatform;
+    const currentTrack = enrichedTrack || track;
+    if (currentTrack.odesliData?.linksByPlatform) {
+      const platforms = currentTrack.odesliData.linksByPlatform;
       
       const platformMapping: Record<string, string> = {
         spotify: 'Spotify',
@@ -145,17 +155,17 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
         }
       });
     } else {
-      if (track.spotifyUri && spotifyId) {
+      if (currentTrack.spotifyUri && spotifyId) {
         links.push({ platform: 'Spotify', url: `https://open.spotify.com/track/${spotifyId}`, available: true });
       }
-      if (track.appleMusicUrl) {
-        links.push({ platform: 'Apple Music', url: track.appleMusicUrl, available: true });
+      if (currentTrack.appleMusicUrl) {
+        links.push({ platform: 'Apple Music', url: currentTrack.appleMusicUrl, available: true });
       }
-      if (track.amazonMusicUrl) {
-        links.push({ platform: 'Amazon Music', url: track.amazonMusicUrl, available: true });
+      if (currentTrack.amazonMusicUrl) {
+        links.push({ platform: 'Amazon Music', url: currentTrack.amazonMusicUrl, available: true });
       }
-      if (track.youtubeUrl) {
-        links.push({ platform: 'YouTube', url: track.youtubeUrl, available: true });
+      if (currentTrack.youtubeUrl) {
+        links.push({ platform: 'YouTube', url: currentTrack.youtubeUrl, available: true });
       }
     }
 
@@ -163,7 +173,6 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
   };
 
   const streamingLinks = getStreamingLinks();
-  const artworkUrl = track.artworkHighRes || track.albumArt;
 
   return (
     <AnimatePresence>

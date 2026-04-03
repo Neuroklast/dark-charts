@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { artworkCacheService } from '@/services/artworkCacheService';
 
 interface AlbumArtworkProps {
   src?: string;
@@ -7,6 +8,7 @@ interface AlbumArtworkProps {
   title: string;
   size?: 'small' | 'medium' | 'large';
   glowColor?: string;
+  showLoadingIndicator?: boolean;
 }
 
 export function AlbumArtwork({ 
@@ -15,9 +17,43 @@ export function AlbumArtwork({
   artist, 
   title, 
   size = 'medium',
-  glowColor = 'primary'
+  glowColor = 'primary',
+  showLoadingIndicator = true
 }: AlbumArtworkProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!src);
+  const [hasError, setHasError] = useState(false);
+  const [loadedSrc, setLoadedSrc] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!src) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setHasError(false);
+
+    const img = new Image();
+    
+    img.onload = () => {
+      setLoadedSrc(src);
+      setIsLoading(false);
+      artworkCacheService.preloadArtwork(src);
+    };
+
+    img.onerror = () => {
+      setHasError(true);
+      setIsLoading(false);
+    };
+
+    img.src = src;
+
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [src]);
 
   const sizeClasses = {
     small: 'w-16 h-16',
@@ -46,10 +82,14 @@ export function AlbumArtwork({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {src ? (
+      {isLoading && showLoadingIndicator ? (
+        <div className="w-full h-full bg-secondary border-2 border-border flex items-center justify-center animate-pulse">
+          <div className="w-3 h-3 bg-muted-foreground/30 rounded-full animate-ping" />
+        </div>
+      ) : loadedSrc && !hasError ? (
         <div className={`relative w-full h-full overflow-hidden ${isHovered ? 'chromatic-hover' : ''}`}>
           <img
-            src={src}
+            src={loadedSrc}
             alt={alt}
             className={`w-full h-full object-cover instant-transition ${getGlowClass()} ${
               isHovered ? 'scale-110' : 'scale-100'
