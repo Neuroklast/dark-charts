@@ -21,6 +21,7 @@ import { DataProvider, useDataService } from '@/contexts/DataContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { trackEnrichmentService } from '@/services/trackEnrichmentService';
 
 function AppContent() {
   const dataService = useDataService();
@@ -55,6 +56,9 @@ function AppContent() {
         if (data.fanCharts.length > 0) {
           setCurrentTrack(data.fanCharts[0]);
         }
+
+        const allTracks = [...data.fanCharts, ...data.expertCharts, ...data.streamingCharts];
+        trackEnrichmentService.startBackgroundSync(allTracks);
       } catch (error) {
         console.error('Failed to load charts:', error);
       } finally {
@@ -64,6 +68,17 @@ function AppContent() {
 
     loadCharts();
   }, [dataService]);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const allTracks = [...fanCharts, ...expertCharts, ...streamingCharts];
+      if (allTracks.length > 0) {
+        await trackEnrichmentService.syncAllTracks(allTracks);
+      }
+    }, 24 * 60 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [fanCharts, expertCharts, streamingCharts]);
 
   const allGenres: Genre[] = useMemo(() => {
     const genreSet = new Set<Genre>();

@@ -275,16 +275,27 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                     </div>
                   </div>
 
-                  {track.spotifyUri && (
+                  {(track.previewUrl || track.spotifyUri) && (
                     <div className="pt-4 border-t border-border">
                       <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground mb-4">
-                        Preview Player
+                        Track Preview
                       </div>
-                      <SpotifyEmbed 
-                        spotifyUri={track.spotifyUri}
-                        artist={track.artist}
-                        title={track.title}
-                      />
+                      {track.previewUrl ? (
+                        <audio 
+                          controls 
+                          className="w-full"
+                          preload="metadata"
+                        >
+                          <source src={track.previewUrl} type="audio/mpeg" />
+                          Your browser does not support the audio element.
+                        </audio>
+                      ) : track.spotifyUri ? (
+                        <SpotifyEmbed 
+                          spotifyUri={track.spotifyUri}
+                          artist={track.artist}
+                          title={track.title}
+                        />
+                      ) : null}
                     </div>
                   )}
 

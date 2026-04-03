@@ -39,6 +39,51 @@ export interface Track {
   youtubeUrl?: string;
   overallRank?: number;
   subGenreRanks?: Record<Genre, number>;
+  previewUrl?: string;
+  isrc?: string;
+  artworkHighRes?: string;
+  odesliData?: OdesliData;
+}
+
+export interface OdesliData {
+  id: string;
+  entityUniqueId: string;
+  userCountry: string;
+  pageUrl: string;
+  linksByPlatform: {
+    [key: string]: {
+      url: string;
+      nativeAppUriMobile?: string;
+      nativeAppUriDesktop?: string;
+    };
+  };
+  entitiesByUniqueId: {
+    [key: string]: {
+      id: string;
+      type: string;
+      title?: string;
+      artistName?: string;
+      thumbnailUrl?: string;
+      thumbnailWidth?: number;
+      thumbnailHeight?: number;
+      apiProvider: string;
+      platforms: string[];
+    };
+  };
+}
+
+export interface CachedTrackData {
+  trackId: string;
+  odesliData?: OdesliData;
+  artworkUrl?: string;
+  previewUrl?: string;
+  lastUpdated: number;
+}
+
+export interface ApiThrottleState {
+  requestCount: number;
+  windowStart: number;
+  queue: Array<() => Promise<void>>;
 }
 
 export interface ChartWeights {
