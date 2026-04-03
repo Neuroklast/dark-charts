@@ -14,7 +14,7 @@ export type Genre =
 
 export type ChartType = 'fan' | 'expert' | 'streaming' | 'overall';
 
-export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about';
+export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting';
 
 export interface Track {
   id: string;
@@ -37,6 +37,8 @@ export interface Track {
   appleMusicUrl?: string;
   amazonMusicUrl?: string;
   youtubeUrl?: string;
+  overallRank?: number;
+  subGenreRanks?: Record<Genre, number>;
 }
 
 export interface ChartWeights {

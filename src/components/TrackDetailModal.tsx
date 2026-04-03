@@ -1,9 +1,15 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Track } from '@/types';
-import { X, Play, CaretUp, CaretDown } from '@phosphor-icons/react';
+import { X, Play, CaretUp, CaretDown, Info, TrendUp } from '@phosphor-icons/react';
 import { SpotifyEmbed } from '@/components/SpotifyEmbed';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TrackDetailModalProps {
   track: Track | null;
@@ -76,24 +82,43 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote }: T
 
                       {onVote && (
                         <div className="flex items-center gap-3">
-                          <Button
-                            onClick={() => onVote(track.id, 'up')}
-                            variant={userVote === 'up' ? 'default' : 'outline'}
-                            size="lg"
-                            className="flex-1 font-ui uppercase tracking-wider"
-                          >
-                            <CaretUp size={20} weight="bold" className="mr-2" />
-                            Vote Up
-                          </Button>
-                          <Button
-                            onClick={() => onVote(track.id, 'down')}
-                            variant={userVote === 'down' ? 'destructive' : 'outline'}
-                            size="lg"
-                            className="flex-1 font-ui uppercase tracking-wider"
-                          >
-                            <CaretDown size={20} weight="bold" className="mr-2" />
-                            Vote Down
-                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={() => onVote(track.id, 'up')}
+                                  variant={userVote === 'up' ? 'default' : 'outline'}
+                                  size="lg"
+                                  className="flex-1 font-ui uppercase tracking-wider"
+                                >
+                                  <CaretUp size={20} weight="bold" className="mr-2" />
+                                  Vote Up
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="font-ui text-xs">Increase this track's chart position</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={() => onVote(track.id, 'down')}
+                                  variant={userVote === 'down' ? 'destructive' : 'outline'}
+                                  size="lg"
+                                  className="flex-1 font-ui uppercase tracking-wider"
+                                >
+                                  <CaretDown size={20} weight="bold" className="mr-2" />
+                                  Vote Down
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="font-ui text-xs">Decrease this track's chart position</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       )}
 
@@ -111,13 +136,81 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote }: T
 
                     <div className="space-y-6">
                       <div>
-                        <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground mb-2">
-                          Chart Position
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground">
+                            Current Chart Position
+                          </div>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info size={14} className="text-muted-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="font-ui text-xs">Position in the current chart view</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                         <div className="text-6xl font-display text-primary mb-4 data-font">
                           #{track.rank}
                         </div>
                       </div>
+
+                      {track.overallRank && track.overallRank !== track.rank && (
+                        <div className="p-4 bg-accent/10 border border-accent/30">
+                          <div className="flex items-center gap-2 mb-1">
+                            <TrendUp size={16} className="text-accent" />
+                            <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground">
+                              Overall Charts Position
+                            </div>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info size={14} className="text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="font-ui text-xs">Combined ranking across all chart types</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <div className="text-3xl font-display text-accent data-font">
+                            #{track.overallRank}
+                          </div>
+                        </div>
+                      )}
+
+                      {track.subGenreRanks && Object.keys(track.subGenreRanks).length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground">
+                              Sub-Genre Rankings
+                            </div>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info size={14} className="text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="font-ui text-xs">Track position in specific sub-genre charts</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <div className="grid grid-cols-1 gap-2">
+                            {Object.entries(track.subGenreRanks).slice(0, 5).map(([genre, rank]) => (
+                              <div key={genre} className="flex items-center justify-between p-2 bg-secondary/30 border border-border">
+                                <span className="font-ui text-xs uppercase tracking-wider text-foreground">
+                                  {genre}
+                                </span>
+                                <span className="font-display text-lg text-primary data-font">
+                                  #{rank}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <div>
                         <h2 className="text-3xl md:text-4xl font-display uppercase tracking-tight text-foreground mb-2 leading-tight">

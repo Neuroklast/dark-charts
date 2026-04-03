@@ -63,13 +63,14 @@ export function Navigation({ currentView, onNavigate }: NavigationProps) {
 
       <button
         onClick={() => {
-          onNavigate('about');
+          onNavigate('voting');
           setMobileOpen(false);
         }}
-        className={`flex items-center gap-3 px-4 py-3 border-b border-border snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold bg-card hover:bg-accent/20`}
+        className={`flex items-center gap-3 px-4 py-3 border-b border-border snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold
+          ${currentView === 'voting' ? 'bg-accent text-accent-foreground' : 'bg-card hover:bg-accent/20'}`}
       >
         <ChartBar weight="bold" className="w-5 h-5" />
-        Voting System
+        Vote Now
       </button>
     </>
   );

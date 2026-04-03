@@ -10,6 +10,7 @@ import { GenreCharts } from '@/components/GenreCharts';
 import { ProfileView } from '@/components/ProfileView';
 import { AboutView } from '@/components/AboutView';
 import { CustomChartsView } from '@/components/CustomChartsView';
+import { VotingArea } from '@/components/VotingArea';
 import { PillarNavigation } from '@/components/PillarNavigation';
 import { MainGenreNavigation } from '@/components/MainGenreNavigation';
 import { SubGenreNavigation } from '@/components/SubGenreNavigation';
@@ -179,6 +180,12 @@ function AppContent() {
           {currentView === 'profile' && <ProfileView />}
           {currentView === 'about' && <AboutView />}
           {currentView === 'custom-charts' && <CustomChartsView />}
+          {currentView === 'voting' && (
+            <VotingArea 
+              allTracks={[...fanCharts, ...expertCharts, ...streamingCharts]}
+              onTrackClick={handleTrackClick}
+            />
+          )}
           
           {(currentView === 'home' || currentView === 'main-genre') && (
             <>
