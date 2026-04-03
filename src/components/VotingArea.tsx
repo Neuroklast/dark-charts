@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Slider } from '@/components/ui/slider';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface VotingAreaProps {
   allTracks: Track[];
@@ -41,6 +42,7 @@ function calculateQuadraticCost(credits: number): number {
 
 export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
   const [userVotes, setUserVotes] = useKV<Record<string, number>>('user-votes', {});
@@ -109,7 +111,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
 
   const handleVoteChange = useCallback((trackId: string, newCredits: number) => {
     if (!user) {
-      toast.error('Please log in to vote');
+      toast.error(t('voting.loginRequired'));
       return;
     }
 
@@ -120,7 +122,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
     const remainingCredits = creditsRemaining || MAX_CREDITS;
 
     if (costDifference > remainingCredits) {
-      toast.error(`Not enough credits! You need ${costDifference} but only have ${remainingCredits} remaining.`);
+      toast.error(t('voting.notEnoughCredits').replace('{needed}', costDifference.toString()).replace('{remaining}', remainingCredits.toString()));
       return;
     }
 
@@ -140,10 +142,10 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
       return updated;
     });
 
-    toast.success(`Allocated ${newCredits} credits (cost: ${newCost})`, {
+    toast.success(t('voting.successAllocated').replace('{credits}', newCredits.toString()).replace('{cost}', newCost.toString()), {
       duration: 2000
     });
-  }, [user, userVotes, creditsRemaining, setUserVotes]);
+  }, [user, userVotes, creditsRemaining, setUserVotes, t]);
 
   const handleSliderChange = useCallback((trackId: string, value: number[]) => {
     setTempVoteValues(current => ({
@@ -164,10 +166,10 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <h1 className="display-font text-4xl uppercase tracking-wider text-foreground font-semibold mb-2">
-              Voting Area
+              {t('voting.title')}
             </h1>
             <p className="font-ui text-sm text-muted-foreground">
-              Use quadratic voting to support your favorite tracks
+              {t('voting.description')}
             </p>
           </div>
           <TooltipProvider>
@@ -178,14 +180,9 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-sm" side="left">
-                <p className="font-ui text-xs leading-relaxed">
-                  <strong>Quadratic Voting:</strong><br/>
-                  • You have {MAX_CREDITS} credits to allocate<br/>
-                  • Cost = credits²  (1 credit = 1 cost, 5 credits = 25 cost)<br/>
-                  • Allocate credits across multiple tracks<br/>
-                  • Charts publish weekly every Monday<br/>
-                  • Credits reset after each publication<br/>
-                  • No downvoting - only positive support
+                <p className="font-ui text-xs leading-relaxed whitespace-pre-line">
+                  <strong>{t('voting.quadraticVoting')}:</strong><br/>
+                  {t('voting.quadraticInfo')}
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -203,7 +200,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                   {creditsRemaining}
                 </div>
                 <div className="font-ui text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-                  Credits Remaining
+                  {t('voting.creditsRemaining')}
                 </div>
               </div>
             </div>
@@ -217,7 +214,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                   {totalCreditsSpent}
                 </div>
                 <div className="font-ui text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-                  Total Cost Spent
+                  {t('voting.totalCostSpent')}
                 </div>
               </div>
             </div>
@@ -231,7 +228,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                   {daysUntilPublish}
                 </div>
                 <div className="font-ui text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-                  Days Until Charts
+                  {t('voting.daysUntilCharts')}
                 </div>
               </div>
             </div>
@@ -247,7 +244,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" 
             />
             <Input
-              placeholder="Search tracks or artists..."
+              placeholder={t('voting.search')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 font-ui"
@@ -259,7 +256,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
             disabled={selectedGenres.length === 0}
             className="font-ui uppercase tracking-wider"
           >
-            Clear Filters
+            {t('voting.clearFilters')}
           </Button>
         </div>
 
@@ -267,7 +264,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="font-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold">
-                Filter by Genre
+                {t('voting.filterGenres')}
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -309,7 +306,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                     <div className="flex items-start gap-4">
                       <div className="flex flex-col items-center gap-1 min-w-[60px]">
                         <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground">
-                          Rank
+                          {t('voting.rank')}
                         </div>
                         <div className="text-2xl font-display text-primary data-font">
                           #{simulatedIndex + 1}
@@ -372,7 +369,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                                   {sliderValue}
                                 </div>
                                 <div className="text-[9px] font-ui uppercase tracking-wider text-muted-foreground">
-                                  Credits
+                                  {t('voting.credits')}
                                 </div>
                               </div>
                               <div className="text-muted-foreground font-ui text-xs">=</div>
@@ -381,7 +378,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                                   {calculateQuadraticCost(sliderValue)}
                                 </div>
                                 <div className="text-[9px] font-ui uppercase tracking-wider text-muted-foreground">
-                                  Cost
+                                  {t('voting.cost')}
                                 </div>
                               </div>
                             </div>
@@ -391,7 +388,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                             <div className="flex items-center gap-2 px-3 py-2 bg-accent/10 border border-accent/30">
                               <Lightning size={14} weight="fill" className="text-accent" />
                               <span className="font-ui text-[10px] uppercase tracking-wider text-accent">
-                                You allocated {userCredits} credits to this track
+                                {t('voting.allocated').replace('{credits}', userCredits.toString())}
                               </span>
                             </div>
                           )}
@@ -413,7 +410,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                           {track.simulatedVotes}
                         </motion.div>
                         <div className="text-[9px] font-ui uppercase tracking-wider text-muted-foreground text-center">
-                          Total Votes
+                          {t('voting.totalVotes')}
                         </div>
                       </div>
                     </div>
@@ -428,7 +425,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
       {filteredTracks.length === 0 && (
         <Card className="bg-card border border-border p-12 text-center">
           <p className="font-ui text-sm uppercase tracking-[0.2em] text-muted-foreground">
-            No tracks found matching your filters
+            {t('voting.noTracksFound')}
           </p>
         </Card>
       )}
