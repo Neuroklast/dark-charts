@@ -1,5 +1,6 @@
 import { ChartType } from '@/types';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PillarNavigationProps {
   activePillar: ChartType | 'overview';
@@ -8,11 +9,13 @@ interface PillarNavigationProps {
 }
 
 export function PillarNavigation({ activePillar, onPillarChange, className }: PillarNavigationProps) {
+  const { t } = useLanguage();
+  
   const pillars: { value: ChartType | 'overview'; label: string }[] = [
-    { value: 'overview', label: 'Übersicht' },
-    { value: 'fan', label: 'Fan' },
-    { value: 'expert', label: 'Expert' },
-    { value: 'streaming', label: 'Stream' },
+    { value: 'overview', label: t('pillar.overview') },
+    { value: 'fan', label: t('pillar.fan') },
+    { value: 'expert', label: t('pillar.expert') },
+    { value: 'streaming', label: t('pillar.streaming') },
   ];
 
   return (

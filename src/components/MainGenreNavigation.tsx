@@ -2,6 +2,7 @@ import { MainGenre } from '@/types';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useRef, useEffect } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface MainGenreNavigationProps {
   activeGenre: MainGenre | 'overall';
@@ -12,13 +13,14 @@ interface MainGenreNavigationProps {
 export function MainGenreNavigation({ activeGenre, onGenreChange, className }: MainGenreNavigationProps) {
   const isMobile = useIsMobile();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { t } = useLanguage();
 
   const genres: { value: MainGenre | 'overall'; label: string }[] = [
-    { value: 'overall', label: 'Overall' },
-    { value: 'Gothic', label: 'Gothic' },
-    { value: 'Metal', label: 'Metal' },
-    { value: 'Dark Electro', label: 'Dark Electro' },
-    { value: 'Crossover', label: 'Crossover' },
+    { value: 'overall', label: t('genre.overall') },
+    { value: 'Gothic', label: t('genre.gothic') },
+    { value: 'Metal', label: t('genre.metal') },
+    { value: 'Dark Electro', label: t('genre.darkelectro') },
+    { value: 'Crossover', label: t('genre.crossover') },
   ];
 
   useEffect(() => {

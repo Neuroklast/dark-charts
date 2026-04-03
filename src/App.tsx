@@ -20,12 +20,14 @@ import { useKV } from '@github/spark/hooks';
 import logo from '@/assets/images/Gemini_Generated_Image_fa3defa3defa3def.png';
 import { DataProvider, useDataService } from '@/contexts/DataContext';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { Toaster } from '@/components/ui/sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { trackEnrichmentService } from '@/services/trackEnrichmentService';
 
 function AppContent() {
   const dataService = useDataService();
+  const { t } = useLanguage();
   const [currentView, setCurrentView] = useState<ViewType>('home');
   const [currentMainGenre, setCurrentMainGenre] = useState<MainGenre | 'overall'>('overall');
   const [currentSubGenre, setCurrentSubGenre] = useState<Genre | null>(null);
@@ -279,7 +281,7 @@ function AppContent() {
                 className="w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-contain chromatic-hover"
               />
               <p className="font-ui text-[10px] md:text-xs text-muted-foreground tracking-[0.4em] uppercase font-medium">
-                Metal • Gothic • Alternative • Dark Electro
+                {t('header.subtitle')}
               </p>
             </div>
           </div>
@@ -450,28 +452,28 @@ function AppContent() {
               <div>
                 <h3 className="display-font text-lg uppercase text-foreground mb-3 tracking-tight font-semibold">Dark Charts</h3>
                 <p className="font-ui text-xs text-muted-foreground leading-relaxed">
-                  Independent music charts for Metal & Gothic scene. Fair, transparent, and free from pay-to-win mechanics.
+                  {t('footer.tagline')}
                 </p>
               </div>
               <div>
-                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-3">Principles</h4>
+                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-3">{t('about.principles')}</h4>
                 <ul className="space-y-1 text-xs text-muted-foreground font-ui">
-                  <li>• No pay-to-play</li>
-                  <li>• Community-driven</li>
-                  <li>• Transparent ranking</li>
-                  <li>• Scene-focused</li>
+                  <li>• {t('about.principle1')}</li>
+                  <li>• {t('about.principle2')}</li>
+                  <li>• {t('about.principle3')}</li>
+                  <li>• {t('about.principle4')}</li>
                 </ul>
               </div>
               <div>
-                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-3">About</h4>
+                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-3">{t('nav.about')}</h4>
                 <p className="text-xs text-muted-foreground font-ui leading-relaxed">
-                  Built for fans, by fans. Supporting underground artists through fair representation and authentic community engagement.
+                  {t('about.builtFor')}
                 </p>
               </div>
             </div>
             <div className="border-t border-border pt-4 text-center">
               <p className="font-ui text-[10px] text-muted-foreground uppercase tracking-[0.3em]">
-                Dark Charts &copy; {new Date().getFullYear()} — Underground Never Dies
+                Dark Charts &copy; {new Date().getFullYear()} — {t('footer.underground')}
               </p>
             </div>
           </div>
@@ -499,7 +501,9 @@ function App() {
   return (
     <AuthProvider>
       <DataProvider>
-        <AppContent />
+        <LanguageProvider>
+          <AppContent />
+        </LanguageProvider>
       </DataProvider>
     </AuthProvider>
   );
