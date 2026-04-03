@@ -16,9 +16,14 @@ export function ChartEntry({ track, index }: ChartEntryProps) {
   
   return (
     <div
-      className="flex flex-col gap-3 p-4 border-b border-border hover:bg-card/50 snap-transition group relative overflow-hidden"
+      className="signal-static-card flex flex-col gap-3 p-4 border-b group overflow-hidden"
     >
-      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary opacity-0 group-hover:opacity-100 snap-transition" />
+      <div className="signal-static-card-corner corner-tl" />
+      <div className="signal-static-card-corner corner-tr" />
+      <div className="signal-static-card-corner corner-bl" />
+      <div className="signal-static-card-corner corner-br" />
+      
+      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary opacity-0 group-hover:opacity-100 instant-transition" />
       
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-3 min-w-[100px]">

@@ -14,7 +14,11 @@ export function ChartCategory({ title, tracks, isLoading }: ChartCategoryProps) 
 
   if (isLoading) {
     return (
-      <Card className="bg-card border border-border">
+      <div className="signal-static-card">
+        <div className="signal-static-card-corner corner-tl" />
+        <div className="signal-static-card-corner corner-tr" />
+        <div className="signal-static-card-corner corner-bl" />
+        <div className="signal-static-card-corner corner-br" />
         <div className="p-4 border-b border-border">
           <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">{title}</h2>
         </div>
@@ -35,12 +39,16 @@ export function ChartCategory({ title, tracks, isLoading }: ChartCategoryProps) 
             </div>
           ))}
         </div>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <Card className="bg-card border border-border overflow-hidden hover:border-primary/50 snap-transition">
+    <div className="signal-static-card overflow-hidden">
+      <div className="signal-static-card-corner corner-tl" />
+      <div className="signal-static-card-corner corner-tr" />
+      <div className="signal-static-card-corner corner-bl" />
+      <div className="signal-static-card-corner corner-br" />
       <div className="p-4 border-b border-border">
         <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">{title}</h2>
       </div>
@@ -49,6 +57,6 @@ export function ChartCategory({ title, tracks, isLoading }: ChartCategoryProps) 
           <ChartEntry key={track.id} track={track} index={index} />
         ))}
       </div>
-    </Card>
+    </div>
   );
 }

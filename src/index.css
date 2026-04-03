@@ -16,6 +16,99 @@
   display: none;
 }
 
+@keyframes signal-static-noise {
+  0%, 100% { opacity: 0.05; }
+  50% { opacity: 0.15; }
+}
+
+@keyframes signal-static-scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes signal-static-glitch {
+  0%, 90%, 100% { transform: translate(0); opacity: 0; }
+  91%, 94% { transform: translate(-2px, 2px); opacity: 0.7; }
+  92%, 96% { transform: translate(2px, -2px); opacity: 0.7; }
+}
+
+@keyframes signal-static-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.signal-static-bg-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
+  pointer-events: none;
+  animation: signal-static-scanline 8s linear infinite;
+  z-index: 0;
+}
+
+.signal-static-bg-noise {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px);
+  opacity: 0.6;
+  pointer-events: none;
+  animation: signal-static-noise 0.3s infinite;
+  z-index: 1;
+}
+
+.signal-static-card {
+  position: relative;
+  background: rgba(20, 20, 20, 0.7);
+  border: 1px solid #2a2a2a;
+  transition: all 0.2s;
+}
+
+.signal-static-card:hover {
+  border-color: #dc2626;
+  box-shadow: 0 0 15px rgba(220, 38, 38, 0.2);
+  transform: translateY(-2px);
+}
+
+.signal-static-card-corner {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid #2a2a2a;
+  transition: border-color 0.3s;
+}
+
+.signal-static-card:hover .signal-static-card-corner {
+  border-color: #dc2626;
+}
+
+.corner-tl {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.corner-tr {
+  top: -1px;
+  right: -1px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.corner-bl {
+  bottom: -1px;
+  left: -1px;
+  border-right: none;
+  border-top: none;
+}
+
+.corner-br {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+
 :root {
   --background: oklch(0.12 0 0);
   --foreground: oklch(0.95 0 0);

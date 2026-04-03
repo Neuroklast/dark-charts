@@ -132,7 +132,11 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden pb-24">
       <Toaster position="top-right" />
-      <svg className="fixed inset-0 w-full h-full pointer-events-none z-[100] opacity-[0.015]" xmlns="http://www.w3.org/2000/svg">
+      
+      <div className="signal-static-bg-scanlines fixed" />
+      <div className="signal-static-bg-noise fixed" />
+      
+      <svg className="fixed inset-0 w-full h-full pointer-events-none z-[2] opacity-[0.015]" xmlns="http://www.w3.org/2000/svg">
         <filter id="noise">
           <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch"/>
           <feColorMatrix type="saturate" values="0"/>
@@ -140,23 +144,7 @@ function AppContent() {
         <rect width="100%" height="100%" filter="url(#noise)"/>
       </svg>
 
-      <div 
-        className="fixed inset-0 pointer-events-none z-[99]"
-        style={{
-          backgroundImage: `repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 2px,
-            rgba(255, 255, 255, 0.008) 2px,
-            rgba(255, 255, 255, 0.008) 4px
-          )`,
-          animation: 'terminal-flicker 3s infinite'
-        }}
-      />
-
-      <div className="fixed inset-0 pointer-events-none z-[98]" style={{
-        background: 'radial-gradient(ellipse at center, transparent 0%, transparent 70%, oklch(0.04 0 0 / 0.6) 100%)'
-      }} />
+      <div className="fixed inset-0 pointer-events-none z-[3] vignette" />
 
       <Navigation 
         currentView={currentView} 
