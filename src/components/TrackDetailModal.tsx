@@ -1,6 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Track, MainGenre, Genre, ChartType } from '@/types';
-import { X, Play, CaretUp, CaretDown, Info, ArrowRight } from '@phosphor-icons/react';
+import { 
+  X, Play, CaretUp, CaretDown, Info, ArrowRight, 
+  SpotifyLogo, AppleLogo, YoutubeLogo, AmazonLogo,
+  SoundcloudLogo, TidalLogo, MusicNote
+} from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,36 +50,58 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
     }
   };
 
+  const getPlatformIcon = (platformName: string) => {
+    const name = platformName.toLowerCase();
+    const iconProps = { size: 20, weight: "fill" as const };
+    
+    if (name.includes('spotify')) return <SpotifyLogo {...iconProps} />;
+    if (name.includes('apple') || name.includes('itunes')) return <AppleLogo {...iconProps} />;
+    if (name.includes('youtube')) return <YoutubeLogo {...iconProps} />;
+    if (name.includes('amazon')) return <AmazonLogo {...iconProps} />;
+    if (name.includes('soundcloud')) return <SoundcloudLogo {...iconProps} />;
+    if (name.includes('tidal')) return <TidalLogo {...iconProps} />;
+    
+    return <MusicNote {...iconProps} />;
+  };
+
   const getStreamingLinks = () => {
     const links: Array<{ platform: string; url: string; available: boolean }> = [];
 
     if (track.odesliData?.linksByPlatform) {
       const platforms = track.odesliData.linksByPlatform;
       
-      if (platforms.spotify) {
-        links.push({ platform: 'Spotify', url: platforms.spotify.url, available: true });
-      }
-      if (platforms.appleMusic) {
-        links.push({ platform: 'Apple Music', url: platforms.appleMusic.url, available: true });
-      }
-      if (platforms.youtube) {
-        links.push({ platform: 'YouTube', url: platforms.youtube.url, available: true });
-      }
-      if (platforms.youtubeMusic) {
-        links.push({ platform: 'YouTube Music', url: platforms.youtubeMusic.url, available: true });
-      }
-      if (platforms.amazonMusic) {
-        links.push({ platform: 'Amazon Music', url: platforms.amazonMusic.url, available: true });
-      }
-      if (platforms.deezer) {
-        links.push({ platform: 'Deezer', url: platforms.deezer.url, available: true });
-      }
-      if (platforms.tidal) {
-        links.push({ platform: 'Tidal', url: platforms.tidal.url, available: true });
-      }
-      if (platforms.pandora) {
-        links.push({ platform: 'Pandora', url: platforms.pandora.url, available: true });
-      }
+      const platformMapping: Record<string, string> = {
+        spotify: 'Spotify',
+        appleMusic: 'Apple Music',
+        itunes: 'iTunes',
+        youtube: 'YouTube',
+        youtubeMusic: 'YouTube Music',
+        google: 'Google Play',
+        googleStore: 'Google Store',
+        pandora: 'Pandora',
+        deezer: 'Deezer',
+        tidal: 'Tidal',
+        amazonStore: 'Amazon',
+        amazonMusic: 'Amazon Music',
+        soundcloud: 'SoundCloud',
+        napster: 'Napster',
+        yandex: 'Yandex Music',
+        spinrilla: 'Spinrilla',
+        audius: 'Audius',
+        audiomack: 'Audiomack',
+        anghami: 'Anghami',
+        boomplay: 'Boomplay',
+        bandcamp: 'Bandcamp'
+      };
+
+      Object.entries(platforms).forEach(([key, value]) => {
+        const platformName = platformMapping[key] || key.charAt(0).toUpperCase() + key.slice(1);
+        links.push({ 
+          platform: platformName, 
+          url: value.url, 
+          available: true 
+        });
+      });
     } else {
       if (track.spotifyUri) {
         links.push({ platform: 'Spotify', url: `https://open.spotify.com/track/${spotifyId}`, available: true });
@@ -359,32 +385,42 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
 
                   {streamingLinks.length > 0 && (
                     <div className="pt-4 border-t border-border">
-                      <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground mb-4">
-                        Höre auf / Listen On
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground">
+                          Höre auf / Listen On
+                        </div>
+                        <div className="text-xs font-ui text-muted-foreground data-font">
+                          {streamingLinks.length} {streamingLinks.length === 1 ? 'Platform' : 'Platforms'}
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                         {streamingLinks.map((link) => (
                           <a
                             key={link.platform}
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-4 bg-secondary border border-border hover:border-primary transition-all flex items-center justify-center gap-2 font-ui text-sm uppercase tracking-wider hover:bg-primary/10"
+                            className="p-3 bg-secondary/50 border border-border hover:border-primary transition-all flex flex-col items-center justify-center gap-2 text-center font-ui text-[10px] uppercase tracking-wider hover:bg-primary/10 group min-h-[80px]"
                           >
-                            {link.platform}
+                            <div className="text-muted-foreground group-hover:text-primary transition-colors">
+                              {getPlatformIcon(link.platform)}
+                            </div>
+                            <span className="group-hover:text-primary transition-colors leading-tight">
+                              {link.platform}
+                            </span>
                           </a>
                         ))}
                       </div>
                       {track.odesliData?.pageUrl && (
-                        <div className="mt-3">
+                        <div className="mt-4 pt-4 border-t border-border/50">
                           <a
                             href={track.odesliData.pageUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs font-ui text-muted-foreground hover:text-primary transition-colors uppercase tracking-wider inline-flex items-center gap-2"
+                            className="text-xs font-ui text-muted-foreground hover:text-primary transition-colors uppercase tracking-wider inline-flex items-center gap-2 group"
                           >
-                            Mehr Streaming-Optionen / More Streaming Options
-                            <ArrowRight size={12} />
+                            <span>Mehr Streaming-Optionen / More Streaming Options</span>
+                            <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
                           </a>
                         </div>
                       )}
