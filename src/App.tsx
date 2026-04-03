@@ -16,6 +16,8 @@ import { SubGenreNavigation } from '@/components/SubGenreNavigation';
 import { useKV } from '@github/spark/hooks';
 import logo from '@/assets/images/Gemini_Generated_Image_fa3defa3defa3def.png';
 import { DataProvider, useDataService } from '@/contexts/DataContext';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { Toaster } from '@/components/ui/sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function AppContent() {
@@ -129,6 +131,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden pb-24">
+      <Toaster position="top-right" />
       <svg className="fixed inset-0 w-full h-full pointer-events-none z-[100] opacity-[0.015]" xmlns="http://www.w3.org/2000/svg">
         <filter id="noise">
           <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch"/>
@@ -377,9 +380,11 @@ function AppContent() {
 
 function App() {
   return (
-    <DataProvider>
-      <AppContent />
-    </DataProvider>
+    <AuthProvider>
+      <DataProvider>
+        <AppContent />
+      </DataProvider>
+    </AuthProvider>
   );
 }
 

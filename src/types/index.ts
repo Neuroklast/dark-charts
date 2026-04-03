@@ -60,7 +60,106 @@ export interface IDataService {
   hasUserVoted(trackId: string): Promise<boolean>;
 }
 
+export type UserType = 'fan' | 'band' | 'dj' | 'label';
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  earnedAt: number;
+}
+
+export interface ExternalLink {
+  platform: string;
+  url: string;
+  verified: boolean;
+}
+
+export interface BaseUserProfile {
+  id: string;
+  userType: UserType;
+  username: string;
+  biography?: string;
+  avatarUrl?: string;
+  externalLinks: ExternalLink[];
+  displayedBadges: string[];
+  allBadges: Badge[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface FanProfile extends BaseUserProfile {
+  userType: 'fan';
+  votingCredits: number;
+  votingHistory: Vote[];
+  favoritesList: string[];
+  personalCharts: string[];
+}
+
+export interface BandProfile extends BaseUserProfile {
+  userType: 'band';
+  genres: Genre[];
+  spotifyArtistId?: string;
+  latestReleases: {
+    title: string;
+    releaseDate: number;
+    spotifyUri?: string;
+  }[];
+  isPremium: boolean;
+  analytics?: {
+    totalVotes: number;
+    chartPositions: { chartType: ChartType; position: number }[];
+    demographics: Record<string, number>;
+  };
+  bookingInfo?: {
+    available: boolean;
+    regions: string[];
+    contactEmail?: string;
+  };
+}
+
+export interface DJProfile extends BaseUserProfile {
+  userType: 'dj';
+  expertWeight: number;
+  references: string[];
+  curatedPlaylists: {
+    name: string;
+    trackIds: string[];
+    createdAt: number;
+  }[];
+  supportedTracks: string[];
+  reputation: number;
+}
+
+export interface LabelProfile extends BaseUserProfile {
+  userType: 'label';
+  managedBands: string[];
+  aggregatedAnalytics?: {
+    totalVotes: number;
+    totalStreams: number;
+    topBands: { bandId: string; performance: number }[];
+  };
+  scoutingNotes: {
+    bandId: string;
+    note: string;
+    timestamp: number;
+  }[];
+}
+
+export type UserProfile = FanProfile | BandProfile | DJProfile | LabelProfile;
+
+export interface AuthUser {
+  id: string;
+  email?: string;
+  provider?: 'spotify' | 'apple' | 'mock';
+  isAuthenticated: boolean;
+  profile?: UserProfile;
+}
+
 export interface IAuthService {
-  getCurrentUser(): Promise<{ id: string; isAnonymous: boolean } | null>;
-  ensureSession(): Promise<void>;
+  getCurrentUser(): Promise<AuthUser | null>;
+  login(provider: 'spotify' | 'apple' | 'mock'): Promise<AuthUser>;
+  logout(): Promise<void>;
+  updateProfile(profile: Partial<UserProfile>): Promise<UserProfile>;
 }
