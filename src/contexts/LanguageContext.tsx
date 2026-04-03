@@ -300,6 +300,16 @@ const translations: Record<Language, Translations> = {
     'admin.searchPlaceholder': 'Search for an artist...',
     'admin.selectArtist': 'Select Artist',
     'nav.admin': 'Admin',
+    
+    'oauth.connectServices': 'Connect Services',
+    'oauth.connectSpotify': 'Connect with Spotify',
+    'oauth.connectGoogle': 'Connect with Google',
+    'oauth.disconnect': 'Disconnect',
+    'oauth.connecting': 'Connecting...',
+    'oauth.loginFailed': 'Login failed',
+    'oauth.loggedOut': 'Successfully logged out',
+    'oauth.logoutFailed': 'Logout failed',
+    'oauth.privacyNote': 'We use OAuth only for authentication. Your data remains private.',
   },
   de: {
     'nav.home': 'Startseite',
@@ -587,6 +597,16 @@ const translations: Record<Language, Translations> = {
     'admin.searchPlaceholder': 'Nach einem Künstler suchen...',
     'admin.selectArtist': 'Künstler auswählen',
     'nav.admin': 'Admin',
+    
+    'oauth.connectServices': 'Dienste verbinden',
+    'oauth.connectSpotify': 'Mit Spotify verbinden',
+    'oauth.connectGoogle': 'Mit Google verbinden',
+    'oauth.disconnect': 'Trennen',
+    'oauth.connecting': 'Verbinden...',
+    'oauth.loginFailed': 'Anmeldung fehlgeschlagen',
+    'oauth.loggedOut': 'Erfolgreich abgemeldet',
+    'oauth.logoutFailed': 'Abmeldung fehlgeschlagen',
+    'oauth.privacyNote': 'Wir verwenden OAuth nur zur Authentifizierung. Ihre Daten bleiben privat.',
   }
 };
 
