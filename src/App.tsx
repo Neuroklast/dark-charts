@@ -26,7 +26,7 @@ function AppContent() {
   const [currentView, setCurrentView] = useState<ViewType>('home');
   const [currentMainGenre, setCurrentMainGenre] = useState<MainGenre | 'overall'>('overall');
   const [currentSubGenre, setCurrentSubGenre] = useState<Genre | null>(null);
-  const [activePillar, setActivePillar] = useState<ChartType>('fan');
+  const [activePillar, setActivePillar] = useState<ChartType | 'overview'>('overview');
   const [fanCharts, setFanCharts] = useState<Track[]>([]);
   const [expertCharts, setExpertCharts] = useState<Track[]>([]);
   const [streamingCharts, setStreamingCharts] = useState<Track[]>([]);
@@ -118,7 +118,7 @@ function AppContent() {
 
   const handleNext = useCallback(() => {
     if (!currentTrack) return;
-    const allTracks = activePillar === 'fan' ? filteredFanCharts : activePillar === 'expert' ? filteredExpertCharts : activePillar === 'streaming' ? filteredStreamingCharts : overallChart;
+    const allTracks = activePillar === 'overview' ? overallChart : activePillar === 'fan' ? filteredFanCharts : activePillar === 'expert' ? filteredExpertCharts : filteredStreamingCharts;
     const currentIndex = allTracks.findIndex(t => t.id === currentTrack.id);
     if (currentIndex < allTracks.length - 1) {
       setCurrentTrack(allTracks[currentIndex + 1]);
@@ -127,7 +127,7 @@ function AppContent() {
 
   const handlePrevious = useCallback(() => {
     if (!currentTrack) return;
-    const allTracks = activePillar === 'fan' ? filteredFanCharts : activePillar === 'expert' ? filteredExpertCharts : activePillar === 'streaming' ? filteredStreamingCharts : overallChart;
+    const allTracks = activePillar === 'overview' ? overallChart : activePillar === 'fan' ? filteredFanCharts : activePillar === 'expert' ? filteredExpertCharts : filteredStreamingCharts;
     const currentIndex = allTracks.findIndex(t => t.id === currentTrack.id);
     if (currentIndex > 0) {
       setCurrentTrack(allTracks[currentIndex - 1]);
@@ -216,18 +216,22 @@ function AppContent() {
                 />
               )}
 
-              {activePillar === 'fan' && (
+              {activePillar === 'overview' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts} isLoading={isLoading} onTrackClick={handleTrackClick} />
                     <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts} isLoading={isLoading} onTrackClick={handleTrackClick} />
                     <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts} isLoading={isLoading} onTrackClick={handleTrackClick} />
                   </div>
+                </div>
+              )}
 
-                  {!isLoading && filteredFanCharts.length > 3 && (
+              {activePillar === 'fan' && (
+                <div className="space-y-6">
+                  {!isLoading && filteredFanCharts.length > 0 && (
                     <Card className="bg-card border border-border">
                       <div className="p-4 border-b border-border">
-                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Full Fan Charts</h2>
+                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Fan Charts</h2>
                       </div>
                       <motion.div layout>
                         <AnimatePresence mode="popLayout">
@@ -252,16 +256,10 @@ function AppContent() {
 
               {activePillar === 'expert' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts} isLoading={isLoading} onTrackClick={handleTrackClick} />
-                    <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts} isLoading={isLoading} onTrackClick={handleTrackClick} />
-                    <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts} isLoading={isLoading} onTrackClick={handleTrackClick} />
-                  </div>
-
-                  {!isLoading && filteredExpertCharts.length > 3 && (
+                  {!isLoading && filteredExpertCharts.length > 0 && (
                     <Card className="bg-card border border-border">
                       <div className="p-4 border-b border-border">
-                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Full Expert Charts</h2>
+                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Expert Charts</h2>
                       </div>
                       <motion.div layout>
                         <AnimatePresence mode="popLayout">
@@ -286,16 +284,10 @@ function AppContent() {
 
               {activePillar === 'streaming' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts} isLoading={isLoading} onTrackClick={handleTrackClick} />
-                    <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts} isLoading={isLoading} onTrackClick={handleTrackClick} />
-                    <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts} isLoading={isLoading} onTrackClick={handleTrackClick} />
-                  </div>
-
-                  {!isLoading && filteredStreamingCharts.length > 3 && (
+                  {!isLoading && filteredStreamingCharts.length > 0 && (
                     <Card className="bg-card border border-border">
                       <div className="p-4 border-b border-border">
-                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Full Streaming Charts</h2>
+                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Streaming Charts</h2>
                       </div>
                       <motion.div layout>
                         <AnimatePresence mode="popLayout">
