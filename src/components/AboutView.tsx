@@ -1,11 +1,14 @@
 import { Card } from '@/components/ui/card';
 import { Info, Skull, User as UserIcon, ChartBar, Broadcast } from '@phosphor-icons/react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function AboutView() {
+  const { t } = useLanguage();
+
   return (
     <div className="space-y-6">
       <h1 className="display-font text-4xl uppercase tracking-wider text-foreground font-semibold">
-        About Dark Charts
+        {t('about.title')}
       </h1>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -16,11 +19,10 @@ export function AboutView() {
             </div>
             <div className="flex-1 space-y-2">
               <h2 className="font-ui text-lg uppercase tracking-[0.12em] font-bold text-foreground">
-                Our Mission
+                {t('about.mission')}
               </h2>
               <p className="font-ui text-xs text-muted-foreground leading-relaxed">
-                Independent music charts for the Heavy Metal, Gothic, Dark Wave, and EBM scene. 
-                Fair, transparent, and free from pay-to-win mechanics.
+                {t('about.missionText')}
               </p>
             </div>
           </div>
@@ -33,11 +35,10 @@ export function AboutView() {
             </div>
             <div className="flex-1 space-y-2">
               <h2 className="font-ui text-lg uppercase tracking-[0.12em] font-bold text-foreground">
-                No Pay-To-Play
+                {t('about.noPayToPlay')}
               </h2>
               <p className="font-ui text-xs text-muted-foreground leading-relaxed">
-                Artists don't pay to be ranked. Rankings are determined solely by authentic fan votes, 
-                expert reviews, and streaming engagement.
+                {t('about.noPayToPlayText')}
               </p>
             </div>
           </div>
@@ -47,7 +48,7 @@ export function AboutView() {
       <Card className="bg-card border border-border">
         <div className="p-6 border-b border-border">
           <h2 className="display-font text-2xl uppercase tracking-wider text-foreground font-semibold">
-            How Voting Works
+            {t('about.howItWorks')}
           </h2>
         </div>
 
@@ -59,12 +60,11 @@ export function AboutView() {
                   <UserIcon weight="bold" className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <h3 className="font-ui text-sm uppercase tracking-[0.12em] font-bold text-foreground">
-                  Fan Charts
+                  {t('about.fanCharts')}
                 </h3>
               </div>
               <p className="font-ui text-xs text-muted-foreground leading-relaxed">
-                Community-driven rankings powered by quadratic voting. Each authenticated user receives 
-                monthly vote credits to support their favorite artists.
+                {t('about.fanChartsText')}
               </p>
             </div>
 
@@ -74,12 +74,11 @@ export function AboutView() {
                   <ChartBar weight="bold" className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <h3 className="font-ui text-sm uppercase tracking-[0.12em] font-bold text-foreground">
-                  Expert Charts
+                  {t('about.expertCharts')}
                 </h3>
               </div>
               <p className="font-ui text-xs text-muted-foreground leading-relaxed">
-                Curated by DJs, producers, and music journalists using bayesian ranking algorithms. 
-                Expert reputation scores ensure quality evaluations.
+                {t('about.expertChartsText')}
               </p>
             </div>
 
@@ -89,40 +88,39 @@ export function AboutView() {
                   <Broadcast weight="bold" className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <h3 className="font-ui text-sm uppercase tracking-[0.12em] font-bold text-foreground">
-                  Streaming Charts
+                  {t('about.streamingCharts')}
                 </h3>
               </div>
               <p className="font-ui text-xs text-muted-foreground leading-relaxed">
-                Normalized streaming data from Spotify and YouTube, weighted by listener loyalty 
-                rather than raw play counts.
+                {t('about.streamingChartsText')}
               </p>
             </div>
           </div>
 
           <div className="border-t border-border pt-6">
             <h3 className="font-ui text-sm uppercase tracking-[0.15em] font-bold text-accent mb-4">
-              Principles
+              {t('about.principles')}
             </h3>
             <ul className="space-y-2 font-ui text-xs text-muted-foreground">
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-0.5">•</span>
-                <span>No pay-to-play mechanisms</span>
+                <span>{t('about.principle1')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-0.5">•</span>
-                <span>Community-driven rankings</span>
+                <span>{t('about.principle2')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-0.5">•</span>
-                <span>Transparent methodology</span>
+                <span>{t('about.principle3')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-0.5">•</span>
-                <span>Scene-focused curation</span>
+                <span>{t('about.principle4')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-0.5">•</span>
-                <span>Protection against manipulation</span>
+                <span>{t('about.principle5')}</span>
               </li>
             </ul>
           </div>
