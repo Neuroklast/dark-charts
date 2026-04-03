@@ -1,6 +1,20 @@
-export type Genre = 'Dark Wave' | 'EBM' | 'Death Metal' | 'Black Metal' | 'Gothic Rock' | 'Industrial' | 'Doom Metal' | 'Darkwave' | 'Synthwave';
+export type MainGenre = 'Gothic' | 'Metal' | 'Dark Electro' | 'Crossover';
+
+export type Genre = 
+  | 'Gothic Rock' | 'Dark Wave' | 'Post Punk' | 'Deathrock' | 'Cold Wave' 
+  | 'Ethereal Wave' | 'Neoklassik' | 'Neue Deutsche Todeskunst' | 'Batcave' 
+  | 'Neofolk' | 'Pagan Folk' | 'Nordic Folk' | 'Ritual Ambient'
+  | 'Gothic Metal' | 'Dark Metal' | 'Symphonic Metal' | 'Doom Metal' 
+  | 'Symphonic Black Metal' | 'Atmospheric Black Metal' | 'Death Doom' | 'Pagan Metal'
+  | 'Electronic Body Music' | 'Dark Electro' | 'Electro Industrial' | 'Aggrotech' 
+  | 'Future Pop' | 'Industrial' | 'Rhythmic Noise' | 'Dark Synthpop' | 'Harsh EBM'
+  | 'Industrial Metal' | 'Neue Deutsche Härte' | 'Mittelalter Rock' | 'Darksynth' 
+  | 'Cybergoth' | 'Death Industrial' | 'Folk Metal' | 'Dark Techno' 
+  | 'Industrial Techno' | 'Darkstep' | 'Crossbreed' | 'Techstep' | 'Neurofunk';
 
 export type ChartType = 'fan' | 'expert' | 'streaming' | 'overall';
+
+export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about';
 
 export interface Track {
   id: string;

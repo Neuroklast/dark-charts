@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Track, ChartWeights, ChartType, Genre } from '@/types';
+import { Track, ChartWeights, ChartType, Genre, ViewType, MainGenre } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChartCategory } from '@/components/ChartCategory';
 import { ChartEntry } from '@/components/ChartEntry';
@@ -8,6 +8,10 @@ import { GenreFilters } from '@/components/GenreFilters';
 import { Card } from '@/components/ui/card';
 import { Skull, Funnel } from '@phosphor-icons/react';
 import { MusicPlayer } from '@/components/MusicPlayer';
+import { Navigation } from '@/components/Navigation';
+import { GenreCharts } from '@/components/GenreCharts';
+import { ProfileView } from '@/components/ProfileView';
+import { AboutView } from '@/components/AboutView';
 import { useKV } from '@github/spark/hooks';
 import logo from '@/assets/images/Gemini_Generated_Image_fa3defa3defa3def.png';
 import { DataProvider, useDataService } from '@/contexts/DataContext';
@@ -15,6 +19,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 function AppContent() {
   const dataService = useDataService();
+  const [currentView, setCurrentView] = useState<ViewType>('home');
+  const [currentMainGenre, setCurrentMainGenre] = useState<MainGenre | null>(null);
   const [activeTab, setActiveTab] = useState<ChartType>('fan');
   const [fanCharts, setFanCharts] = useState<Track[]>([]);
   const [expertCharts, setExpertCharts] = useState<Track[]>([]);
