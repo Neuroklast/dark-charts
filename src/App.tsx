@@ -16,6 +16,7 @@ import { PillarNavigation } from '@/components/PillarNavigation';
 import { MainGenreNavigation } from '@/components/MainGenreNavigation';
 import { SubGenreNavigation } from '@/components/SubGenreNavigation';
 import { TrackDetailModal } from '@/components/TrackDetailModal';
+import { OAuthCallback } from '@/components/OAuthCallback';
 import { useKV } from '@github/spark/hooks';
 import logo from '@/assets/images/Gemini_Generated_Image_fa3defa3defa3def.png';
 import { DataProvider, useDataService } from '@/contexts/DataContext';
@@ -49,6 +50,13 @@ function AppContent() {
     expert: 33,
     streaming: 34
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (window.location.pathname === '/oauth/callback') {
+      setCurrentView('oauth-callback');
+    }
+  }, []);
 
   useEffect(() => {
     const loadCharts = async () => {
@@ -253,53 +261,57 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden pb-24">
-      <Toaster position="top-right" />
-      
-      <div className="cyber-crt-overlay" />
-      
-      <svg className="fixed inset-0 w-full h-full pointer-events-none z-[2] opacity-[0.015]" xmlns="http://www.w3.org/2000/svg">
-        <filter id="noise">
-          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch"/>
-          <feColorMatrix type="saturate" values="0"/>
-        </filter>
-        <rect width="100%" height="100%" filter="url(#noise)"/>
-      </svg>
+      {currentView === 'oauth-callback' ? (
+        <OAuthCallback />
+      ) : (
+        <>
+          <Toaster position="top-right" />
+          
+          <div className="cyber-crt-overlay" />
+          
+          <svg className="fixed inset-0 w-full h-full pointer-events-none z-[2] opacity-[0.015]" xmlns="http://www.w3.org/2000/svg">
+            <filter id="noise">
+              <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch"/>
+              <feColorMatrix type="saturate" values="0"/>
+            </filter>
+            <rect width="100%" height="100%" filter="url(#noise)"/>
+          </svg>
 
-      <Navigation 
-        currentView={currentView} 
-        onNavigate={(view: ViewType) => {
-          setCurrentView(view);
-          if (view === 'home') {
-            setCurrentMainGenre('overall');
-            setCurrentSubGenre(null);
-          }
-        }}
-      />
+          <Navigation 
+            currentView={currentView} 
+            onNavigate={(view: ViewType) => {
+              setCurrentView(view);
+              if (view === 'home') {
+                setCurrentMainGenre('overall');
+                setCurrentSubGenre(null);
+              }
+            }}
+          />
 
-      <div className="relative z-10">
-        <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-          <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-6 md:py-8">
-            <div className="flex flex-col items-center justify-center gap-4">
-              <img 
-                src={logo} 
-                alt="Dark Charts" 
-                className="w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-contain chromatic-hover"
-              />
-              <p className="font-ui text-[10px] md:text-xs text-muted-foreground tracking-[0.4em] uppercase font-medium">
-                {t('header.subtitle')}
-              </p>
-            </div>
-          </div>
-        </header>
+          <div className="relative z-10">
+            <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+              <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-6 md:py-8">
+                <div className="flex flex-col items-center justify-center gap-4">
+                  <img 
+                    src={logo} 
+                    alt="Dark Charts" 
+                    className="w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-contain chromatic-hover"
+                  />
+                  <p className="font-ui text-[10px] md:text-xs text-muted-foreground tracking-[0.4em] uppercase font-medium">
+                    {t('header.subtitle')}
+                  </p>
+                </div>
+              </div>
+            </header>
 
-        <main className="max-w-[1800px] mx-auto px-4 md:px-8 py-8">
-          {currentView === 'profile' && <ProfileView />}
-          {currentView === 'about' && <AboutView />}
-          {currentView === 'custom-charts' && <CustomChartsView />}
-          {currentView === 'admin' && <AdminArtistManagement />}
-          {currentView === 'voting' && (
-            <VotingArea 
-              allTracks={[...fanCharts, ...expertCharts, ...streamingCharts]}
+            <main className="max-w-[1800px] mx-auto px-4 md:px-8 py-8">
+              {currentView === 'profile' && <ProfileView />}
+              {currentView === 'about' && <AboutView />}
+              {currentView === 'custom-charts' && <CustomChartsView />}
+              {currentView === 'admin' && <AdminArtistManagement />}
+              {currentView === 'voting' && (
+                <VotingArea 
+                  allTracks={[...fanCharts, ...expertCharts, ...streamingCharts]}
               onTrackClick={handleTrackClick}
             />
           )}
@@ -499,6 +511,8 @@ function AppContent() {
         allChartPositions={selectedTrackForModal ? getAllChartPositions(selectedTrackForModal) : []}
         onNavigateToChart={handleNavigateToChart}
       />
+        </>
+      )}
     </div>
   );
 }

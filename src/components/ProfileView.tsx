@@ -13,18 +13,21 @@ import {
 import { FanProfile, BandProfile, DJProfile, LabelProfile, UserType } from '@/types';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { OAuthLoginButtons } from '@/components/OAuthLoginButtons';
 
 function LoginView() {
   const { login } = useAuth();
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (provider: 'spotify' | 'apple' | 'mock') => {
     setIsLoading(true);
     try {
       await login(provider);
-      toast.success('Successfully logged in!');
+      toast.success(t('oauth.loggedOut') || 'Successfully logged in!');
     } catch (error) {
-      toast.error('Login failed. Please try again.');
+      toast.error(t('oauth.loginFailed') || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -40,20 +43,20 @@ function LoginView() {
       <div className="relative">
         <User weight="duotone" className="w-24 h-24 mx-auto text-muted-foreground mb-6 opacity-40" />
         <h2 className="display-font text-3xl md:text-4xl uppercase text-foreground mb-4 tracking-tight font-semibold">
-          Sign In to Dark Charts
+          {t('profile.signIn')}
         </h2>
         <p className="font-ui text-muted-foreground uppercase tracking-[0.2em] text-xs mb-8">
-          Access your profile, vote for artists, and create custom charts
+          {t('profile.signInDescription')}
         </p>
         
-        <div className="flex flex-col gap-4 max-w-md mx-auto">
+        <div className="flex flex-col gap-4 max-w-md mx-auto mb-8">
           <Button
             onClick={() => handleLogin('spotify')}
             disabled={isLoading}
             className="flex items-center justify-center gap-3 bg-[#1DB954] hover:bg-[#1DB954]/80 text-white snap-transition font-ui text-sm uppercase tracking-[0.12em] font-semibold h-12"
           >
             <SpotifyLogo weight="fill" className="w-5 h-5" />
-            Continue with Spotify
+            {t('profile.continueSpotify')}
           </Button>
           
           <Button
@@ -62,7 +65,7 @@ function LoginView() {
             className="flex items-center justify-center gap-3 bg-foreground hover:bg-foreground/80 text-background snap-transition font-ui text-sm uppercase tracking-[0.12em] font-semibold h-12"
           >
             <AppleLogo weight="fill" className="w-5 h-5" />
-            Continue with Apple Music
+            {t('profile.continueApple')}
           </Button>
           
           <div className="relative my-4">
@@ -70,7 +73,7 @@ function LoginView() {
               <div className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-4 text-muted-foreground font-ui tracking-[0.2em]">Or</span>
+              <span className="bg-card px-4 text-muted-foreground font-ui tracking-[0.2em]">{t('profile.or')}</span>
             </div>
           </div>
           
@@ -81,8 +84,12 @@ function LoginView() {
             className="flex items-center justify-center gap-3 snap-transition font-ui text-sm uppercase tracking-[0.12em] font-semibold h-12"
           >
             <SignIn weight="bold" className="w-5 h-5" />
-            Demo Account
+            {t('profile.demoAccount')}
           </Button>
+        </div>
+
+        <div className="border-t border-border pt-8 max-w-md mx-auto">
+          <OAuthLoginButtons />
         </div>
       </div>
     </Card>
@@ -91,6 +98,7 @@ function LoginView() {
 
 function FanProfileView({ profile }: { profile: FanProfile }) {
   const { updateProfile, logout } = useAuth();
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [username, setUsername] = useState(profile.username);
   const [biography, setBiography] = useState(profile.biography || '');
@@ -99,9 +107,9 @@ function FanProfileView({ profile }: { profile: FanProfile }) {
     try {
       await updateProfile({ username, biography });
       setIsEditing(false);
-      toast.success('Profile updated successfully!');
+      toast.success(t('profile.saveChanges') || 'Profile updated successfully!');
     } catch (error) {
-      toast.error('Failed to update profile');
+      toast.error(t('oauth.loginFailed') || 'Failed to update profile');
     }
   };
 
@@ -121,7 +129,7 @@ function FanProfileView({ profile }: { profile: FanProfile }) {
                   </h2>
                   <Badge className="mt-2 bg-primary text-primary-foreground font-ui text-[10px] uppercase">
                     <MusicNotes weight="bold" className="w-3 h-3 mr-1" />
-                    Fan
+                    {t('profile.fan')}
                   </Badge>
                 </>
               ) : (
@@ -143,7 +151,7 @@ function FanProfileView({ profile }: { profile: FanProfile }) {
                   className="snap-transition font-ui text-[10px] uppercase"
                 >
                   <PencilSimple weight="bold" className="w-4 h-4 mr-1" />
-                  Edit
+                  {t('profile.edit')}
                 </Button>
                 <Button
                   onClick={logout}
@@ -152,7 +160,7 @@ function FanProfileView({ profile }: { profile: FanProfile }) {
                   className="snap-transition font-ui text-[10px] uppercase"
                 >
                   <SignOut weight="bold" className="w-4 h-4 mr-1" />
-                  Sign Out
+                  {t('profile.signOut')}
                 </Button>
               </>
             ) : (
@@ -163,7 +171,7 @@ function FanProfileView({ profile }: { profile: FanProfile }) {
                   className="bg-primary hover:bg-primary/80 snap-transition font-ui text-[10px] uppercase"
                 >
                   <FloppyDisk weight="bold" className="w-4 h-4 mr-1" />
-                  Save
+                  {t('profile.save')}
                 </Button>
                 <Button
                   onClick={() => setIsEditing(false)}
@@ -181,13 +189,13 @@ function FanProfileView({ profile }: { profile: FanProfile }) {
         <div className="border-t border-border pt-6">
           {!isEditing ? (
             <p className="font-ui text-sm text-muted-foreground leading-relaxed">
-              {profile.biography || 'No biography yet. Click Edit to add one.'}
+              {profile.biography || t('profile.noBio')}
             </p>
           ) : (
             <Textarea
               value={biography}
               onChange={(e) => setBiography(e.target.value)}
-              placeholder="Tell us about yourself..."
+              placeholder={t('profile.bioPlaceholder')}
               className="bg-background border-border font-ui min-h-[100px]"
             />
           )}
@@ -197,37 +205,37 @@ function FanProfileView({ profile }: { profile: FanProfile }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-card border border-border p-6">
           <p className="font-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
-            Voting Credits
+            {t('profile.votingCredits')}
           </p>
           <p className="data-font text-4xl font-bold text-primary">
             {profile.votingCredits}
           </p>
           <p className="font-ui text-[10px] uppercase tracking-[0.15em] text-muted-foreground mt-2">
-            Available for voting
+            {t('profile.availableForVoting')}
           </p>
         </Card>
 
         <Card className="bg-card border border-border p-6">
           <p className="font-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
-            Voting History
+            {t('profile.votingHistory')}
           </p>
           <p className="data-font text-4xl font-bold text-accent">
             {profile.votingHistory.length}
           </p>
           <p className="font-ui text-[10px] uppercase tracking-[0.15em] text-muted-foreground mt-2">
-            Total votes cast
+            {t('profile.totalVotesCast')}
           </p>
         </Card>
 
         <Card className="bg-card border border-border p-6">
           <p className="font-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
-            Favorites
+            {t('profile.favorites')}
           </p>
           <p className="data-font text-4xl font-bold text-foreground">
             {profile.favoritesList.length}
           </p>
           <p className="font-ui text-[10px] uppercase tracking-[0.15em] text-muted-foreground mt-2">
-            Saved tracks
+            {t('profile.savedTracks')}
           </p>
         </Card>
       </div>
@@ -236,7 +244,7 @@ function FanProfileView({ profile }: { profile: FanProfile }) {
         <Card className="bg-card border border-border p-6">
           <h3 className="display-font text-xl uppercase tracking-tight text-foreground font-semibold mb-4">
             <Trophy weight="bold" className="w-5 h-5 inline mr-2" />
-            Earned Badges
+            {t('profile.earnedBadges')}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {profile.allBadges.map(badge => (
@@ -262,12 +270,13 @@ function FanProfileView({ profile }: { profile: FanProfile }) {
 
 export function ProfileView() {
   const { user, isLoading } = useAuth();
+  const { t } = useLanguage();
 
   if (isLoading) {
     return (
       <div className="space-y-6">
         <h1 className="display-font text-4xl uppercase tracking-wider text-foreground font-semibold">
-          Profile
+          {t('profile.title')}
         </h1>
         <Card className="bg-card border border-border p-12 text-center">
           <div className="animate-pulse">
@@ -283,7 +292,7 @@ export function ProfileView() {
   return (
     <div className="space-y-6">
       <h1 className="display-font text-4xl uppercase tracking-wider text-foreground font-semibold">
-        Profile
+        {t('profile.title')}
       </h1>
 
       {!user?.isAuthenticated ? (
@@ -294,10 +303,10 @@ export function ProfileView() {
         <Card className="bg-card border border-border p-8">
           <div className="text-center">
             <p className="font-ui text-sm uppercase tracking-[0.2em] text-muted-foreground">
-              Profile type: {user.profile?.userType || 'Unknown'}
+              {t('profile.profileType')}: {user.profile?.userType || 'Unknown'}
             </p>
             <p className="font-ui text-xs text-muted-foreground mt-4">
-              Full profile management for Band, DJ, and Label accounts coming soon.
+              {t('profile.comingSoon')}
             </p>
           </div>
         </Card>
