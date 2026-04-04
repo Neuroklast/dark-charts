@@ -1,6 +1,6 @@
 # Dark Charts - Heavy Metal & Gothic Music Charts Platform
 
-Dark Charts is a brutal, unapologetically dark music charting platform for the Heavy Metal, Gothic, Dark Wave, and EBM underground scene.
+Dark Charts is a brutal, unapologetically dark music charting platform for the Heavy Metal, Gothic, Dark Wave, and EBM underground scene. The app shell uses a centered feed architecture with a sticky top navigation, optimized for mobile-first community engagement.
 
 **Experience Qualities**:
 1. **Brutal** - Raw, aggressive design that doesn't apologize for its darkness, with sharp edges and high-contrast brutalist aesthetics
@@ -9,6 +9,15 @@ Dark Charts is a brutal, unapologetically dark music charting platform for the H
 
 **Complexity Level**: Light Application (multiple features with basic state)
 The app presents chart data across multiple categories with custom weighting controls and tab-based navigation, maintaining moderate state without requiring complex backend integration initially.
+
+## Architecture
+
+**App Shell Architecture** with **Centered Feed Layout**:
+- Sticky top navigation (z-50) with glassmorphism backdrop blur
+- Off-canvas navigation overlay using shadcn Sheet component (zero layout shift)
+- Centered main content feed (max-w-5xl mx-auto) for content-first experience
+- Mobile-first responsive design with 8-point grid spacing system
+- Semantic HTML5 structure (header, main, nav, footer)
 
 ## Essential Features
 

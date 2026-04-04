@@ -5,7 +5,7 @@ import { ChartEntry } from '@/components/ChartEntry';
 import { Card } from '@/components/ui/card';
 import { Skull } from '@phosphor-icons/react';
 import { MusicPlayer } from '@/components/MusicPlayer';
-import { Navigation } from '@/components/Navigation';
+import { TopNavigation } from '@/components/TopNavigation';
 import { GenreCharts } from '@/components/GenreCharts';
 import { ProfileView } from '@/components/ProfileView';
 import { AboutView } from '@/components/AboutView';
@@ -18,7 +18,6 @@ import { SubGenreNavigation } from '@/components/SubGenreNavigation';
 import { TrackDetailModal } from '@/components/TrackDetailModal';
 import { OAuthCallback } from '@/components/OAuthCallback';
 import { useKV } from '@github/spark/hooks';
-import logo from '@/assets/images/Gemini_Generated_Image_fa3defa3defa3def.png';
 import { DataProvider, useDataService } from '@/contexts/DataContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
@@ -529,10 +528,10 @@ function AppContent() {
   }, [currentTrack, activePillar, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, overallChart]);
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden pb-24">
+    <div className="min-h-screen bg-background relative overflow-x-hidden pb-32">
       <a 
         href="#main-content" 
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-20 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:font-ui focus:text-sm focus:uppercase focus:tracking-wider focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:font-ui focus:text-sm focus:uppercase focus:tracking-wider focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         Skip to main content
       </a>
@@ -555,7 +554,7 @@ function AppContent() {
           </svg>
 
           <ErrorBoundary level="component">
-            <Navigation 
+            <TopNavigation 
               currentView={currentView} 
               onNavigate={(view: ViewType) => {
                 try {
@@ -572,22 +571,7 @@ function AppContent() {
           </ErrorBoundary>
 
           <div className="relative z-10">
-            <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-              <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-6 md:py-8">
-                <div className="flex flex-col items-center justify-center gap-4">
-                  <img 
-                    src={logo} 
-                    alt="Dark Charts" 
-                    className="w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-contain chromatic-hover"
-                  />
-                  <p className="font-ui text-[10px] md:text-xs text-muted-foreground tracking-[0.4em] uppercase font-medium">
-                    {t?.('header.subtitle') || 'INDEPENDENT MUSIC CHARTS'}
-                  </p>
-                </div>
-              </div>
-            </header>
-
-            <main id="main-content" className="max-w-[1800px] mx-auto px-4 md:px-8 py-8">
+            <main id="main-content" className="mx-auto max-w-5xl px-4 md:px-8 py-8">
               <ErrorBoundary level="component">
                 {currentView === 'profile' && <ProfileView />}
                 {currentView === 'about' && <AboutView />}
@@ -614,7 +598,7 @@ function AppContent() {
                 <PillarNavigation 
                   activePillar={activePillar}
                   onPillarChange={setActivePillar}
-                  className="mb-6 md:sticky md:top-0 md:z-40 bg-background/95 backdrop-blur-sm py-4 border-b border-border fixed top-0 left-0 right-0 z-50"
+                  className="mb-8"
                 />
               </ErrorBoundary>
 
@@ -634,7 +618,7 @@ function AppContent() {
                       console.error('Error changing genre:', error);
                     }
                   }}
-                  className="mb-6"
+                  className="mb-8"
                 />
               </ErrorBoundary>
             </>
@@ -796,17 +780,17 @@ function AppContent() {
         </main>
 
         <footer className="border-t border-border py-8 px-4 md:px-8 mt-16 bg-secondary/50">
-          <div className="max-w-[1800px] mx-auto">
-            <div className="grid md:grid-cols-3 gap-6 mb-6">
+          <div className="mx-auto max-w-5xl">
+            <div className="grid md:grid-cols-3 gap-8 mb-8">
               <div>
-                <h3 className="display-font text-lg uppercase text-foreground mb-3 tracking-tight font-semibold">Dark Charts</h3>
+                <h3 className="font-display text-lg uppercase text-foreground mb-4 tracking-tight font-semibold">Dark Charts</h3>
                 <p className="font-ui text-xs text-muted-foreground leading-relaxed">
                   {t?.('footer.tagline') || 'Independent music charts for the dark scene'}
                 </p>
               </div>
               <div>
-                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-3">{t?.('about.principles') || 'PRINCIPLES'}</h4>
-                <ul className="space-y-1 text-xs text-muted-foreground font-ui">
+                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-4">{t?.('about.principles') || 'PRINCIPLES'}</h4>
+                <ul className="space-y-2 text-xs text-muted-foreground font-ui">
                   <li>• {t?.('about.principle1') || 'Community-driven'}</li>
                   <li>• {t?.('about.principle2') || 'Independent'}</li>
                   <li>• {t?.('about.principle3') || 'Transparent'}</li>
@@ -814,7 +798,7 @@ function AppContent() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-3">{t?.('nav.about') || 'ABOUT'}</h4>
+                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-4">{t?.('nav.about') || 'ABOUT'}</h4>
                 <p className="text-xs text-muted-foreground font-ui leading-relaxed">
                   {t?.('about.builtFor') || 'Built for the dark music community'}
                 </p>
