@@ -2,51 +2,51 @@ import { Track, OdesliData } from '@/types';
 
 export interface TrackEnrichmentData {
   artworkHighRes?: string;
-  previewUrl?: string;
-  odesliData?: OdesliData;
-}
+class DataFetchService
+  private pendingRequests 
+ 
 
-class DataFetchService {
-  private cache = new Map<string, TrackEnrichmentData>();
-  private pendingRequests = new Map<string, Promise<TrackEnrichmentData>>();
+      return this.cache.
 
-  async enrichTrack(track: Track): Promise<TrackEnrichmentData> {
-    const cacheKey = `${track.id}-enrichment`;
-    
-    if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey)!;
-    }
-
-    if (this.pendingRequests.has(cacheKey)) {
       return this.pendingRequests.get(cacheKey)!;
-    }
 
-    const promise = this.performEnrichment(track);
     this.pendingRequests.set(cacheKey, promise);
-
     try {
-      const result = await promise;
-      this.cache.set(cacheKey, result);
-      return result;
+    
     } finally {
-      this.pendingRequests.delete(cacheKey);
-    }
-  }
+      return this.cache.get(cacheKey)!;
 
-  private async performEnrichment(track: Track): Promise<TrackEnrichmentData> {
-    const enrichmentData: TrackEnrichmentData = {};
 
-    const [artwork, previewUrl, odesliData] = await Promise.allSettled([
-      this.fetchArtwork(track),
+    const [artwork, previewUrl, odesliData] =
       this.fetchPreviewUrl(track),
-      this.fetchStreamingLinks(track)
-    ]);
+    ]
 
-    if (artwork.status === 'fulfilled' && artwork.value) {
-      enrichmentData.artworkHighRes = artwork.value;
     }
+    if (previewUrl.status === 'fulfilled' && pre
 
-    if (previewUrl.status === 'fulfilled' && previewUrl.value) {
+    if (o
+    }
+    return enrichmentData;
+
+    if (track.a
+    }
+    i
+   
+
+
+    if (track.previewUrl) {
+
+    return undefined;
+
+    if (track.odesliData) {
+    }
+    ret
+
+    this.cache.clear();
+
+    r
+
+export const dataFetchService = new DataFetchService();
       enrichmentData.previewUrl = previewUrl.value;
     }
 
@@ -62,36 +62,36 @@ class DataFetchService {
       return track.artworkHighRes;
     }
 
-    if (track.albumArt) {
-      return track.albumArt;
-    }
 
-    return undefined;
-  }
 
-  async fetchPreviewUrl(track: Track): Promise<string | undefined> {
-    if (track.previewUrl) {
-      return track.previewUrl;
-    }
 
-    return undefined;
-  }
 
-  async fetchStreamingLinks(track: Track): Promise<OdesliData | undefined> {
-    if (track.odesliData) {
-      return track.odesliData;
-    }
 
-    return undefined;
-  }
 
-  clearCache(): void {
-    this.cache.clear();
-  }
 
-  getCacheSize(): number {
-    return this.cache.size;
-  }
-}
 
-export const dataFetchService = new DataFetchService();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
