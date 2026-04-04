@@ -68,21 +68,6 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
     }, 0);
   }, [userVotes]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    setCreditsRemaining(MAX_CREDITS - totalCreditsSpent);
-  }, [totalCreditsSpent, setCreditsRemaining]);
-
-  if (isLoading) {
-    return <VotingAreaSkeleton />;
-  }
-
   const filteredTracks = useMemo(() => {
     let filtered = allTracks;
 
@@ -114,6 +99,12 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
       };
     }).sort((a, b) => b.simulatedVotes - a.simulatedVotes);
   }, [filteredTracks, userVotes]);
+
+  const daysUntilPublish = useMemo(() => {
+    const now = new Date();
+    const diff = nextPublishDate.getTime() - now.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }, [nextPublishDate]);
 
   const handleToggleGenre = useCallback((genre: Genre) => {
     setSelectedGenres(current =>
@@ -174,11 +165,20 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
     }));
   }, []);
 
-  const daysUntilPublish = useMemo(() => {
-    const now = new Date();
-    const diff = nextPublishDate.getTime() - now.getTime();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  }, [nextPublishDate]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    setCreditsRemaining(MAX_CREDITS - totalCreditsSpent);
+  }, [totalCreditsSpent, setCreditsRemaining]);
+
+  if (isLoading) {
+    return <VotingAreaSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
