@@ -121,7 +121,7 @@ export class MockDataService implements IDataService {
     }));
   }
 
-  private simulateNetworkDelay(ms: number = 150): Promise<void> {
+  private simulateNetworkDelay(ms: number = 1800): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 }

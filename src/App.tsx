@@ -30,6 +30,7 @@ import { nightlySyncService } from '@/services/nightlySyncService';
 import { useUpcomingTrackPreloader, useVisibleTracksPreloader } from '@/hooks/use-artwork-cache';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { safeFilter, safeSlice, safeFindIndex, isNullOrUndefined } from '@/lib/safe-utils';
+import { ChartEntrySkeleton } from '@/components/skeletons';
 
 function AppContent() {
   const dataService = useDataService();
@@ -659,12 +660,18 @@ function AppContent() {
 
               {activePillar === 'fan' && (
                 <div className="space-y-6">
-                  {!isLoading && Array.isArray(filteredFanCharts) && filteredFanCharts.length > 0 && (
-                    <ErrorBoundary level="component">
-                      <Card className="bg-card border border-border">
-                        <div className="p-4 border-b border-border">
-                          <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Fan Charts</h2>
+                  <ErrorBoundary level="component">
+                    <Card className="bg-card border border-border">
+                      <div className="p-4 border-b border-border">
+                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Fan Charts</h2>
+                      </div>
+                      {isLoading ? (
+                        <div>
+                          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((index) => (
+                            <ChartEntrySkeleton key={index} index={index} />
+                          ))}
                         </div>
+                      ) : (
                         <motion.div layout>
                           <AnimatePresence mode="popLayout">
                             {filteredFanCharts.map((track, index) => (
@@ -685,20 +692,26 @@ function AppContent() {
                             ))}
                           </AnimatePresence>
                         </motion.div>
-                      </Card>
-                    </ErrorBoundary>
-                  )}
+                      )}
+                    </Card>
+                  </ErrorBoundary>
                 </div>
               )}
 
               {activePillar === 'expert' && (
                 <div className="space-y-6">
-                  {!isLoading && Array.isArray(filteredExpertCharts) && filteredExpertCharts.length > 0 && (
-                    <ErrorBoundary level="component">
-                      <Card className="bg-card border border-border">
-                        <div className="p-4 border-b border-border">
-                          <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Expert Charts</h2>
+                  <ErrorBoundary level="component">
+                    <Card className="bg-card border border-border">
+                      <div className="p-4 border-b border-border">
+                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Expert Charts</h2>
+                      </div>
+                      {isLoading ? (
+                        <div>
+                          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((index) => (
+                            <ChartEntrySkeleton key={index} index={index} />
+                          ))}
                         </div>
+                      ) : (
                         <motion.div layout>
                           <AnimatePresence mode="popLayout">
                             {filteredExpertCharts.map((track, index) => (
@@ -719,20 +732,26 @@ function AppContent() {
                             ))}
                           </AnimatePresence>
                         </motion.div>
-                      </Card>
-                    </ErrorBoundary>
-                  )}
+                      )}
+                    </Card>
+                  </ErrorBoundary>
                 </div>
               )}
 
               {activePillar === 'streaming' && (
                 <div className="space-y-6">
-                  {!isLoading && Array.isArray(filteredStreamingCharts) && filteredStreamingCharts.length > 0 && (
-                    <ErrorBoundary level="component">
-                      <Card className="bg-card border border-border">
-                        <div className="p-4 border-b border-border">
-                          <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Streaming Charts</h2>
+                  <ErrorBoundary level="component">
+                    <Card className="bg-card border border-border">
+                      <div className="p-4 border-b border-border">
+                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Streaming Charts</h2>
+                      </div>
+                      {isLoading ? (
+                        <div>
+                          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((index) => (
+                            <ChartEntrySkeleton key={index} index={index} />
+                          ))}
                         </div>
+                      ) : (
                         <motion.div layout>
                           <AnimatePresence mode="popLayout">
                             {filteredStreamingCharts.map((track, index) => (
@@ -753,9 +772,9 @@ function AppContent() {
                             ))}
                           </AnimatePresence>
                         </motion.div>
-                      </Card>
-                    </ErrorBoundary>
-                  )}
+                      )}
+                    </Card>
+                  </ErrorBoundary>
                 </div>
               )}
             </>

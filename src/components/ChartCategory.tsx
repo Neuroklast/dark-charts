@@ -1,8 +1,8 @@
 import { Track } from '@/types';
-import { Skeleton } from '@/components/ui/skeleton';
 import { AlbumArtwork } from './AlbumArtwork';
 import { Badge } from '@/components/ui/badge';
 import { CaretUp, CaretDown, TrendUp } from '@phosphor-icons/react';
+import { ChartCategorySkeleton } from './skeletons';
 
 interface ChartCategoryProps {
   title: string;
@@ -15,30 +15,7 @@ export function ChartCategory({ title, tracks, isLoading, onTrackClick }: ChartC
   const topThree = tracks.slice(0, 3);
 
   if (isLoading) {
-    return (
-      <div className="cyber-card relative">
-        <div className="cyber-scanline" />
-        <div className="p-4 border-b border-border relative z-10">
-          <h2 className="cyber-hover-chromatic display-font text-xl uppercase text-foreground tracking-tight font-semibold">{title}</h2>
-        </div>
-        <div className="relative z-10 space-y-2 p-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center gap-4 p-3 border border-border bg-card/50">
-              <Skeleton className="w-8 h-8 bg-muted shrink-0" />
-              <Skeleton className="w-20 h-20 bg-muted shrink-0" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-3/4 bg-muted" />
-                <Skeleton className="h-3 w-1/2 bg-muted" />
-                <div className="flex gap-1.5">
-                  <Skeleton className="h-4 w-16 bg-muted" />
-                  <Skeleton className="h-4 w-12 bg-muted" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <ChartCategorySkeleton title={title} />;
   }
 
   return (

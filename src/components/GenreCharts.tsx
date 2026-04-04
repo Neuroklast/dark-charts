@@ -3,6 +3,7 @@ import { MainGenre, Genre, Track, ChartType } from '@/types';
 import { Card } from '@/components/ui/card';
 import { ChartEntry } from '@/components/ChartEntry';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ChartEntrySkeleton } from '@/components/skeletons';
 
 interface GenreChartsProps {
   mainGenre: MainGenre;
@@ -112,6 +113,23 @@ export function GenreCharts({
   }, [activePillar]);
 
   const renderChartSection = (tracks: Track[]) => {
+    if (isLoading) {
+      return (
+        <Card className="bg-card border border-border">
+          <div className="p-4 border-b border-border">
+            <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">
+              {mainGenre} {chartTypeLabel} Charts{selectedSubGenre && ` • ${selectedSubGenre}`}
+            </h2>
+          </div>
+          <div>
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((index) => (
+              <ChartEntrySkeleton key={index} index={index} />
+            ))}
+          </div>
+        </Card>
+      );
+    }
+
     if (tracks.length === 0) {
       return (
         <Card className="bg-card border border-border p-12 text-center">
