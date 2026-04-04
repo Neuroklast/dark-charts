@@ -79,14 +79,6 @@ function AppContent() {
           throw new Error('Invalid data received from service');
         }
 
-        setFanCharts(Array.isArray(data.fanCharts) ? data.fanCharts : []);
-        setExpertCharts(Array.isArray(data.expertCharts) ? data.expertCharts : []);
-        setStreamingCharts(Array.isArray(data.streamingCharts) ? data.streamingCharts : []);
-        
-        if (Array.isArray(data.fanCharts) && data.fanCharts.length > 0) {
-          setCurrentTrack(data.fanCharts[0]);
-        }
-
         const allTracks = [
           ...(Array.isArray(data.fanCharts) ? data.fanCharts : []),
           ...(Array.isArray(data.expertCharts) ? data.expertCharts : []),
@@ -95,9 +87,39 @@ function AppContent() {
         
         if (trackEnrichmentService && allTracks.length > 0) {
           try {
+            const enrichedTracks = await trackEnrichmentService.enrichTracks(allTracks);
+            const enrichedMap = new Map(enrichedTracks.map(t => [t.id, t]));
+            
+            const enrichedFanCharts = (data.fanCharts || []).map(t => enrichedMap.get(t.id) || t);
+            const enrichedExpertCharts = (data.expertCharts || []).map(t => enrichedMap.get(t.id) || t);
+            const enrichedStreamingCharts = (data.streamingCharts || []).map(t => enrichedMap.get(t.id) || t);
+            
+            setFanCharts(enrichedFanCharts);
+            setExpertCharts(enrichedExpertCharts);
+            setStreamingCharts(enrichedStreamingCharts);
+            
+            if (enrichedFanCharts.length > 0) {
+              setCurrentTrack(enrichedFanCharts[0]);
+            }
+            
             trackEnrichmentService.startBackgroundSync(allTracks);
           } catch (enrichmentError) {
-            console.error('Failed to start background sync:', enrichmentError);
+            console.error('Failed to enrich tracks:', enrichmentError);
+            setFanCharts(Array.isArray(data.fanCharts) ? data.fanCharts : []);
+            setExpertCharts(Array.isArray(data.expertCharts) ? data.expertCharts : []);
+            setStreamingCharts(Array.isArray(data.streamingCharts) ? data.streamingCharts : []);
+            
+            if (Array.isArray(data.fanCharts) && data.fanCharts.length > 0) {
+              setCurrentTrack(data.fanCharts[0]);
+            }
+          }
+        } else {
+          setFanCharts(Array.isArray(data.fanCharts) ? data.fanCharts : []);
+          setExpertCharts(Array.isArray(data.expertCharts) ? data.expertCharts : []);
+          setStreamingCharts(Array.isArray(data.streamingCharts) ? data.streamingCharts : []);
+          
+          if (Array.isArray(data.fanCharts) && data.fanCharts.length > 0) {
+            setCurrentTrack(data.fanCharts[0]);
           }
         }
         
@@ -126,7 +148,12 @@ function AppContent() {
       try {
         const allTracks = [...fanCharts, ...expertCharts, ...streamingCharts];
         if (allTracks.length > 0 && trackEnrichmentService) {
-          await trackEnrichmentService.syncAllTracks(allTracks);
+          const enrichedTracks = await trackEnrichmentService.enrichTracks(allTracks);
+          const enrichedMap = new Map(enrichedTracks.map(t => [t.id, t]));
+          
+          setFanCharts(current => current.map(t => enrichedMap.get(t.id) || t));
+          setExpertCharts(current => current.map(t => enrichedMap.get(t.id) || t));
+          setStreamingCharts(current => current.map(t => enrichedMap.get(t.id) || t));
         }
       } catch (error) {
         console.error('Failed to sync tracks:', error);

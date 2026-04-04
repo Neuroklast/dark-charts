@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { MusicNote } from '@phosphor-icons/react';
+import { useState, useEffect } from 'react';
+import { MusicNote, SpinnerGap } from '@phosphor-icons/react';
 
 interface AlbumArtworkProps {
   src?: string;
@@ -23,6 +23,13 @@ export function AlbumArtwork({
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (src) {
+      setIsLoading(true);
+      setImageError(false);
+    }
+  }, [src]);
 
   const sizeClasses = {
     small: 'w-16 h-16',
@@ -60,8 +67,8 @@ export function AlbumArtwork({
       {hasValidSrc && !imageError ? (
         <div className={`relative w-full h-full aspect-square overflow-hidden ${isHovered ? 'chromatic-hover' : ''}`}>
           {isLoading && showLoadingIndicator && (
-            <div className="absolute inset-0 flex items-center justify-center bg-secondary animate-pulse">
-              <MusicNote size={iconSizes[size]} className="text-muted-foreground/30" weight="fill" />
+            <div className="absolute inset-0 flex items-center justify-center bg-secondary">
+              <SpinnerGap size={iconSizes[size]} className="text-accent animate-spin" weight="bold" />
             </div>
           )}
           <img
