@@ -1,10 +1,8 @@
 import { Track } from '@/types';
-import { ChartEntry } from './ChartEntry';
-import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlbumArtwork } from './AlbumArtwork';
 import { Badge } from '@/components/ui/badge';
-import { CaretUp, CaretDown } from '@phosphor-icons/react';
+import { CaretUp, CaretDown, TrendUp } from '@phosphor-icons/react';
 
 interface ChartCategoryProps {
   title: string;
@@ -57,7 +55,7 @@ export function ChartCategory({ title, tracks, isLoading, onTrackClick }: ChartC
           return (
             <div
               key={track.id}
-              className="cyber-card flex items-center gap-4 p-3 cursor-pointer group hover:border-primary/50 transition-all"
+              className="cyber-card flex items-center gap-3 p-3 cursor-pointer group hover:border-primary/50 transition-all"
               onClick={() => onTrackClick?.(track)}
             >
               <div className="cyber-scanline opacity-50" />
@@ -92,10 +90,10 @@ export function ChartCategory({ title, tracks, isLoading, onTrackClick }: ChartC
 
               <div className="flex-1 min-w-0 relative z-10">
                 <div className="cyber-hover-chromatic data-font text-base font-bold text-foreground truncate">
-                  {track.artist}
+                  {track.title}
                 </div>
                 <div className="data-font text-xs text-muted-foreground truncate mt-0.5">
-                  {track.title}
+                  {track.artist}
                 </div>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {track.genres.slice(0, 2).map((genre, idx) => (
@@ -112,6 +110,19 @@ export function ChartCategory({ title, tracks, isLoading, onTrackClick }: ChartC
                       +{track.genres.length - 2}
                     </Badge>
                   )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="flex flex-col items-center gap-0.5 min-w-[50px]">
+                  <TrendUp className="w-3 h-3 text-muted-foreground" />
+                  <span className="data-font text-[9px] text-muted-foreground uppercase">W</span>
+                  <span className="data-font text-sm font-bold text-foreground">{track.weeksInChart || 1}</span>
+                </div>
+                
+                <div className="flex flex-col items-center gap-0.5 min-w-[50px]">
+                  <span className="data-font text-[9px] text-muted-foreground uppercase">Votes</span>
+                  <span className="data-font text-sm font-bold text-accent">{track.votes || 0}</span>
                 </div>
               </div>
             </div>

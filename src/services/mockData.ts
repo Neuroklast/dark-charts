@@ -16,6 +16,7 @@ export const mockFanCharts: Track[] = [
     albumArt: 'https://picsum.photos/seed/heilung/400/400',
     spotifyUri: 'spotify:track:3xXBsjrbG1LDIAKigJfA1w',
     votes: 147,
+    weeksInChart: 8,
     album: 'Futha',
     releaseDate: '2019-06-28',
     label: 'Season of Mist',
@@ -38,6 +39,7 @@ export const mockFanCharts: Track[] = [
     albumArt: 'https://picsum.photos/seed/wardruna/400/400',
     spotifyUri: 'spotify:track:0FutrWIUM5Mg3434asiwkp',
     votes: 132,
+    weeksInChart: 12,
     album: 'Runaljod - Yggdrasil',
     releaseDate: '2013-03-15',
     label: 'Indie Recordings',
@@ -60,6 +62,7 @@ export const mockFanCharts: Track[] = [
     albumArt: 'https://picsum.photos/seed/perturbator/400/400',
     spotifyUri: 'spotify:track:3h4CwqQnwhPXlJNPKh4feQ',
     votes: 98,
+    weeksInChart: 5,
     album: 'Dangerous Days',
     releaseDate: '2014-05-05',
     label: 'Blood Music',
@@ -82,6 +85,7 @@ export const mockFanCharts: Track[] = [
     albumArt: 'https://picsum.photos/seed/sisters/400/400',
     spotifyUri: 'spotify:track:1TfqLAPs4K3s2rJMoCokcS',
     votes: 89,
+    weeksInChart: 3,
     album: 'Some Girls Wander by Mistake',
     releaseDate: '1992-05-18',
     label: 'Merciful Release',
@@ -104,6 +108,7 @@ export const mockFanCharts: Track[] = [
     albumArt: 'https://picsum.photos/seed/typeo/400/400',
     spotifyUri: 'spotify:track:7qjCVexNgbYNH0qvMYvkxg',
     votes: 76,
+    weeksInChart: 15,
     album: 'Bloody Kisses',
     releaseDate: '1993-09-17',
     label: 'Roadrunner Records',
@@ -128,7 +133,8 @@ export const mockExpertCharts: Track[] = [
     streamingScore: 45,
     albumArt: 'https://picsum.photos/seed/neurosis/400/400',
     spotifyUri: 'spotify:track:4RVnAU35WRWra6OZ3CbbwA',
-    votes: 203
+    votes: 203,
+    weeksInChart: 6
   },
   {
     id: 'expert-2',
@@ -144,7 +150,8 @@ export const mockExpertCharts: Track[] = [
     streamingScore: 52,
     albumArt: 'https://picsum.photos/seed/ulver/400/400',
     spotifyUri: 'spotify:track:2ZWlPOoWh0626oTaHrnl2a',
-    votes: 187
+    votes: 187,
+    weeksInChart: 9
   },
   {
     id: 'expert-3',
@@ -160,7 +167,8 @@ export const mockExpertCharts: Track[] = [
     streamingScore: 68,
     albumArt: 'https://picsum.photos/seed/deadcandance/400/400',
     spotifyUri: 'spotify:track:5uLrWiFmE4llLULJ4j3PcW',
-    votes: 164
+    votes: 164,
+    weeksInChart: 11
   },
   {
     id: 'expert-4',
@@ -176,7 +184,8 @@ export const mockExpertCharts: Track[] = [
     streamingScore: 38,
     albumArt: 'https://picsum.photos/seed/godflesh/400/400',
     spotifyUri: 'spotify:track:3KjYS5fvP0ThOYbTwW0TZD',
-    votes: 141
+    votes: 141,
+    weeksInChart: 4
   },
   {
     id: 'expert-5',
@@ -192,7 +201,8 @@ export const mockExpertCharts: Track[] = [
     streamingScore: 41,
     albumArt: 'https://picsum.photos/seed/swans/400/400',
     spotifyUri: 'spotify:track:2yvmvDHYpj6l1WkLcxrM6B',
-    votes: 119
+    votes: 119,
+    weeksInChart: 7
   }
 ];
 
@@ -211,7 +221,8 @@ export const mockStreamingCharts: Track[] = [
     streamingScore: 98,
     albumArt: 'https://picsum.photos/seed/ghost/400/400',
     spotifyUri: 'spotify:track:14HbJBOp8OTzeg5wIRWNOL',
-    votes: 256
+    votes: 256,
+    weeksInChart: 20
   },
   {
     id: 'streaming-2',
@@ -227,7 +238,8 @@ export const mockStreamingCharts: Track[] = [
     streamingScore: 95,
     albumArt: 'https://picsum.photos/seed/carpenter/400/400',
     spotifyUri: 'spotify:track:70DdGHW8NsKwTjxBQkW2gq',
-    votes: 221
+    votes: 221,
+    weeksInChart: 14
   },
   {
     id: 'streaming-3',
@@ -243,7 +255,8 @@ export const mockStreamingCharts: Track[] = [
     streamingScore: 94,
     albumArt: 'https://picsum.photos/seed/depeche/400/400',
     spotifyUri: 'spotify:track:07WXiBgLNo9JuG7qpsvvKg',
-    votes: 198
+    votes: 198,
+    weeksInChart: 18
   },
   {
     id: 'streaming-4',
@@ -259,7 +272,8 @@ export const mockStreamingCharts: Track[] = [
     streamingScore: 92,
     albumArt: 'https://picsum.photos/seed/nin/400/400',
     spotifyUri: 'spotify:track:5T08Ce6VZOi3sQx5kOPLus',
-    votes: 183
+    votes: 183,
+    weeksInChart: 2
   },
   {
     id: 'streaming-5',
@@ -275,6 +289,7 @@ export const mockStreamingCharts: Track[] = [
     streamingScore: 91,
     albumArt: 'https://picsum.photos/seed/cure/400/400',
     spotifyUri: 'spotify:track:1Qhbi2hK9DPqcJGNp7bVag',
-    votes: 167
+    votes: 167,
+    weeksInChart: 10
   }
 ];

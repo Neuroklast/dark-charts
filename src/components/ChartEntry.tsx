@@ -1,8 +1,7 @@
 import { Track } from '@/types';
-import { CaretUp, CaretDown } from '@phosphor-icons/react';
+import { CaretUp, CaretDown, TrendUp } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
 import { AlbumArtwork } from './AlbumArtwork';
-import { VoteButtons } from './VoteButtons';
 import { SpotifyEmbed } from './SpotifyEmbed';
 import { motion } from 'framer-motion';
 
@@ -69,11 +68,11 @@ export function ChartEntry({ track, index, onClick, animate = false }: ChartEntr
         />
 
         <div className="flex-1 min-w-0">
-          <div className="cyber-hover-chromatic data-font text-base font-bold text-foreground truncate">
-            {track.artist}
-          </div>
-          <div className="data-font text-xs text-muted-foreground truncate mt-0.5">
+          <div className="cyber-hover-chromatic data-font text-lg font-bold text-foreground truncate">
             {track.title}
+          </div>
+          <div className="data-font text-sm text-muted-foreground truncate mt-0.5">
+            {track.artist}
           </div>
           <div className="flex flex-wrap gap-1.5 mt-2">
             {track.genres.slice(0, 3).map((genre, idx) => (
@@ -93,8 +92,17 @@ export function ChartEntry({ track, index, onClick, animate = false }: ChartEntr
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <VoteButtons trackId={track.id} initialVotes={track.votes || 0} />
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col items-center gap-1 min-w-[60px]">
+            <TrendUp className="w-4 h-4 text-muted-foreground" />
+            <span className="data-font text-xs text-muted-foreground">Wochen</span>
+            <span className="data-font text-base font-bold text-foreground">{track.weeksInChart || 1}</span>
+          </div>
+          
+          <div className="flex flex-col items-center gap-1 min-w-[60px]">
+            <span className="data-font text-xs text-muted-foreground">Votes</span>
+            <span className="data-font text-base font-bold text-accent">{track.votes || 0}</span>
+          </div>
         </div>
       </div>
 

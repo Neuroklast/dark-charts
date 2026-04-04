@@ -31,6 +31,7 @@ export interface Track {
   albumArt?: string;
   spotifyUri?: string;
   votes?: number;
+  weeksInChart?: number;
   album?: string;
   releaseDate?: string;
   label?: string;
