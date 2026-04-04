@@ -152,6 +152,16 @@ export interface FanProfile extends BaseUserProfile {
   votingHistory: Vote[];
   favoritesList: string[];
   personalCharts: string[];
+  curatedCharts: CuratedChart[];
+  followingIds: string[];
+  followerIds: string[];
+  engagementStats?: {
+    votingStreak: number;
+    genreAffinity: Record<Genre, number>;
+    totalVotesLifetime: number;
+    weeklyActivity: number;
+  };
+  schemaOrgData?: SchemaOrgPerson;
 }
 
 export interface BandProfile extends BaseUserProfile {
@@ -174,6 +184,20 @@ export interface BandProfile extends BaseUserProfile {
     regions: string[];
     contactEmail?: string;
   };
+  followerIds: string[];
+  topSupporters?: {
+    userId: string;
+    username: string;
+    avatarUrl?: string;
+    voteCount: number;
+  }[];
+  upcomingEvents?: MusicEvent[];
+  mediaGallery?: {
+    url: string;
+    type: 'image' | 'video';
+    caption?: string;
+  }[];
+  schemaOrgData?: SchemaOrgMusicGroup;
 }
 
 export interface DJProfile extends BaseUserProfile {
@@ -187,6 +211,15 @@ export interface DJProfile extends BaseUserProfile {
   }[];
   supportedTracks: string[];
   reputation: number;
+  followerIds: string[];
+  followingIds: string[];
+  predictivePower?: {
+    correctPredictions: number;
+    totalPredictions: number;
+    accuracy: number;
+  };
+  curatedCharts: CuratedChart[];
+  schemaOrgData?: SchemaOrgPerson;
 }
 
 export interface LabelProfile extends BaseUserProfile {
@@ -297,4 +330,71 @@ export interface ArtistCacheStatus {
   releaseCount: number;
   status: 'syncing' | 'success' | 'error';
   errorMessage?: string;
+}
+
+export interface CuratedChart {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string;
+  trackIds: string[];
+  isPublic: boolean;
+  createdAt: number;
+  updatedAt: number;
+  followerCount: number;
+}
+
+export interface Follow {
+  id: string;
+  followerId: string;
+  followingId: string;
+  createdAt: number;
+}
+
+export interface MusicEvent {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate?: string;
+  location: {
+    name: string;
+    address?: string;
+    city?: string;
+    country?: string;
+  };
+  url?: string;
+  description?: string;
+}
+
+export interface SchemaOrgPerson {
+  '@context': 'https://schema.org';
+  '@type': 'Person';
+  name: string;
+  image?: string;
+  description?: string;
+  url?: string;
+  sameAs?: string[];
+}
+
+export interface SchemaOrgMusicGroup {
+  '@context': 'https://schema.org';
+  '@type': 'MusicGroup';
+  name: string;
+  image?: string;
+  description?: string;
+  genre?: string[];
+  url?: string;
+  sameAs?: string[];
+  member?: string[];
+  event?: MusicEvent[];
+}
+
+export interface ActivityFeedItem {
+  id: string;
+  type: 'follow' | 'chart_created' | 'milestone' | 'prediction' | 'badge_earned';
+  userId: string;
+  username: string;
+  avatarUrl?: string;
+  timestamp: number;
+  data: Record<string, any>;
 }

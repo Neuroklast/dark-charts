@@ -17,14 +17,17 @@ import {
   CheckCircle,
   MapPin,
   CalendarBlank,
-  Vinyl,
+  Circle,
   SpotifyLogo,
   AppleLogo,
   YoutubeLogo,
   InstagramLogo,
   TwitterLogo,
   GlobeHemisphereWest,
-  Buildings
+  Buildings,
+  Heart,
+  Users,
+  Image as ImageIcon
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { SafeImage } from '@/components/SafeImage';
@@ -221,7 +224,7 @@ export function ArtistProfileDrawer({ profile, isOpen, onClose }: ArtistProfileD
           {profile.latestReleases && profile.latestReleases.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Vinyl weight="duotone" className="w-5 h-5 text-accent" />
+                <Circle weight="duotone" className="w-5 h-5 text-accent" />
                 <h3 className="display-font text-sm uppercase tracking-tight text-foreground">Latest Releases</h3>
               </div>
 
@@ -252,7 +255,7 @@ export function ArtistProfileDrawer({ profile, isOpen, onClose }: ArtistProfileD
                           </div>
                           {release.spotifyUri && (
                             <Button variant="ghost" size="sm" asChild>
-                              <a href={`https://open.spotify.com/track/${release.spotifyUri.split(':')[2]}`} target="_blank" rel="noopener noreferrer">
+                              <a href={`https://open.spotify.com/track/${release.spotifyUri.split(':')[2]}`} target="_blank" rel="noopener noreferrer" aria-label="Listen on Spotify">
                                 <SpotifyLogo weight="fill" className="w-5 h-5 text-accent" />
                               </a>
                             </Button>
@@ -263,6 +266,128 @@ export function ArtistProfileDrawer({ profile, isOpen, onClose }: ArtistProfileD
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {profile.topSupporters && profile.topSupporters.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Heart weight="duotone" className="w-5 h-5 text-accent" />
+                <h3 className="display-font text-sm uppercase tracking-tight text-foreground">Top Supporters</h3>
+              </div>
+
+              <Card className="bg-secondary border border-border p-4">
+                <p className="font-ui text-xs text-muted-foreground mb-3 uppercase tracking-wider">
+                  Fans who have voted most for this artist
+                </p>
+                <div className="space-y-3">
+                  {profile.topSupporters.slice(0, 3).map((supporter, index) => (
+                    <motion.div
+                      key={supporter.userId}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex items-center justify-between p-2 bg-background border border-border hover:border-accent transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-muted flex items-center justify-center font-display text-xs">
+                          {supporter.username.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-ui text-sm text-foreground font-semibold">
+                            {supporter.username}
+                          </p>
+                          <p className="data-font text-xs text-muted-foreground">
+                            {supporter.voteCount} votes
+                          </p>
+                        </div>
+                      </div>
+                      <BadgeUI variant="outline" className="text-[9px] uppercase tracking-widest">
+                        #{index + 1}
+                      </BadgeUI>
+                    </motion.div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {profile.upcomingEvents && profile.upcomingEvents.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <CalendarBlank weight="duotone" className="w-5 h-5 text-accent" />
+                <h3 className="display-font text-sm uppercase tracking-tight text-foreground">Upcoming Events</h3>
+              </div>
+
+              <div className="space-y-2">
+                {profile.upcomingEvents.slice(0, 3).map((event, index) => (
+                  <motion.div
+                    key={event.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Card className="bg-secondary border border-border p-3 hover:border-accent transition-colors cursor-pointer">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-ui text-sm text-foreground font-semibold mb-1">
+                            {event.name}
+                          </p>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <MapPin className="w-3 h-3" />
+                              <span className="font-ui">
+                                {event.location.city && event.location.country 
+                                  ? `${event.location.city}, ${event.location.country}`
+                                  : event.location.name}
+                              </span>
+                            </div>
+                            <p className="data-font text-xs text-muted-foreground">
+                              {new Date(event.startDate).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {profile.mediaGallery && profile.mediaGallery.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <ImageIcon weight="duotone" className="w-5 h-5 text-accent" />
+                <h3 className="display-font text-sm uppercase tracking-tight text-foreground">Media Gallery</h3>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {profile.mediaGallery.slice(0, 4).map((media, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="aspect-square bg-secondary border border-border hover:border-accent transition-colors cursor-pointer overflow-hidden relative group"
+                  >
+                    <SafeImage
+                      src={media.url}
+                      alt={media.caption || `Media ${index + 1}`}
+                      width={200}
+                      height={200}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    {media.caption && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm p-2">
+                        <p className="font-ui text-[10px] text-foreground truncate">
+                          {media.caption}
+                        </p>
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
             </div>
           )}
 
