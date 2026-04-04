@@ -404,12 +404,16 @@ export const generateComprehensiveCharts = (): { fanCharts: Track[], expertChart
     
     const genres = genreMapping[artistKey] || ['Dark Wave', 'Gothic Rock', 'Electronic Body Music', 'Dark Electro'];
     
+    const albumArt = `https://picsum.photos/seed/${encodeURIComponent(entry.artist + entry.title)}/400/400`;
+    
     const baseTrack = {
       artist: entry.artist,
       title: entry.title,
       genres: genres.slice(0, Math.min(5, genres.length)) as Genre[],
       album: entry.isAlbum ? entry.title : undefined,
       votes: Math.floor(Math.random() * 500) + 50,
+      albumArt: albumArt,
+      weeksInChart: Math.floor(Math.random() * 20) + 1,
     };
 
     const fanScore = Math.random() * 100;
