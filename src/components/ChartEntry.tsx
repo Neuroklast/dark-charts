@@ -68,10 +68,10 @@ export function ChartEntry({ track, index, onClick, animate = false }: ChartEntr
         />
 
         <div className="flex-1 min-w-0">
-          <div className="cyber-hover-chromatic data-font text-lg font-bold text-foreground truncate">
+          <div className="cyber-hover-chromatic data-font text-xl font-bold text-foreground truncate">
             {track.title}
           </div>
-          <div className="data-font text-sm text-muted-foreground truncate mt-0.5">
+          <div className="data-font text-base text-muted-foreground truncate mt-1">
             {track.artist}
           </div>
           <div className="flex flex-wrap gap-1.5 mt-2">

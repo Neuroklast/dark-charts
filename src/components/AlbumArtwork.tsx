@@ -83,11 +83,11 @@ export function AlbumArtwork({
       onMouseLeave={() => setIsHovered(false)}
     >
       {isLoading && showLoadingIndicator ? (
-        <div className="w-full h-full bg-secondary border-2 border-border flex items-center justify-center animate-pulse">
+        <div className="w-full h-full aspect-square bg-secondary border-2 border-border flex items-center justify-center animate-pulse">
           <div className="w-3 h-3 bg-muted-foreground/30 rounded-full animate-ping" />
         </div>
       ) : loadedSrc && !hasError ? (
-        <div className={`relative w-full h-full overflow-hidden ${isHovered ? 'chromatic-hover' : ''}`}>
+        <div className={`relative w-full h-full aspect-square overflow-hidden ${isHovered ? 'chromatic-hover' : ''}`}>
           <img
             src={loadedSrc}
             alt={alt}
@@ -103,7 +103,7 @@ export function AlbumArtwork({
           />
         </div>
       ) : (
-        <div className={`w-full h-full bg-secondary border-2 border-border flex items-center justify-center instant-transition ${isHovered ? 'border-primary scale-110' : 'scale-100'} ${getGlowClass()}`}>
+        <div className={`w-full h-full aspect-square bg-secondary border-2 border-border flex items-center justify-center instant-transition ${isHovered ? 'border-primary scale-110' : 'scale-100'} ${getGlowClass()}`}>
           <span className="display-font text-4xl text-muted-foreground font-bold">
             {placeholderText}
           </span>

@@ -89,10 +89,10 @@ export function ChartCategory({ title, tracks, isLoading, onTrackClick }: ChartC
               />
 
               <div className="flex-1 min-w-0 relative z-10">
-                <div className="cyber-hover-chromatic data-font text-base font-bold text-foreground truncate">
+                <div className="cyber-hover-chromatic data-font text-lg font-bold text-foreground truncate">
                   {track.title}
                 </div>
-                <div className="data-font text-xs text-muted-foreground truncate mt-0.5">
+                <div className="data-font text-sm text-muted-foreground truncate mt-1">
                   {track.artist}
                 </div>
                 <div className="flex flex-wrap gap-1 mt-2">
