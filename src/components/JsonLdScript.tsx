@@ -6,17 +6,23 @@ interface JsonLdScriptProps {
 
 export function JsonLdScript({ data }: JsonLdScriptProps) {
   useEffect(() => {
-    const scriptId = `json-ld-${data['@type']}-${Date.now()}`;
     const script = document.createElement('script');
-    script.id = scriptId;
     script.type = 'application/ld+json';
     script.text = JSON.stringify(data);
+    script.id = 'json-ld-script';
+
+    // Falls bereits ein Script existiert, entfernen wir es vorher
+    const existingScript = document.getElementById('json-ld-script');
+    if (existingScript) {
+      document.head.removeChild(existingScript);
+    }
+
     document.head.appendChild(script);
 
     return () => {
-      const existingScript = document.getElementById(scriptId);
-      if (existingScript) {
-        document.head.removeChild(existingScript);
+      const currentScript = document.getElementById('json-ld-script');
+      if (currentScript) {
+        document.head.removeChild(currentScript);
       }
     };
   }, [data]);
