@@ -1,34 +1,34 @@
-export interface RetryOptions {
+export interface RetryOp
   maxAttempts?: number;
-  initialDelayMs?: number;
   maxDelayMs?: number;
+  shouldRetry?: (error
   backoffMultiplier?: number;
   shouldRetry?: (error: unknown, attempt: number) => boolean;
   onRetry?: (error: unknown, attempt: number, delayMs: number) => void;
   signal?: AbortSignal;
 }
 
-export interface CircuitBreakerOptions {
+interface CircuitBreakerOptions {
   failureThreshold?: number;
   resetTimeoutMs?: number;
   halfOpenRetries?: number;
 }
 
-type CircuitState = 'closed' | 'open' | 'half-open';
+  constructor(message: string, public readonly origi
 
-export class RetryableError extends Error {
-  constructor(message: string, public readonly originalError?: unknown) {
-    super(message);
-    this.name = 'RetryableError';
-  }
 }
-
 export class NonRetryableError extends Error {
-  constructor(message: string, public readonly originalError?: unknown) {
     super(message);
-    this.name = 'NonRetryableError';
   }
-}
+
+ 
+
+    maxAttempts = 3,
+    maxDelayMs = 10000,
+    shouldRetry = (
+    signal
+
+ 
 
 export async function retryWithBackoff<T>(
   operation: () => Promise<T>,
@@ -58,74 +58,74 @@ export async function retryWithBackoff<T>(
       
       if (error instanceof NonRetryableError) {
         throw error;
-      }
+       
 
       if (attempt === maxAttempts) {
         throw error;
       }
 
-      if (!shouldRetry(error, attempt)) {
-        throw error;
-      }
-
-      const delayMs = Math.min(
-        initialDelayMs * Math.pow(backoffMultiplier, attempt - 1),
-        maxDelayMs
-      );
-
-      if (onRetry) {
-        try {
-          onRetry(error, attempt, delayMs);
-        } catch (callbackError) {
-          console.error('Error in retry callback:', callbackError);
-        }
-      }
-
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
-  }
-
   throw lastError;
-}
 
-export class CircuitBreaker {
-  private state: CircuitState = 'closed';
-  private failureCount = 0;
-  private lastFailureTime: number | null = null;
-  private successfulHalfOpenCalls = 0;
+  priva
 
-  constructor(private options: CircuitBreakerOptions = {}) {
+
     this.options = {
-      failureThreshold: 5,
-      resetTimeoutMs: 60000,
-      halfOpenRetries: 1,
-      ...options
-    };
-  }
+      resetTimeout
+      ..
 
-  async execute<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.state === 'open') {
-      if (this.shouldAttemptReset()) {
-        this.state = 'half-open';
+  async execute<T>(o
+      if (thi
         this.successfulHalfOpenCalls = 0;
-      } else {
-        throw new Error('Circuit breaker is open');
-      }
+        throw new Error('Circuit 
     }
-
     try {
-      const result = await operation();
-      this.onSuccess();
-      return result;
-    } catch (error) {
-      this.onFailure();
+      t
+
       throw error;
-    }
+  }
+  p
+
+        this.reset
+ 
+
+
+    this.failureCount++;
+
+      this.state = 'open';
   }
 
-  private onSuccess(): void {
-    if (this.state === 'half-open') {
-      this.successfulHalfOpenCalls++;
+    return Date.now() - this.lastFailureTime >= (this.option
+
+    this.state = 'closed';
+    this.successfulHalfOpenC
+  }
+  getState(): Ci
+  }
+  g
+
+
+  private circuitBreakers = new 
+  getOrCreateCircuitBreaker(key: strin
+      this.circuitBreakers.set(ke
+    return this.circuitBreakers.get(key)!
+
+    key: string,
+    opt
+    c
+
+    );
+
+    this.circuitBreaker
+
+    const states = ne
+      states.set(key, b
+    return states;
+}
+exp
+
+  key: string,
+): T {
+    return globalRecoveryManager.exec
       if (this.successfulHalfOpenCalls >= (this.options.halfOpenRetries || 1)) {
         this.reset();
       }
@@ -208,6 +208,181 @@ export function withRecovery<T extends (...args: any[]) => Promise<any>>(
 ): T {
   return (async (...args: Parameters<T>): Promise<Awaited<ReturnType<T>>> => {
     return globalRecoveryManager.executeWithRecovery(
+      key,
+      () => fn(...args),
+      options
+    );
+  }) as T;
+}
+
+export function createFailsafe<T>(
+  operation: () => Promise<T>,
+  fallback: T,
+  options?: {
+    timeout?: number;
+    onError?: (error: unknown) => void;
+  }
+): Promise<T> {
+  return new Promise(async (resolve) => {
+    const { timeout = 5000, onError } = options || {};
+    
+    const timeoutId = setTimeout(() => {
+      if (onError) {
+        onError(new Error('Operation timeout'));
+      }
+      resolve(fallback);
+    }, timeout);
+
+    try {
+      const result = await operation();
+      clearTimeout(timeoutId);
+      resolve(result);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (onError) {
+        onError(error);
+      }
+      resolve(fallback);
+    }
+  });
+}
+
+export async function batchWithRecovery<T, R>(
+  items: T[],
+  operation: (item: T) => Promise<R>,
+  options: {
+    batchSize?: number;
+    continueOnError?: boolean;
+    onItemError?: (item: T, error: unknown) => void;
+  } = {}
+): Promise<R[]> {
+  const {
+    batchSize = 5,
+    continueOnError = true,
+    onItemError
+  } = options;
+
+  const results: R[] = [];
+  
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const batchPromises = batch.map(async (item) => {
+      try {
+        return await operation(item);
+      } catch (error) {
+        if (onItemError) {
+          onItemError(item, error);
+        }
+        if (!continueOnError) {
+          throw error;
+        }
+        return null;
+      }
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults.filter((r): r is R => r !== null));
+  }
+
+  return results;
+}
+
+interface CacheOptions {
+  ttlMs?: number;
+  onStale?: (key: string) => void;
+}
+
+export class ResilienceCache<T> {
+  private cache = new Map<string, { value: T; timestamp: number }>();
+  
+  constructor(private options: CacheOptions = {}) {
+    this.options = {
+      ttlMs: 300000,
+      ...options
+    };
+  }
+
+  set(key: string, value: T): void {
+    this.cache.set(key, {
+      value,
+      timestamp: Date.now()
+    });
+  }
+
+  get(key: string): T | undefined {
+    const entry = this.cache.get(key);
+    if (!entry) return undefined;
+
+    const age = Date.now() - entry.timestamp;
+    if (age > (this.options.ttlMs || 300000)) {
+      if (this.options.onStale) {
+        this.options.onStale(key);
+      }
+      this.cache.delete(key);
+      return undefined;
+    }
+
+    return entry.value;
+  }
+
+  has(key: string): boolean {
+    return this.get(key) !== undefined;
+  }
+
+  delete(key: string): void {
+    this.cache.delete(key);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  getStale(key: string): T | undefined {
+    const entry = this.cache.get(key);
+    return entry?.value;
+  }
+}
+
+export async function staleWhileRevalidate<T>(
+  key: string,
+  fetchFn: () => Promise<T>,
+  cache: ResilienceCache<T>,
+  options: {
+    returnStaleOnError?: boolean;
+    onRevalidate?: (value: T) => void;
+  } = {}
+): Promise<T> {
+  const cached = cache.get(key);
+  
+  if (cached) {
+    fetchFn()
+      .then(fresh => {
+        cache.set(key, fresh);
+        if (options.onRevalidate) {
+          options.onRevalidate(fresh);
+        }
+      })
+      .catch(error => {
+        console.error('Background revalidation failed:', error);
+      });
+    
+    return cached;
+  }
+
+  try {
+    const fresh = await fetchFn();
+    cache.set(key, fresh);
+    return fresh;
+  } catch (error) {
+    if (options.returnStaleOnError) {
+      const stale = cache.getStale(key);
+      if (stale !== undefined) {
+        return stale;
+      }
+    }
+    throw error;
+  }
+}
       key,
       () => fn(...args),
       options
