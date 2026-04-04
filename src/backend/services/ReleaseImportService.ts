@@ -1,8 +1,10 @@
 import { IArtistRepository } from '../repositories/IArtistRepository';
 import { IReleaseRepository } from '../repositories/IReleaseRepository';
 import { ISpotifyRepository } from '../repositories/ISpotifyRepository';
+import { IOdesliRepository } from '../repositories/IOdesliRepository';
+import { IiTunesRepository } from '../repositories/IiTunesRepository';
 import { Artist } from '../models/Artist';
-import { Release, CreateReleaseDTO, SpotifyAlbum } from '../models/Release';
+import { Release, CreateReleaseDTO, SpotifyAlbum, PlatformLinks } from '../models/Release';
 
 export interface ReleaseImportOptions {
   sinceDate?: Date;
@@ -20,7 +22,9 @@ export class ReleaseImportService {
   constructor(
     private artistRepository: IArtistRepository,
     private releaseRepository: IReleaseRepository,
-    private spotifyRepository: ISpotifyRepository
+    private spotifyRepository: ISpotifyRepository,
+    private odesliRepository: IOdesliRepository,
+    private iTunesRepository: IiTunesRepository
   ) {}
 
   async importNewReleases(options: ReleaseImportOptions = {}): Promise<ImportResult> {
@@ -132,9 +136,35 @@ export class ReleaseImportService {
       return;
     }
 
-    const artworkUrl = spotifyAlbum.images && spotifyAlbum.images.length > 0
+    const spotifyArtworkUrl = spotifyAlbum.images && spotifyAlbum.images.length > 0
       ? spotifyAlbum.images[0].url
       : undefined;
+
+    let platformLinks: PlatformLinks = {};
+    try {
+      platformLinks = await this.odesliRepository.getStreamingLinks(spotifyAlbum.id);
+      console.log(`Fetched platform links for ${artist.name} - ${spotifyAlbum.name}`);
+    } catch (error) {
+      console.warn(`Failed to fetch Odesli links for ${artist.name} - ${spotifyAlbum.name}:`, error);
+    }
+
+    let highResArtworkUrl: string | null = null;
+    try {
+      highResArtworkUrl = await this.iTunesRepository.getHighResArtwork(
+        artist.name,
+        spotifyAlbum.name
+      );
+      
+      if (highResArtworkUrl) {
+        console.log(`Fetched high-res artwork from iTunes for ${artist.name} - ${spotifyAlbum.name}`);
+      }
+    } catch (error) {
+      console.warn(
+        `iTunes artwork fetch failed for ${artist.name} - ${spotifyAlbum.name}, ` +
+        `falling back to Spotify artwork:`,
+        error
+      );
+    }
 
     const releaseDTO: CreateReleaseDTO = {
       artistId: artist.id,
@@ -145,7 +175,9 @@ export class ReleaseImportService {
       totalTracks: spotifyAlbum.total_tracks,
       spotifyId: spotifyAlbum.id,
       spotifyUrl: spotifyAlbum.external_urls.spotify,
-      artworkUrl,
+      artworkUrl: spotifyArtworkUrl,
+      highResArtworkUrl: highResArtworkUrl || spotifyArtworkUrl,
+      platformLinks,
       genres: artist.genres || [],
       label: spotifyAlbum.label
     };
@@ -153,7 +185,10 @@ export class ReleaseImportService {
     await this.releaseRepository.create(releaseDTO);
     result.totalReleasesImported++;
     
-    console.log(`Imported: ${artist.name} - ${spotifyAlbum.name} (${spotifyAlbum.album_type})`);
+    console.log(
+      `Imported: ${artist.name} - ${spotifyAlbum.name} (${spotifyAlbum.album_type}) ` +
+      `[Platforms: ${Object.keys(platformLinks).length}, High-Res: ${highResArtworkUrl ? 'Yes' : 'Fallback'}]`
+    );
   }
 
   private filterReleasesByDate(albums: SpotifyAlbum[], sinceDate: Date): SpotifyAlbum[] {

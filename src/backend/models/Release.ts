@@ -1,3 +1,16 @@
+export interface PlatformLinks {
+  spotify?: string;
+  appleMusic?: string;
+  youtube?: string;
+  youtubeMusic?: string;
+  deezer?: string;
+  tidal?: string;
+  amazonMusic?: string;
+  soundcloud?: string;
+  bandcamp?: string;
+  pandora?: string;
+}
+
 export interface Release {
   id: string;
   artistId: string;
@@ -9,6 +22,8 @@ export interface Release {
   spotifyId?: string;
   spotifyUrl?: string;
   artworkUrl?: string;
+  highResArtworkUrl?: string;
+  platformLinks?: PlatformLinks;
   genres: string[];
   isrc?: string;
   label?: string;
@@ -26,6 +41,8 @@ export interface CreateReleaseDTO {
   spotifyId?: string;
   spotifyUrl?: string;
   artworkUrl?: string;
+  highResArtworkUrl?: string;
+  platformLinks?: PlatformLinks;
   genres: string[];
   isrc?: string;
   label?: string;
