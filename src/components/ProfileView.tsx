@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { OAuthLoginButtons } from '@/components/OAuthLoginButtons';
+import { ProfileStatsSkeleton, ProfileActivitySkeleton } from '@/components/skeletons';
 
 function LoginView() {
   const { login } = useAuth();
@@ -102,6 +103,14 @@ function FanProfileView({ profile }: { profile: FanProfile }) {
   const [isEditing, setIsEditing] = useState(false);
   const [username, setUsername] = useState(profile.username);
   const [biography, setBiography] = useState(profile.biography || '');
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoadingStats(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSave = async () => {
     try {

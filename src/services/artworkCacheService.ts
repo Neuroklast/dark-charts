@@ -6,19 +6,37 @@ interface PreloadPriority {
   timestamp: number;
 }
 
+interface CachedImage {
+  url: string;
+  wsrvUrl: string;
+  timestamp: number;
+}
+
 class ArtworkCacheService {
-  private cache: Map<string, string> = new Map();
+  private cache: Map<string, CachedImage> = new Map();
   private preloadQueue: Map<string, PreloadPriority> = new Map();
   private isPreloading = false;
   private loadingPromises: Map<string, Promise<string>> = new Map();
   private failedUrls: Set<string> = new Set();
   private maxCacheSize = 200;
 
-  async preloadArtwork(url: string, priority: number = 0): Promise<string> {
+  generateWsrvUrl(originalUrl: string, width: number = 400, quality: number = 85): string {
+    if (!originalUrl) return '';
+    
+    try {
+      const encodedUrl = encodeURIComponent(originalUrl);
+      return `https://wsrv.nl/?url=${encodedUrl}&w=${width}&q=${quality}&output=webp&we`;
+    } catch (error) {
+      console.error('Error generating WSRV URL:', error);
+      return originalUrl;
+    }
+  }
+
+  async preloadArtwork(url: string, priority: number = 0, width: number = 400): Promise<string> {
     if (!url) return '';
     
     if (this.cache.has(url)) {
-      return this.cache.get(url)!;
+      return this.cache.get(url)!.wsrvUrl;
     }
 
     if (this.failedUrls.has(url)) {
@@ -29,12 +47,18 @@ class ArtworkCacheService {
       return this.loadingPromises.get(url)!;
     }
 
+    const wsrvUrl = this.generateWsrvUrl(url, width);
+
     const loadPromise = new Promise<string>((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       
       img.onload = () => {
-        this.cache.set(url, url);
+        this.cache.set(url, {
+          url,
+          wsrvUrl,
+          timestamp: Date.now()
+        });
         this.loadingPromises.delete(url);
         this.preloadQueue.delete(url);
         
@@ -42,7 +66,7 @@ class ArtworkCacheService {
           this.evictOldestEntries();
         }
         
-        resolve(url);
+        resolve(wsrvUrl);
       };
       
       img.onerror = () => {
@@ -52,14 +76,14 @@ class ArtworkCacheService {
         resolve('');
       };
       
-      img.src = url;
+      img.src = wsrvUrl;
     });
 
     this.loadingPromises.set(url, loadPromise);
     return loadPromise;
   }
 
-  async preloadMultiple(urls: string[], priority: number = 0): Promise<void> {
+  async preloadMultiple(urls: string[], priority: number = 0, width: number = 400): Promise<void> {
     const validUrls = urls.filter(url => url && !this.cache.has(url) && !this.failedUrls.has(url));
     
     validUrls.forEach(url => {
@@ -71,11 +95,11 @@ class ArtworkCacheService {
     });
 
     if (!this.isPreloading) {
-      this.processQueue();
+      this.processQueue(width);
     }
   }
 
-  private async processQueue(): Promise<void> {
+  private async processQueue(width: number = 400): Promise<void> {
     if (this.isPreloading || this.preloadQueue.size === 0) {
       return;
     }
@@ -90,7 +114,7 @@ class ArtworkCacheService {
     while (sortedQueue.length > 0) {
       const batch = sortedQueue.splice(0, batchSize);
       await Promise.allSettled(
-        batch.map(item => this.preloadArtwork(item.url, item.priority))
+        batch.map(item => this.preloadArtwork(item.url, item.priority, width))
       );
       
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -99,7 +123,7 @@ class ArtworkCacheService {
     this.isPreloading = false;
 
     if (this.preloadQueue.size > 0) {
-      this.processQueue();
+      this.processQueue(width);
     }
   }
 
@@ -144,7 +168,15 @@ class ArtworkCacheService {
   }
 
   getCachedUrl(url: string): string | undefined {
-    return this.cache.get(url);
+    const cached = this.cache.get(url);
+    return cached ? cached.wsrvUrl : undefined;
+  }
+
+  getWsrvUrl(url: string): string | undefined {
+    if (this.cache.has(url)) {
+      return this.cache.get(url)!.wsrvUrl;
+    }
+    return this.generateWsrvUrl(url);
   }
 
   clearCache(): void {

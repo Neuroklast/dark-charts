@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Slider } from '@/components/ui/slider';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { VotingAreaSkeleton } from '@/components/skeletons';
 
 interface VotingAreaProps {
   allTracks: Track[];
@@ -49,6 +50,14 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
   const [creditsRemaining, setCreditsRemaining] = useKV<number>('voting-credits', MAX_CREDITS);
   const [tempVoteValues, setTempVoteValues] = useState<Record<string, number>>({});
   const [nextPublishDate] = useState<Date>(getNextMonday());
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   const totalCreditsSpent = useMemo(() => {
     if (!userVotes) return 0;
@@ -60,6 +69,10 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
   useEffect(() => {
     setCreditsRemaining(MAX_CREDITS - totalCreditsSpent);
   }, [totalCreditsSpent, setCreditsRemaining]);
+
+  if (isLoading) {
+    return <VotingAreaSkeleton />;
+  }
 
   const allGenres = useMemo(() => {
     const genreSet = new Set<Genre>();
