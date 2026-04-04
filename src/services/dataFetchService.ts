@@ -2,34 +2,27 @@ import { Track, OdesliData } from '@/types';
 
 export interface TrackEnrichmentData {
   artworkHighRes?: string;
-export interface IData
-  fetchArtwork(track: Trac
- 
+  previewUrl?: string;
+  odesliData?: OdesliData;
+}
 
-  private cache = new Map<string, Tr
+class DataFetchService {
+  private cache = new Map<string, TrackEnrichmentData>();
+  private pendingRequests = new Map<string, Promise<TrackEnrichmentData>>();
 
+  async enrichTrack(track: Track): Promise<TrackEnrichmentData> {
     const cacheKey = `${track.id}-enrichment`;
+    
     if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey)!;
     }
- 
+
+    if (this.pendingRequests.has(cacheKey)) {
+      return this.pendingRequests.get(cacheKey)!;
+    }
 
     const promise = this.performEnrichment(track);
-
-      const result = await promise;
-
-      this.pendingRequests.delete(cacheKey);
-  }
-  pr
-
-      this.fetchArtwork(track),
-     
-
-      enrichmentData.artworkHighRes = artwork
-
-     
-
-      enrichmentData.odesliData = odesliData.value
-
+    this.pendingRequests.set(cacheKey, promise);
 
     try {
       const result = await promise;
@@ -66,7 +59,7 @@ export interface IData
 
   async fetchArtwork(track: Track): Promise<string | undefined> {
     if (track.artworkHighRes) {
-
+      return track.artworkHighRes;
     }
 
     if (track.albumArt) {
@@ -74,7 +67,7 @@ export interface IData
     }
 
     return undefined;
-
+  }
 
   async fetchPreviewUrl(track: Track): Promise<string | undefined> {
     if (track.previewUrl) {
@@ -82,7 +75,7 @@ export interface IData
     }
 
     return undefined;
-
+  }
 
   async fetchStreamingLinks(track: Track): Promise<OdesliData | undefined> {
     if (track.odesliData) {
@@ -90,11 +83,11 @@ export interface IData
     }
 
     return undefined;
+  }
 
-
-
+  clearCache(): void {
     this.cache.clear();
-
+  }
 
   getCacheSize(): number {
     return this.cache.size;

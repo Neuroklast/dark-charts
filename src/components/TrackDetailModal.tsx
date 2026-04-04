@@ -236,43 +236,39 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
 
                       {onVote && (
                         <div className="flex items-center gap-3">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  onClick={() => onVote(track.id, 'up')}
-                                  variant={userVote === 'up' ? 'default' : 'outline'}
-                                  size="lg"
-                                  className="flex-1 font-ui uppercase tracking-wider"
-                                >
-                                  <CaretUp size={20} weight="bold" className="mr-2" />
-                                  Vote Up
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="font-ui text-xs">Increase this track's chart position</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={() => onVote(track.id, 'up')}
+                                variant={userVote === 'up' ? 'default' : 'outline'}
+                                size="lg"
+                                className="flex-1 font-ui uppercase tracking-wider"
+                              >
+                                <CaretUp size={20} weight="bold" className="mr-2" />
+                                Vote Up
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="font-ui text-xs">Increase this track's chart position</p>
+                            </TooltipContent>
+                          </Tooltip>
                           
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  onClick={() => onVote(track.id, 'down')}
-                                  variant={userVote === 'down' ? 'destructive' : 'outline'}
-                                  size="lg"
-                                  className="flex-1 font-ui uppercase tracking-wider"
-                                >
-                                  <CaretDown size={20} weight="bold" className="mr-2" />
-                                  Vote Down
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="font-ui text-xs">Decrease this track's chart position</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={() => onVote(track.id, 'down')}
+                                variant={userVote === 'down' ? 'destructive' : 'outline'}
+                                size="lg"
+                                className="flex-1 font-ui uppercase tracking-wider"
+                              >
+                                <CaretDown size={20} weight="bold" className="mr-2" />
+                                Vote Down
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="font-ui text-xs">Decrease this track's chart position</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       )}
 
@@ -294,16 +290,14 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                           <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground">
                             Current Chart Position
                           </div>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info size={14} className="text-muted-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="font-ui text-xs">Position in the current chart view</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info size={14} className="text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="font-ui text-xs">Position in the current chart view</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <div className="text-6xl font-display text-primary mb-4 data-font">
                           #{track.rank}
@@ -316,16 +310,14 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                             <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground">
                               All Chart Positions
                             </div>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info size={14} className="text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <p className="font-ui text-xs">Click to navigate to any chart where this track appears</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info size={14} className="text-muted-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p className="font-ui text-xs">Click to navigate to any chart where this track appears</p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                           <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto scrollbar-hide">
                             {allChartPositions.map((position, idx) => (

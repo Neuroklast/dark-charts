@@ -26,7 +26,7 @@ export function useTrackData(track: Track | null): UseTrackDataResult {
     setIsLoadingStreamingLinks(true);
 
     try {
-      const data = await dataFetchService.enrichTrackData(trackToEnrich);
+      const data = await dataFetchService.enrichTrack(trackToEnrich);
       setEnrichmentData(data);
 
       const enriched: Track = {
