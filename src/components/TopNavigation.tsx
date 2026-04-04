@@ -87,59 +87,61 @@ export function TopNavigation({ currentView, onNavigate }: TopNavigationProps) {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="mx-auto max-w-5xl px-4">
-        <div className="flex h-16 items-center justify-between gap-4">
-          <button
-            onClick={() => onNavigate('home')}
-            className="flex items-center gap-3 focus-visible:ring-2 focus-visible:ring-primary outline-none group"
-            aria-label="Dark Charts - Home"
-          >
-            <div className="h-9 w-9 bg-primary rounded-lg flex items-center justify-center text-primary-foreground transition-transform group-hover:scale-105">
-              <VinylRecord size={24} weight="fill" />
+      <div className="w-full px-4 md:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex h-16 items-center justify-between gap-4">
+            <button
+              onClick={() => onNavigate('home')}
+              className="flex items-center gap-3 focus-visible:ring-2 focus-visible:ring-primary outline-none group"
+              aria-label="Dark Charts - Home"
+            >
+              <div className="h-9 w-9 bg-primary flex items-center justify-center text-primary-foreground transition-transform group-hover:scale-105">
+                <VinylRecord size={24} weight="fill" />
+              </div>
+              <span className="hidden sm:inline font-display text-lg uppercase tracking-wider font-bold">
+                Dark Charts
+              </span>
+            </button>
+
+            <nav className="hidden md:flex items-center gap-1" aria-label="Primary navigation">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentView === item.view;
+                return (
+                  <button
+                    key={item.view}
+                    onClick={() => onNavigate(item.view)}
+                    className={`flex items-center gap-2 px-3 py-2 font-ui text-[10px] lg:text-xs uppercase tracking-wider font-semibold transition-all border-b-2
+                      ${isActive 
+                        ? 'text-primary border-primary' 
+                        : 'text-muted-foreground hover:text-foreground border-transparent hover:border-border'}`}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <Icon weight="bold" className="w-4 h-4" />
+                    <span className="hidden lg:inline">{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onNavigate('profile' as ViewType)}
+                className={`p-2 border transition-all focus-visible:ring-2 focus-visible:ring-primary outline-none
+                  ${currentView === 'profile' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-accent'}`}
+                aria-label="Profile"
+              >
+                <Users size={20} weight="bold" />
+              </button>
+
+              <button
+                className="md:hidden p-2 text-foreground hover:bg-accent transition-colors"
+                onClick={() => setMobileOpen(!mobileOpen)}
+                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              >
+                {mobileOpen ? <X size={24} weight="bold" /> : <List size={24} weight="bold" />}
+              </button>
             </div>
-            <span className="hidden sm:inline font-display text-lg uppercase tracking-wider font-bold">
-              Dark Charts
-            </span>
-          </button>
-
-          <nav className="hidden md:flex items-center gap-1" aria-label="Primary navigation">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentView === item.view;
-              return (
-                <button
-                  key={item.view}
-                  onClick={() => onNavigate(item.view)}
-                  className={`flex items-center gap-2 px-3 py-2 font-ui text-[10px] lg:text-xs uppercase tracking-wider font-semibold transition-all border-b-2
-                    ${isActive 
-                      ? 'text-primary border-primary' 
-                      : 'text-muted-foreground hover:text-foreground border-transparent hover:border-border'}`}
-                  aria-current={isActive ? 'page' : undefined}
-                >
-                  <Icon weight="bold" className="w-4 h-4" />
-                  <span className="hidden lg:inline">{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onNavigate('profile' as ViewType)}
-              className={`p-2 rounded-full border transition-all focus-visible:ring-2 focus-visible:ring-primary outline-none
-                ${currentView === 'profile' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-accent'}`}
-              aria-label="Profile"
-            >
-              <Users size={20} weight="bold" />
-            </button>
-
-            <button
-              className="md:hidden p-2 text-foreground hover:bg-accent rounded-md transition-colors"
-              onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label={mobileOpen ? "Close menu" : "Open menu"}
-            >
-              {mobileOpen ? <X size={24} weight="bold" /> : <List size={24} weight="bold" />}
-            </button>
           </div>
         </div>
       </div>
