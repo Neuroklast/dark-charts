@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Trash, Pencil, ArrowsClockwise, MusicNote, SpotifyLogo, Check, X, Warning, MagnifyingGlass } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -234,6 +234,9 @@ export function AdminArtistManagement() {
                 <DialogTitle className="display-font text-xl uppercase">
                   {editingArtist ? t('admin.editArtist') : t('admin.addArtist')}
                 </DialogTitle>
+                <DialogDescription>
+                  {editingArtist ? 'Update artist information and settings.' : 'Add a new artist to the charts database.'}
+                </DialogDescription>
               </DialogHeader>
               <ArtistForm
                 artist={editingArtist}
@@ -362,6 +365,9 @@ export function AdminArtistManagement() {
               <DialogTitle className="display-font text-xl uppercase">
                 {t('admin.releasesFor')}: {selectedArtist.name}
               </DialogTitle>
+              <DialogDescription>
+                View and manage all releases for this artist.
+              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4">
               {releases.map((release) => (

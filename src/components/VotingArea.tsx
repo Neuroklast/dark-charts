@@ -53,12 +53,13 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
   const [nextPublishDate] = useState<Date>(getNextMonday());
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, []);
+  const allGenres = useMemo(() => {
+    const genreSet = new Set<Genre>();
+    allTracks.forEach(track => {
+      track.genres.forEach(genre => genreSet.add(genre));
+    });
+    return Array.from(genreSet).sort();
+  }, [allTracks]);
 
   const totalCreditsSpent = useMemo(() => {
     if (!userVotes) return 0;
@@ -68,20 +69,19 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
   }, [userVotes]);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     setCreditsRemaining(MAX_CREDITS - totalCreditsSpent);
   }, [totalCreditsSpent, setCreditsRemaining]);
 
   if (isLoading) {
     return <VotingAreaSkeleton />;
   }
-
-  const allGenres = useMemo(() => {
-    const genreSet = new Set<Genre>();
-    allTracks.forEach(track => {
-      track.genres.forEach(genre => genreSet.add(genre));
-    });
-    return Array.from(genreSet).sort();
-  }, [allTracks]);
 
   const filteredTracks = useMemo(() => {
     let filtered = allTracks;

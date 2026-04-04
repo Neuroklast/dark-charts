@@ -1,7 +1,7 @@
-export interface RetryOp
+export interface RetryOptions {
   maxAttempts?: number;
+  initialDelayMs?: number;
   maxDelayMs?: number;
-  shouldRetry?: (error
   backoffMultiplier?: number;
   shouldRetry?: (error: unknown, attempt: number) => boolean;
   onRetry?: (error: unknown, attempt: number, delayMs: number) => void;
@@ -14,21 +14,12 @@ interface CircuitBreakerOptions {
   halfOpenRetries?: number;
 }
 
-  constructor(message: string, public readonly origi
-
-}
 export class NonRetryableError extends Error {
+  constructor(message: string, public readonly originalError?: unknown) {
     super(message);
+    this.name = 'NonRetryableError';
   }
-
- 
-
-    maxAttempts = 3,
-    maxDelayMs = 10000,
-    shouldRetry = (
-    signal
-
- 
+}
 
 export async function retryWithBackoff<T>(
   operation: () => Promise<T>,
@@ -58,75 +49,73 @@ export async function retryWithBackoff<T>(
       
       if (error instanceof NonRetryableError) {
         throw error;
-       
+      }
 
       if (attempt === maxAttempts) {
+        break;
+      }
+
+      if (!shouldRetry(error, attempt)) {
         throw error;
       }
 
-  throw lastError;
+      const delayMs = Math.min(
+        initialDelayMs * Math.pow(backoffMultiplier, attempt - 1),
+        maxDelayMs
+      );
 
-  priva
+      if (onRetry) {
+        onRetry(error, attempt, delayMs);
+      }
 
-
-    this.options = {
-      resetTimeout
-      ..
-
-  async execute<T>(o
-      if (thi
-        this.successfulHalfOpenCalls = 0;
-        throw new Error('Circuit 
+      await new Promise(resolve => setTimeout(resolve, delayMs));
     }
-    try {
-      t
-
-      throw error;
-  }
-  p
-
-        this.reset
- 
-
-
-    this.failureCount++;
-
-      this.state = 'open';
   }
 
-    return Date.now() - this.lastFailureTime >= (this.option
-
-    this.state = 'closed';
-    this.successfulHalfOpenC
-  }
-  getState(): Ci
-  }
-  g
-
-
-  private circuitBreakers = new 
-  getOrCreateCircuitBreaker(key: strin
-      this.circuitBreakers.set(ke
-    return this.circuitBreakers.get(key)!
-
-    key: string,
-    opt
-    c
-
-    );
-
-    this.circuitBreaker
-
-    const states = ne
-      states.set(key, b
-    return states;
+  throw lastError;
 }
-exp
 
-  key: string,
-): T {
-    return globalRecoveryManager.exec
-      if (this.successfulHalfOpenCalls >= (this.options.halfOpenRetries || 1)) {
+type CircuitState = 'closed' | 'open' | 'half-open';
+
+export class CircuitBreaker {
+  private state: CircuitState = 'closed';
+  private failureCount = 0;
+  private successfulHalfOpenCalls = 0;
+  private lastFailureTime: number | null = null;
+  private options: Required<CircuitBreakerOptions>;
+
+  constructor(options: CircuitBreakerOptions = {}) {
+    this.options = {
+      failureThreshold: options.failureThreshold || 5,
+      resetTimeoutMs: options.resetTimeoutMs || 60000,
+      halfOpenRetries: options.halfOpenRetries || 1
+    };
+  }
+
+  async execute<T>(operation: () => Promise<T>): Promise<T> {
+    if (this.state === 'open') {
+      if (this.shouldAttemptReset()) {
+        this.state = 'half-open';
+        this.successfulHalfOpenCalls = 0;
+      } else {
+        throw new Error('Circuit breaker is OPEN');
+      }
+    }
+
+    try {
+      const result = await operation();
+      this.onSuccess();
+      return result;
+    } catch (error) {
+      this.onFailure();
+      throw error;
+    }
+  }
+
+  private onSuccess(): void {
+    if (this.state === 'half-open') {
+      this.successfulHalfOpenCalls++;
+      if (this.successfulHalfOpenCalls >= this.options.halfOpenRetries) {
         this.reset();
       }
     } else {
@@ -138,14 +127,14 @@ exp
     this.failureCount++;
     this.lastFailureTime = Date.now();
 
-    if (this.failureCount >= (this.options.failureThreshold || 5)) {
+    if (this.failureCount >= this.options.failureThreshold) {
       this.state = 'open';
     }
   }
 
   private shouldAttemptReset(): boolean {
     if (!this.lastFailureTime) return false;
-    return Date.now() - this.lastFailureTime >= (this.options.resetTimeoutMs || 60000);
+    return Date.now() - this.lastFailureTime >= this.options.resetTimeoutMs;
   }
 
   private reset(): void {
@@ -282,181 +271,6 @@ export async function batchWithRecovery<T, R>(
 
     const batchResults = await Promise.all(batchPromises);
     results.push(...batchResults.filter((r): r is R => r !== null));
-  }
-
-  return results;
-}
-
-interface CacheOptions {
-  ttlMs?: number;
-  onStale?: (key: string) => void;
-}
-
-export class ResilienceCache<T> {
-  private cache = new Map<string, { value: T; timestamp: number }>();
-  
-  constructor(private options: CacheOptions = {}) {
-    this.options = {
-      ttlMs: 300000,
-      ...options
-    };
-  }
-
-  set(key: string, value: T): void {
-    this.cache.set(key, {
-      value,
-      timestamp: Date.now()
-    });
-  }
-
-  get(key: string): T | undefined {
-    const entry = this.cache.get(key);
-    if (!entry) return undefined;
-
-    const age = Date.now() - entry.timestamp;
-    if (age > (this.options.ttlMs || 300000)) {
-      if (this.options.onStale) {
-        this.options.onStale(key);
-      }
-      this.cache.delete(key);
-      return undefined;
-    }
-
-    return entry.value;
-  }
-
-  has(key: string): boolean {
-    return this.get(key) !== undefined;
-  }
-
-  delete(key: string): void {
-    this.cache.delete(key);
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-
-  getStale(key: string): T | undefined {
-    const entry = this.cache.get(key);
-    return entry?.value;
-  }
-}
-
-export async function staleWhileRevalidate<T>(
-  key: string,
-  fetchFn: () => Promise<T>,
-  cache: ResilienceCache<T>,
-  options: {
-    returnStaleOnError?: boolean;
-    onRevalidate?: (value: T) => void;
-  } = {}
-): Promise<T> {
-  const cached = cache.get(key);
-  
-  if (cached) {
-    fetchFn()
-      .then(fresh => {
-        cache.set(key, fresh);
-        if (options.onRevalidate) {
-          options.onRevalidate(fresh);
-        }
-      })
-      .catch(error => {
-        console.error('Background revalidation failed:', error);
-      });
-    
-    return cached;
-  }
-
-  try {
-    const fresh = await fetchFn();
-    cache.set(key, fresh);
-    return fresh;
-  } catch (error) {
-    if (options.returnStaleOnError) {
-      const stale = cache.getStale(key);
-      if (stale !== undefined) {
-        return stale;
-      }
-    }
-    throw error;
-  }
-}
-      key,
-      () => fn(...args),
-      options
-    );
-  }) as T;
-}
-
-export function createFailsafe<T>(
-  operation: () => Promise<T>,
-  fallback: T,
-  options?: {
-    timeout?: number;
-    onError?: (error: unknown) => void;
-  }
-): Promise<T> {
-  return new Promise(async (resolve) => {
-    const { timeout = 5000, onError } = options || {};
-    
-    const timeoutId = setTimeout(() => {
-      if (onError) {
-        onError(new Error('Operation timeout'));
-      }
-      resolve(fallback);
-    }, timeout);
-
-    try {
-      const result = await operation();
-      clearTimeout(timeoutId);
-      resolve(result);
-    } catch (error) {
-      clearTimeout(timeoutId);
-      if (onError) {
-        onError(error);
-      }
-      resolve(fallback);
-    }
-  });
-}
-
-export async function batchWithRecovery<T, R>(
-  items: T[],
-  operation: (item: T) => Promise<R>,
-  options: {
-    batchSize?: number;
-    continueOnError?: boolean;
-    onItemError?: (item: T, error: unknown) => void;
-  } = {}
-): Promise<R[]> {
-  const {
-    batchSize = 5,
-    continueOnError = true,
-    onItemError
-  } = options;
-
-  const results: R[] = [];
-  
-  for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize);
-    const batchPromises = batch.map(async (item) => {
-      try {
-        return await operation(item);
-      } catch (error) {
-        if (onItemError) {
-          onItemError(item, error);
-        }
-        if (!continueOnError) {
-          throw error;
-        }
-        return null;
-      }
-    });
-
-    const batchResults = await Promise.all(batchPromises);
-    results.push(...batchResults.filter((r: R | null): r is R => r !== null));
   }
 
   return results;
