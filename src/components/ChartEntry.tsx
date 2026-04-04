@@ -1,9 +1,10 @@
 import { Track } from '@/types';
-import { CaretUp, CaretDown, TrendUp } from '@phosphor-icons/react';
+import { CaretUp, CaretDown, TrendUp, TrendDown, ArrowUp, ArrowDown, Minus, PlusCircle } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
 import { AlbumArtwork } from './AlbumArtwork';
 import { SpotifyEmbed } from './SpotifyEmbed';
 import { motion } from 'framer-motion';
+import { Progress } from '@/components/ui/progress';
 
 interface ChartEntryProps {
   track: Track;
@@ -15,11 +16,29 @@ interface ChartEntryProps {
 export function ChartEntry({ track, index, onClick, animate = false }: ChartEntryProps) {
   const movementColor = track.movement && track.movement > 0 ? 'text-accent' : track.movement && track.movement < 0 ? 'text-primary' : 'text-muted-foreground';
   const glowColor = track.rank === 1 ? 'primary' : track.rank <= 3 ? 'accent' : 'primary';
+  const communityPower = track.community_power ?? 0;
+  const trendDirection = track.trend_direction;
+
+  const getTrendIcon = () => {
+    if (!trendDirection || trendDirection === 'stable') return <Minus className="w-4 h-4" />;
+    if (trendDirection === 'new') return <PlusCircle weight="fill" className="w-4 h-4 text-accent" />;
+    if (trendDirection === 'up') return <ArrowUp weight="bold" className="w-4 h-4 text-accent" />;
+    return <ArrowDown weight="bold" className="w-4 h-4 text-primary" />;
+  };
   
   return (
-    <div
+    <li
       className="cyber-card flex flex-col gap-3 p-4 border-b group overflow-hidden cursor-pointer"
       onClick={() => onClick?.(track)}
+      role="button"
+      tabIndex={0}
+      aria-label={`${track.title} by ${track.artist}, rank ${track.rank}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.(track);
+        }
+      }}
     >
       <div className="cyber-scanline" />
       
@@ -27,7 +46,12 @@ export function ChartEntry({ track, index, onClick, animate = false }: ChartEntr
       
       <div className="flex items-center gap-4 relative z-10">
         <div className="flex items-center gap-3 min-w-[100px]">
-          <div className="relative">
+          <div className="relative flex items-center gap-2">
+            {trendDirection && (
+              <div className={`${trendDirection === 'up' ? 'text-accent' : trendDirection === 'down' ? 'text-primary' : trendDirection === 'new' ? 'text-accent' : 'text-muted-foreground'}`} aria-label={`Trend: ${trendDirection}`}>
+                {getTrendIcon()}
+              </div>
+            )}
             {animate ? (
               <motion.div 
                 key={`rank-${track.id}-${track.rank}`}
@@ -74,6 +98,15 @@ export function ChartEntry({ track, index, onClick, animate = false }: ChartEntr
           <div className="data-font text-base text-muted-foreground truncate mt-1">
             {track.artist}
           </div>
+          {communityPower > 0 && (
+            <div className="mt-2 space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-ui text-[9px] uppercase tracking-[0.15em] text-muted-foreground">Community Power</span>
+                <span className="data-font text-xs font-bold text-accent">{communityPower}%</span>
+              </div>
+              <Progress value={communityPower} className="h-1.5 bg-secondary" aria-label={`Community power: ${communityPower}%`} />
+            </div>
+          )}
           <div className="flex flex-wrap gap-1.5 mt-2">
             {track.genres.slice(0, 3).map((genre, idx) => (
               <Badge 
@@ -113,6 +146,6 @@ export function ChartEntry({ track, index, onClick, animate = false }: ChartEntr
           title={track.title}
         />
       </div>
-    </div>
+    </li>
   );
 }

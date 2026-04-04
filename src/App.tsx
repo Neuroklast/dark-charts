@@ -530,6 +530,12 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden pb-24">
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-20 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:font-ui focus:text-sm focus:uppercase focus:tracking-wider focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        Skip to main content
+      </a>
       {currentView === 'oauth-callback' ? (
         <ErrorBoundary level="component">
           <OAuthCallback />
@@ -581,7 +587,7 @@ function AppContent() {
               </div>
             </header>
 
-            <main className="max-w-[1800px] mx-auto px-4 md:px-8 py-8">
+            <main id="main-content" className="max-w-[1800px] mx-auto px-4 md:px-8 py-8">
               <ErrorBoundary level="component">
                 {currentView === 'profile' && <ProfileView />}
                 {currentView === 'about' && <AboutView />}

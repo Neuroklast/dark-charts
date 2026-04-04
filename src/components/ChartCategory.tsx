@@ -1,7 +1,7 @@
 import { Track } from '@/types';
 import { AlbumArtwork } from './AlbumArtwork';
 import { Badge } from '@/components/ui/badge';
-import { CaretUp, CaretDown, TrendUp } from '@phosphor-icons/react';
+import { CaretUp, CaretDown, TrendUp, ArrowUp, ArrowDown, Minus, PlusCircle } from '@phosphor-icons/react';
 import { ChartCategorySkeleton } from './skeletons';
 
 interface ChartCategoryProps {
@@ -18,28 +18,50 @@ export function ChartCategory({ title, tracks, isLoading, onTrackClick }: ChartC
     return <ChartCategorySkeleton title={title} />;
   }
 
+  const getTrendIcon = (trendDirection?: 'up' | 'down' | 'stable' | 'new') => {
+    if (!trendDirection || trendDirection === 'stable') return <Minus className="w-3 h-3" />;
+    if (trendDirection === 'new') return <PlusCircle weight="fill" className="w-3 h-3 text-accent" />;
+    if (trendDirection === 'up') return <ArrowUp weight="bold" className="w-3 h-3 text-accent" />;
+    return <ArrowDown weight="bold" className="w-3 h-3 text-primary" />;
+  };
+
   return (
-    <div className="cyber-card overflow-hidden relative">
+    <section className="cyber-card overflow-hidden relative" aria-labelledby={`chart-title-${title.replace(/\s+/g, '-')}`}>
       <div className="cyber-scanline" />
       <div className="p-4 border-b border-border relative z-10">
-        <h2 className="cyber-hover-chromatic display-font text-xl uppercase text-foreground tracking-tight font-semibold">{title}</h2>
+        <h2 id={`chart-title-${title.replace(/\s+/g, '-')}`} className="cyber-hover-chromatic display-font text-xl uppercase text-foreground tracking-tight font-semibold">{title}</h2>
       </div>
-      <div className="relative z-10 space-y-2 p-4">
+      <ul className="relative z-10 space-y-2 p-4" role="list">
         {topThree.map((track, index) => {
           const movementColor = track.movement && track.movement > 0 ? 'text-accent' : track.movement && track.movement < 0 ? 'text-primary' : 'text-muted-foreground';
           const glowColor = track.rank === 1 ? 'primary' : track.rank <= 3 ? 'accent' : 'primary';
+          const trendDirection = track.trend_direction;
           
           return (
-            <div
+            <li
               key={track.id}
-              className="cyber-card flex items-center gap-3 p-3 cursor-pointer group hover:border-primary/50 transition-all"
+              className="cyber-card flex items-center gap-3 p-3 cursor-pointer group hover:border-primary/50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               onClick={() => onTrackClick?.(track)}
+              role="button"
+              tabIndex={0}
+              aria-label={`${track.title} by ${track.artist}, rank ${track.rank}`}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onTrackClick?.(track);
+                }
+              }}
             >
               <div className="cyber-scanline opacity-50" />
               
               <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary opacity-0 group-hover:opacity-100 instant-transition" />
               
               <div className="flex items-center gap-2 min-w-[60px] relative z-10">
+                {trendDirection && (
+                  <div className={`${trendDirection === 'up' ? 'text-accent' : trendDirection === 'down' ? 'text-primary' : trendDirection === 'new' ? 'text-accent' : 'text-muted-foreground'}`} aria-label={`Trend: ${trendDirection}`}>
+                    {getTrendIcon(trendDirection)}
+                  </div>
+                )}
                 <div className={`display-font text-3xl leading-none font-semibold snap-transition ${track.rank === 1 ? 'text-primary' : track.rank <= 3 ? 'text-accent' : 'text-foreground/80'}`}>
                   {String(track.rank).padStart(2, '0')}
                 </div>
@@ -102,10 +124,10 @@ export function ChartCategory({ title, tracks, isLoading, onTrackClick }: ChartC
                   <span className="data-font text-sm font-bold text-accent">{track.votes || 0}</span>
                 </div>
               </div>
-            </div>
+            </li>
           );
         })}
-      </div>
-    </div>
+      </ul>
+    </section>
   );
 }

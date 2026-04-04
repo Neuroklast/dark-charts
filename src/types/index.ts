@@ -44,6 +44,8 @@ export interface Track {
   isrc?: string;
   artworkHighRes?: string;
   odesliData?: OdesliData;
+  community_power?: number;
+  trend_direction?: 'up' | 'down' | 'stable' | 'new';
 }
 
 export interface OdesliData {
