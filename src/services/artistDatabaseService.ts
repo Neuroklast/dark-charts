@@ -1,138 +1,123 @@
 import { toast } from 'sonner';
 
-  members: string;
-  label: string
+export interface Artist {
+  name: string;
   members: string;
   country: string;
   label: string;
   spotifyId: string;
   verified?: boolean;
   latestRelease?: {
-}
+    name: string;
     releaseDate: string;
     spotifyUrl: string;
     popularity: number;
-  al
+  };
 }
 
-const SPOTIFY_CLIENT_SECRET = '
-let accessTok
+const SPOTIFY_CLIENT_ID = '4c8f5e4f0e4e4e4e4e4e4e4e4e4e4e4e';
+const SPOTIFY_CLIENT_SECRET = '4c8f5e4f0e4e4e4e4e4e4e4e4e4e4e4e';
+let accessToken: string | null = null;
+let tokenExpiry: number = 0;
 
-  if (accessToken && Date.now(
+async function getSpotifyAccessToken(): Promise<string> {
+  if (accessToken && Date.now() < tokenExpiry) {
+    return accessToken;
   }
+
   try {
+    const response = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
-        'Content-Type': 'appli
-    
-    });
-    if (!response.ok) {
-    }
-    const data = awa
-    
- 
-
-}
-export async function verifySpotifyArtistId(artistId: st
-
       headers: {
-      }
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`)
+      },
+      body: 'grant_type=client_credentials'
+    });
 
-  } catch (error) {
-    return false;
-}
-exp
-
-      `
-        headers: {
-        }
-    );
     if (!response.ok) {
+      throw new Error('Failed to get Spotify access token');
     }
-    cons
-      return data.artists.items[0].id;
 
+    const data = await response.json();
+    accessToken = data.access_token;
+    tokenExpiry = Date.now() + (data.expires_in * 1000);
+    return accessToken;
+  } catch (error) {
+    console.error('Error getting Spotify access token:', error);
+    throw error;
+  }
+}
+
+export async function verifySpotifyArtistId(artistId: string): Promise<boolean> {
+  try {
+    const token = await getSpotifyAccessToken();
+    const response = await fetch(
+      `https://api.spotify.com/v1/artists/${artistId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+    return response.ok;
+  } catch (error) {
+    console.error('Error verifying Spotify artist ID:', error);
+    return false;
+  }
+}
+
+export async function searchSpotifyArtist(artistName: string): Promise<string> {
+  try {
+    const token = await getSpotifyAccessToken();
+    const response = await fetch(
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to search Spotify artist');
+    }
+
+    const data = await response.json();
+    if (data.artists && data.artists.items && data.artists.items.length > 0) {
+      return data.artists.items[0].id;
+    }
 
     return '';
-}
-expor
-
-      `https://api.spotify.com/v1/artis
-        headers: {
-        }
-    );
-    if (!response.o
-    }
-    const data =
+  } catch (error) {
+    console.error('Error searching Spotify artist:', error);
+    return '';
   }
- 
+}
 
-export async function getArtistLatestAlbum(artistId: string): Promise<any> {
-    con
-      `https://api.spotify.com/v1/artists/${arti
+export async function getArtistDetails(artistId: string): Promise<any> {
+  try {
+    const token = await getSpotifyAccessToken();
+    const response = await fetch(
+      `https://api.spotify.com/v1/artists/${artistId}`,
+      {
         headers: {
+          'Authorization': `Bearer ${token}`
         }
+      }
     );
-    if 
+
+    if (!response.ok) {
+      throw new Error('Failed to get artist details');
     }
 
-      const sortedAlbum
-      );
-    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error getting artist details:', error);
     return null;
-   
- 
-
-  const lines = csvText.trim().split('\n');
-
-    const line = lines[i];
-    
-
-      r
-
-      name: cleanField(matches[0] || ''),
-      cou
-      s
-    };
-
-    }
-
+  }
 }
-
-  const verifiedArtists: Artist[] = [];
-  toast.info(`Verifiziere ${artists.length} Artists...`);
-  for (let i = 0; i < artists.length; 
-    
-
-
-
-      artist.verified = true;
-    } else {
-   
- 
-
-          oldId: artist.spotifyId,
-       
-        artist.spotifyId = correctedId;
-        verifiedArtists.push(arti
-        console.error(`Could not find Spotify ID for ${artist.name}`);
-       
-    }
-    await new Promise(resolve => setTimeout(
-
-
-}
-
-  const rows = artists.
-      if (field.includes(',') || field.includes('"') || f
-     
-
-    return [
-      escape(artist.members),
-      escape(artist
-    ].join(',');
-
-}
-e
 
 export async function getArtistLatestAlbum(artistId: string): Promise<any> {
   try {
@@ -205,9 +190,9 @@ export async function verifyAndCorrectArtists(artists: Artist[]): Promise<{ arti
   for (let i = 0; i < artists.length; i++) {
     const artist = artists[i];
     
-  }
+    if (i % 10 === 0) {
       toast.info(`Fortschritt: ${i}/${artists.length} Artists verifiziert`);
-    t
+    }
 
     const isValid = await verifySpotifyArtistId(artist.spotifyId);
 
@@ -278,7 +263,7 @@ export async function enrichArtistsWithLatestReleases(artists: Artist[]): Promis
       toast.info(`Fortschritt: ${i}/${artists.length} Releases geladen`);
     }
 
-
+    if (!artist.verified || !artist.spotifyId) {
       enrichedArtists.push(artist);
       continue;
     }
@@ -296,23 +281,23 @@ export async function enrichArtistsWithLatestReleases(artists: Artist[]): Promis
         const albumTracksData = await albumTracksResponse.json();
         const firstTrack = albumTracksData.items?.[0];
 
-
+        if (firstTrack) {
           artist.latestRelease = {
             name: firstTrack.name,
             releaseDate: latestAlbum.release_date,
             spotifyUrl: `https://open.spotify.com/track/${firstTrack.id}`,
             popularity: 50
-
+          };
         }
+      }
 
-
-
+      enrichedArtists.push(artist);
       await new Promise(resolve => setTimeout(resolve, 100));
-
+    } catch (error) {
       console.error(`Error enriching artist ${artist.name}:`, error);
       enrichedArtists.push(artist);
     }
-
+  }
 
   toast.success(`${enrichedArtists.filter(a => a.latestRelease).length} Releases geladen`);
 
@@ -322,7 +307,7 @@ export async function enrichArtistsWithLatestReleases(artists: Artist[]): Promis
 class ArtistDatabaseService {
   private artists: Artist[] = [];
 
-
+  async loadCSV(csvText: string): Promise<void> {
     this.artists = await parseCSV(csvText);
     toast.success(`${this.artists.length} Artists aus CSV geladen`);
   }
@@ -352,7 +337,7 @@ class ArtistDatabaseService {
     } catch (error) {
       console.error('Error saving artists to KV:', error);
       toast.error('Fehler beim Speichern der Artists');
-
+    }
   }
 
   async loadFromKV(key: string = 'darkcharts-artists'): Promise<void> {
@@ -362,11 +347,11 @@ class ArtistDatabaseService {
         this.artists = data;
         toast.success(`${this.artists.length} Artists aus Datenbank geladen`);
       }
-
+    } catch (error) {
       console.error('Error loading artists from KV:', error);
       toast.error('Fehler beim Laden der Artists');
     }
-
+  }
 }
 
 export const artistDatabaseService = new ArtistDatabaseService();
