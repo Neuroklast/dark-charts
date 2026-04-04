@@ -1,138 +1,138 @@
 import { toast } from 'sonner';
 
-export interface Artist {
-  name: string;
+  members: string;
+  label: string
   members: string;
   country: string;
   label: string;
   spotifyId: string;
   verified?: boolean;
   latestRelease?: {
-    name: string;
+}
     releaseDate: string;
     spotifyUrl: string;
     popularity: number;
-  };
+  al
 }
 
-export interface SpotifyTrack {
-  id: string;
-  name: string;
-  artists: { name: string }[];
-  album: {
-    name: string;
-    release_date: string;
-    images: { url: string }[];
-  };
-  popularity: number;
-  preview_url: string | null;
-  external_urls: {
-    spotify: string;
-  };
-}
+const SPOTIFY_CLIENT_SECRET = '
+let accessTok
 
-const SPOTIFY_CLIENT_ID = 'your_client_id_here';
-const SPOTIFY_CLIENT_SECRET = 'your_client_secret_here';
-
-let accessToken: string | null = null;
-let tokenExpiry: number = 0;
-
-async function getSpotifyAccessToken(): Promise<string> {
-  if (accessToken && Date.now() < tokenExpiry) {
-    return accessToken;
+  if (accessToken && Date.now(
   }
-
   try {
-    const response = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`)
-      },
-      body: 'grant_type=client_credentials'
+        'Content-Type': 'appli
+    
     });
-
     if (!response.ok) {
-      throw new Error('Failed to get Spotify access token');
     }
+    const data = awa
+    
+ 
 
-    const data = await response.json();
-    accessToken = data.access_token;
-    tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000;
-    return accessToken;
-  } catch (error) {
-    console.error('Error getting Spotify access token:', error);
-    throw error;
-  }
 }
+export async function verifySpotifyArtistId(artistId: st
 
-export async function verifySpotifyArtistId(artistId: string): Promise<boolean> {
-  try {
-    const token = await getSpotifyAccessToken();
-    const response = await fetch(`https://api.spotify.com/v1/artists/${artistId}`, {
       headers: {
-        'Authorization': `Bearer ${token}`
       }
-    });
 
-    return response.ok;
   } catch (error) {
-    console.error(`Error verifying artist ID ${artistId}:`, error);
     return false;
-  }
 }
+exp
 
-export async function searchSpotifyArtist(artistName: string): Promise<string> {
-  try {
-    const token = await getSpotifyAccessToken();
-    const response = await fetch(
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`,
-      {
+      `
         headers: {
-          'Authorization': `Bearer ${token}`
         }
-      }
     );
-
     if (!response.ok) {
-      throw new Error('Spotify search failed');
     }
-
-    const data = await response.json();
-    if (data.artists && data.artists.items && data.artists.items.length > 0) {
+    cons
       return data.artists.items[0].id;
-    }
+
 
     return '';
-  } catch (error) {
-    console.error(`Error searching for artist ${artistName}:`, error);
-    return '';
-  }
 }
+expor
 
-export async function getArtistTopTracks(artistId: string): Promise<SpotifyTrack[]> {
-  try {
-    const token = await getSpotifyAccessToken();
-    const response = await fetch(
-      `https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=DE`,
-      {
+      `https://api.spotify.com/v1/artis
         headers: {
-          'Authorization': `Bearer ${token}`
         }
-      }
     );
+    if (!response.o
+    }
+    const data =
+  }
+ 
 
-    if (!response.ok) {
-      throw new Error('Failed to get artist top tracks');
+export async function getArtistLatestAlbum(artistId: string): Promise<any> {
+    con
+      `https://api.spotify.com/v1/artists/${arti
+        headers: {
+        }
+    );
+    if 
     }
 
-    const data = await response.json();
-    return data.tracks || [];
-  } catch (error) {
-    console.error(`Error getting top tracks for artist ${artistId}:`, error);
-    return [];
-  }
+      const sortedAlbum
+      );
+    }
+    return null;
+   
+ 
+
+  const lines = csvText.trim().split('\n');
+
+    const line = lines[i];
+    
+
+      r
+
+      name: cleanField(matches[0] || ''),
+      cou
+      s
+    };
+
+    }
+
 }
+
+  const verifiedArtists: Artist[] = [];
+  toast.info(`Verifiziere ${artists.length} Artists...`);
+  for (let i = 0; i < artists.length; 
+    
+
+
+
+      artist.verified = true;
+    } else {
+   
+ 
+
+          oldId: artist.spotifyId,
+       
+        artist.spotifyId = correctedId;
+        verifiedArtists.push(arti
+        console.error(`Could not find Spotify ID for ${artist.name}`);
+       
+    }
+    await new Promise(resolve => setTimeout(
+
+
+}
+
+  const rows = artists.
+      if (field.includes(',') || field.includes('"') || f
+     
+
+    return [
+      escape(artist.members),
+      escape(artist
+    ].join(',');
+
+}
+e
 
 export async function getArtistLatestAlbum(artistId: string): Promise<any> {
   try {
@@ -205,9 +205,9 @@ export async function verifyAndCorrectArtists(artists: Artist[]): Promise<{ arti
   for (let i = 0; i < artists.length; i++) {
     const artist = artists[i];
     
-    if (i % 10 === 0) {
+  }
       toast.info(`Fortschritt: ${i}/${artists.length} Artists verifiziert`);
-    }
+    t
 
     const isValid = await verifySpotifyArtistId(artist.spotifyId);
 
@@ -278,14 +278,14 @@ export async function enrichArtistsWithLatestReleases(artists: Artist[]): Promis
       toast.info(`Fortschritt: ${i}/${artists.length} Releases geladen`);
     }
 
-    if (!artist.verified || !artist.spotifyId) {
+
       enrichedArtists.push(artist);
       continue;
     }
 
     try {
       const latestAlbum = await getArtistLatestAlbum(artist.spotifyId);
-      
+
       if (latestAlbum) {
         const albumTracksResponse = await getSpotifyAccessToken().then(token =>
           fetch(`https://api.spotify.com/v1/albums/${latestAlbum.id}/tracks?limit=1`, {
@@ -296,23 +296,23 @@ export async function enrichArtistsWithLatestReleases(artists: Artist[]): Promis
         const albumTracksData = await albumTracksResponse.json();
         const firstTrack = albumTracksData.items?.[0];
 
-        if (firstTrack) {
+
           artist.latestRelease = {
             name: firstTrack.name,
             releaseDate: latestAlbum.release_date,
             spotifyUrl: `https://open.spotify.com/track/${firstTrack.id}`,
             popularity: 50
-          };
-        }
-      }
 
-      enrichedArtists.push(artist);
+        }
+
+
+
       await new Promise(resolve => setTimeout(resolve, 100));
-    } catch (error) {
+
       console.error(`Error enriching artist ${artist.name}:`, error);
       enrichedArtists.push(artist);
     }
-  }
+
 
   toast.success(`${enrichedArtists.filter(a => a.latestRelease).length} Releases geladen`);
 
@@ -322,7 +322,7 @@ export async function enrichArtistsWithLatestReleases(artists: Artist[]): Promis
 class ArtistDatabaseService {
   private artists: Artist[] = [];
 
-  async loadFromCSV(csvText: string): Promise<void> {
+
     this.artists = await parseCSV(csvText);
     toast.success(`${this.artists.length} Artists aus CSV geladen`);
   }
@@ -347,26 +347,26 @@ class ArtistDatabaseService {
 
   async saveToKV(key: string = 'darkcharts-artists'): Promise<void> {
     try {
-      await window.spark.kv.set(key, this.artists);
+      await spark.kv.set(key, this.artists);
       toast.success('Artists in Datenbank gespeichert');
     } catch (error) {
       console.error('Error saving artists to KV:', error);
       toast.error('Fehler beim Speichern der Artists');
-    }
+
   }
 
   async loadFromKV(key: string = 'darkcharts-artists'): Promise<void> {
     try {
-      const data = await window.spark.kv.get<Artist[]>(key);
+      const data = await spark.kv.get<Artist[]>(key);
       if (data) {
         this.artists = data;
         toast.success(`${this.artists.length} Artists aus Datenbank geladen`);
       }
-    } catch (error) {
+
       console.error('Error loading artists from KV:', error);
       toast.error('Fehler beim Laden der Artists');
     }
-  }
+
 }
 
 export const artistDatabaseService = new ArtistDatabaseService();
