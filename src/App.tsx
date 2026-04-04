@@ -31,6 +31,7 @@ import { useUpcomingTrackPreloader, useVisibleTracksPreloader } from '@/hooks/us
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { safeFilter, safeSlice, safeFindIndex, isNullOrUndefined } from '@/lib/safe-utils';
 import { ChartEntrySkeleton } from '@/components/skeletons';
+import { ProfilesDemo } from '@/components/ProfilesDemo';
 
 function AppContent() {
   const dataService = useDataService();
@@ -585,6 +586,7 @@ function AppContent() {
                 {currentView === 'about' && <AboutView />}
                 {currentView === 'custom-charts' && <CustomChartsView />}
                 {currentView === 'admin' && <AdminArtistManagement />}
+                {currentView === 'profiles-demo' && <ProfilesDemo />}
                 {currentView === 'voting' && (
                   <VotingArea 
                     allTracks={[...(fanCharts || []), ...(expertCharts || []), ...(streamingCharts || [])]}

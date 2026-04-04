@@ -14,7 +14,7 @@ export type Genre =
 
 export type ChartType = 'fan' | 'expert' | 'streaming' | 'overall';
 
-export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'history' | 'admin' | 'oauth-callback';
+export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'history' | 'admin' | 'oauth-callback' | 'profiles-demo';
 
 export interface Track {
   id: string;

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, ChartLine, Info, Sliders, List, X, ChartBar, ClockCounterClockwise, Translate } from '@phosphor-icons/react';
+import { User, ChartLine, Info, Sliders, List, X, ChartBar, ClockCounterClockwise, Translate, Users } from '@phosphor-icons/react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ViewType } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -74,6 +74,18 @@ export function Navigation({ currentView, onNavigate }: NavigationProps) {
       >
         <User weight="bold" className="w-5 h-5" />
         {t('nav.profile')}
+      </button>
+
+      <button
+        onClick={() => {
+          onNavigate('profiles-demo');
+          setMobileOpen(false);
+        }}
+        className={`flex items-center gap-3 px-4 py-3 border-b border-border snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold
+          ${currentView === 'profiles-demo' ? 'bg-accent text-accent-foreground' : 'bg-card hover:bg-accent/20'}`}
+      >
+        <Users weight="bold" className="w-5 h-5" />
+        Profiles Demo
       </button>
 
       <button
