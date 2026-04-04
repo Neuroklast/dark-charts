@@ -1,288 +1,301 @@
-# Backend CMS Architecture
+# Backend Architecture - Spotify Release Import System
 
-## Übersicht
+This backend module implements an automated system for importing music releases from Spotify into the Dark Charts database.
 
-Dieses Dokument beschreibt die vollständige Backend-Architektur für das Dark Charts CMS. Die Architektur folgt strikten Schichtenprinzipien mit maximaler Entkopplung, um eine einfache Migration der Datenbank und Infrastruktur in der Zukunft zu ermöglichen.
+## Architecture Overview
 
-## Architektur-Prinzipien
-
-### 1. Strikte Schichtenarchitektur
-
-Die Backend-Architektur ist in drei voneinander getrennte Schichten unterteilt:
+The system follows a strict **three-layer architecture** to ensure maximum decoupling and easy migration:
 
 ```
-┌─────────────────────────────────────┐
-│    Controller Layer (API Routes)    │  ← Validierung & Routing
-├─────────────────────────────────────┤
-│      Service Layer (Business)       │  ← Geschäftslogik
-├─────────────────────────────────────┤
-│   Repository Layer (Data Access)    │  ← Datenzugriff
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│         Service Layer                       │
+│  ├─ ReleaseImportService                   │
+│  └─ ReleaseImportScheduler                 │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│         Repository Layer (Interfaces)       │
+│  ├─ IArtistRepository                      │
+│  ├─ IReleaseRepository                     │
+│  └─ ISpotifyRepository                     │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│         Repository Implementations          │
+│  ├─ SparkKVArtistRepository                │
+│  ├─ SparkKVReleaseRepository               │
+│  └─ SpotifyWebAPIRepository                │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│         Data Layer                          │
+│  ├─ Spark KV Store                         │
+│  └─ Spotify Web API                        │
+└─────────────────────────────────────────────┘
 ```
 
-### 2. Repository Pattern
+## Components
 
-- Die Service-Schicht kommuniziert **niemals** direkt mit der Datenbank
-- Alle Datenzugriffe erfolgen über Interfaces (`IArtistRepository`, `IChartRepository`)
-- Konkrete Implementierungen (z.B. `SparkKVArtistRepository`) können ausgetauscht werden
-- Ermöglicht einfache Migration zu PostgreSQL, MongoDB, MySQL etc.
+### 1. Models (`/backend/models`)
 
-### 3. Infrastruktur-Unabhängigkeit
+**Release.ts**
+- Core domain model for music releases
+- DTOs for creating releases
+- Spotify API response types
 
-- Kernmodelle (`Artist`, `ChartEntry`) sind vollständig unabhängig von spezifischen Datenbankmodellen
-- Services enthalten **reine Geschäftslogik**, keinerlei Infrastruktur-Code
-- DTOs (Data Transfer Objects) für klare Schnittstellen
+### 2. Repositories (`/backend/repositories`)
 
-## Ordnerstruktur
+**Interfaces:**
+- `IArtistRepository` - Artist data access operations
+- `IReleaseRepository` - Release data access operations  
+- `ISpotifyRepository` - Spotify API operations
 
+**Implementations:**
+- `SparkKVReleaseRepository` - Persists releases using Spark KV
+- `SpotifyWebAPIRepository` - Interfaces with Spotify Web API
+  - Implements Client Credentials Flow authentication
+  - Handles rate limiting (100ms delay between requests)
+  - Implements pagination for large result sets
+  - Respects HTTP 429 rate limit responses
+
+### 3. Services (`/backend/services`)
+
+**ReleaseImportService**
+- Core business logic for importing releases
+- Steps:
+  1. Fetches all artists from Artist Repository
+  2. Filters artists with Spotify links
+  3. For each artist, queries Spotify for albums
+  4. Filters releases by date (configurable)
+  5. Checks for duplicates via Release Repository
+  6. Saves new releases to database
+- Returns detailed import results including errors
+
+**ReleaseImportScheduler**
+- Automated cron job scheduler
+- Configurable via environment variable `VITE_RELEASE_IMPORT_CRON`
+- Validates cron expressions (5-field format)
+- Stores last run time and next run time in KV
+- Provides manual trigger capability
+- Runs import every minute to check schedule
+
+## Configuration
+
+### Environment Variables
+
+Add these to your `.env` file:
+
+```bash
+# Spotify API Credentials (Required)
+VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id
+VITE_SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+
+# Cron Schedule (Optional - defaults to disabled)
+# Format: minute hour day-of-month month day-of-week
+# Example: "0 2 * * *" = Daily at 2:00 AM
+# Example: "0 */6 * * *" = Every 6 hours
+# Example: "0 0 * * 0" = Weekly on Sunday at midnight
+VITE_RELEASE_IMPORT_CRON=0 2 * * *
 ```
-src/backend/
-├── models/              # Domänenmodelle (infrastruktur-unabhängig)
-│   ├── Artist.ts        # Artist-Entität mit DTOs
-│   └── ChartEntry.ts    # ChartEntry-Entität mit DTOs
-│
-├── repositories/        # Repository-Pattern Interfaces & Implementierungen
-│   ├── IArtistRepository.ts          # Artist Repository Interface
-│   ├── IChartRepository.ts           # Chart Repository Interface
-│   ├── SparkKVArtistRepository.ts    # Spark KV Implementierung
-│   └── SparkKVChartRepository.ts     # Spark KV Implementierung
-│
-└── services/            # Geschäftslogik (reine Services)
-    ├── ArtistService.ts # Artist-Verwaltung
-    └── ChartService.ts  # Chart-Verwaltung
-```
 
-## Datenmodelle
+### Spotify API Setup
 
-### Artist
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Create a new application
+3. Note your Client ID and Client Secret
+4. Add them to your environment variables
+
+## Usage
+
+### Initializing the Scheduler
 
 ```typescript
-interface Artist {
-  id: string;
-  name: string;
-  bio?: string;
-  country?: string;
-  foundedYear?: number;
-  imageUrl?: string;
-  genres: string[];
-  verified: boolean;
-  socialLinks?: {
-    spotify?: string;
-    bandcamp?: string;
-    youtube?: string;
-    instagram?: string;
-    website?: string;
-  };
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
+import { SparkKVArtistRepository } from '@/backend/repositories/SparkKVArtistRepository';
+import { SparkKVReleaseRepository } from '@/backend/repositories/SparkKVReleaseRepository';
+import { SpotifyWebAPIRepository } from '@/backend/repositories/SpotifyWebAPIRepository';
+import { ReleaseImportService } from '@/backend/services/ReleaseImportService';
+import { ReleaseImportScheduler } from '@/backend/services/ReleaseImportScheduler';
 
-### ChartEntry
-
-```typescript
-interface ChartEntry {
-  id: string;
-  trackId: string;
-  artistId: string;
-  chartType: 'fan' | 'expert' | 'streaming';
-  position: number;
-  previousPosition: number | null;
-  weeksInChart: number;
-  votes: number;
-  score: number;
-  weekNumber: number;
-  year: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
-
-## Repository Layer
-
-### Interface-Definition
-
-Repositories definieren ausschließlich **WAS** gemacht wird, nicht **WIE**:
-
-```typescript
-interface IArtistRepository {
-  findAll(): Promise<Artist[]>;
-  findById(id: string): Promise<Artist | null>;
-  create(dto: CreateArtistDTO): Promise<Artist>;
-  update(id: string, dto: UpdateArtistDTO): Promise<Artist | null>;
-  delete(id: string): Promise<boolean>;
-  // ...weitere Methoden
-}
-```
-
-### Aktuelle Implementierung: Spark KV
-
-Die Repositories nutzen derzeit die Spark KV API für die Datenpersistenz:
-
-```typescript
-class SparkKVArtistRepository implements IArtistRepository {
-  private readonly ARTISTS_KEY = 'cms:artists';
-  private readonly ARTIST_PREFIX = 'cms:artist:';
-
-  async findAll(): Promise<Artist[]> {
-    const artists = await window.spark.kv.get<Artist[]>(this.ARTISTS_KEY);
-    return artists || [];
-  }
-  // ...
-}
-```
-
-### Einfache Migration
-
-Um auf eine PostgreSQL-Datenbank zu migrieren, erstellen Sie einfach:
-
-```typescript
-class PostgresArtistRepository implements IArtistRepository {
-  constructor(private dbClient: PostgresClient) {}
-
-  async findAll(): Promise<Artist[]> {
-    const result = await this.dbClient.query('SELECT * FROM artists');
-    return result.rows;
-  }
-  // ...
-}
-```
-
-Die Services müssen **nicht** geändert werden!
-
-## Service Layer
-
-Services enthalten die reine Geschäftslogik:
-
-- Validierung von Geschäftsregeln
-- Orchestrierung von Repository-Aufrufen
-- Keine direkten Datenbankzugriffe
-- Keine UI-Logik
-
-### Beispiel: ArtistService
-
-```typescript
-class ArtistService {
-  constructor(private artistRepository: IArtistRepository) {}
-
-  async createArtist(dto: CreateArtistDTO): Promise<Artist> {
-    // Geschäftsregel: Name muss eindeutig sein
-    const existing = await this.artistRepository.findByName(dto.name);
-    if (existing) {
-      throw new Error(`Artist "${dto.name}" existiert bereits`);
-    }
-
-    // Validierung
-    this.validateCreateArtistDTO(dto);
-
-    // Repository aufrufen
-    return this.artistRepository.create(dto);
-  }
-}
-```
-
-## Controller Layer (zukünftig)
-
-Die Controller-Schicht wird API-Routen bereitstellen:
-
-```typescript
-// Beispiel für zukünftige Implementierung
-class ArtistController {
-  constructor(private artistService: ArtistService) {}
-
-  async getAllArtists(req: Request, res: Response) {
-    try {
-      const artists = await this.artistService.getAllArtists();
-      res.json({ success: true, data: artists });
-    } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  }
-}
-```
-
-## Verwendung
-
-### 1. Repository instanziieren
-
-```typescript
+// Create repository instances
 const artistRepo = new SparkKVArtistRepository();
-const chartRepo = new SparkKVChartRepository();
+const releaseRepo = new SparkKVReleaseRepository();
+const spotifyRepo = new SpotifyWebAPIRepository();
+
+// Create service instance
+const importService = new ReleaseImportService(
+  artistRepo,
+  releaseRepo,
+  spotifyRepo
+);
+
+// Create and initialize scheduler
+const scheduler = new ReleaseImportScheduler(importService);
+await scheduler.initialize();
 ```
 
-### 2. Service instanziieren
+### Manual Import Trigger
 
 ```typescript
-const artistService = new ArtistService(artistRepo);
-const chartService = new ChartService(chartRepo);
+// Trigger manual import (imports last 3 months)
+const result = await scheduler.manualTrigger();
+
+console.log(`
+  Artists Processed: ${result.totalArtistsProcessed}
+  Releases Imported: ${result.totalReleasesImported}
+  Duplicates Skipped: ${result.skippedDuplicates}
+  Errors: ${result.errors.length}
+`);
 ```
 
-### 3. Service nutzen
+### Custom Import Options
 
 ```typescript
-// Artist erstellen
-const newArtist = await artistService.createArtist({
-  name: 'Eisbrecher',
-  genres: ['Neue Deutsche Härte', 'Industrial Metal'],
-  country: 'Germany',
-  foundedYear: 2003
+const sinceDate = new Date();
+sinceDate.setMonth(sinceDate.getMonth() - 1); // Last month
+
+const result = await importService.importNewReleases({
+  sinceDate: sinceDate,
+  maxReleasesPerArtist: 10
 });
-
-// Charts abrufen
-const currentFanCharts = await chartService.getCurrentWeekChart('fan');
 ```
 
-## Migration-Strategie
+## Data Flow
 
-### Schritt 1: Neue Repository-Implementierung
+### Import Process
 
-Erstellen Sie eine neue Repository-Klasse, die das Interface implementiert:
+1. **Authentication**
+   - Spotify Repository authenticates via Client Credentials
+   - Access token cached in KV with expiration
+   
+2. **Artist Iteration**
+   - Fetches all artists with Spotify links
+   - Extracts Spotify Artist ID from URL or direct ID
+   
+3. **Release Fetching**
+   - Calls `GET /artists/{id}/albums` endpoint
+   - Handles pagination automatically
+   - Filters by `album`, `single`, and `ep` types
+   
+4. **Duplicate Detection**
+   - Checks by artist ID + title + release date
+   - Checks by Spotify ID
+   
+5. **Persistence**
+   - Saves to KV with structured keys
+   - Updates multiple indexes for fast lookups
+
+## Rate Limiting & Error Handling
+
+### Spotify API Rate Limiting
+- 100ms delay between all requests
+- Respects HTTP 429 responses with Retry-After header
+- Continues from last position after rate limit
+
+### Error Recovery
+- Per-artist error isolation
+- Failed artists logged but don't stop import
+- Detailed error reporting in results
+
+## Cron Expression Format
+
+The scheduler uses standard 5-field cron syntax:
+
+```
+┌───────────── minute (0 - 59)
+│ ┌───────────── hour (0 - 23)
+│ │ ┌───────────── day of month (1 - 31)
+│ │ │ ┌───────────── month (1 - 12)
+│ │ │ │ ┌───────────── day of week (0 - 6) (Sunday=0)
+│ │ │ │ │
+* * * * *
+```
+
+### Examples:
+- `0 2 * * *` - Every day at 2:00 AM
+- `0 */6 * * *` - Every 6 hours
+- `30 1 * * 0` - Every Sunday at 1:30 AM
+- `0 0 1 * *` - First day of every month at midnight
+
+## Database Schema
+
+### Release Object Structure
 
 ```typescript
-class PostgresArtistRepository implements IArtistRepository {
-  // Implementierung mit PostgreSQL
+{
+  id: string;                    // Unique release ID
+  artistId: string;              // Reference to artist
+  artistName: string;            // Denormalized for performance
+  title: string;                 // Release title
+  releaseDate: Date;             // Original release date
+  albumType: 'album' | 'single' | 'ep' | 'compilation';
+  totalTracks: number;           // Track count
+  spotifyId?: string;            // Spotify album ID
+  spotifyUrl?: string;           // Spotify album URL
+  artworkUrl?: string;           // Album artwork URL
+  genres: string[];              // Artist genres
+  label?: string;                // Record label
+  createdAt: Date;               // Import timestamp
+  updatedAt: Date;               // Last update
 }
 ```
 
-### Schritt 2: Dependency Injection anpassen
+### KV Storage Keys
 
-Ändern Sie nur die Instanziierung:
+- `backend:releases:all` - Array of all releases
+- `backend:release:id:{id}` - Individual release by ID
+- `backend:release:artist:{artistId}` - Array of release IDs per artist
+- `backend:release:spotify:{spotifyId}` - Release ID by Spotify ID
+- `backend:spotify:access_token` - Cached Spotify token
+- `backend:scheduler:config` - Scheduler configuration
+- `backend:scheduler:last_run` - Last import timestamp
 
-```typescript
-// Alt:
-const artistRepo = new SparkKVArtistRepository();
+## Migration Guide
 
-// Neu:
-const artistRepo = new PostgresArtistRepository(dbConnection);
+To migrate to a different database system:
 
-// Service bleibt unverändert!
-const artistService = new ArtistService(artistRepo);
-```
+1. **Implement new repository classes** that satisfy the interfaces:
+   - `PostgreSQLReleaseRepository implements IReleaseRepository`
+   - Keep the service layer unchanged
 
-### Schritt 3: Fertig!
+2. **Update dependency injection** in initialization code:
+   ```typescript
+   const releaseRepo = new PostgreSQLReleaseRepository(connectionString);
+   const importService = new ReleaseImportService(artistRepo, releaseRepo, spotifyRepo);
+   ```
 
-Die gesamte Geschäftslogik bleibt intakt, keine Änderungen an Services oder UI notwendig.
+3. **No changes needed** to business logic or scheduler
 
-## Best Practices
+## Future Enhancements
 
-1. **Services bleiben rein**: Niemals direkte `window.spark.kv`-Aufrufe in Services
-2. **Interfaces first**: Zuerst Interface definieren, dann implementieren
-3. **DTOs nutzen**: Klare Trennung zwischen Eingabe-Daten und Domänenmodellen
-4. **Validierung in Services**: Geschäftsregeln gehören in die Service-Schicht
-5. **Error Handling**: Services werfen Fehler, Controller fangen sie ab
+- [ ] Batch Spotify API calls (when available)
+- [ ] Webhook support for real-time updates
+- [ ] Release deduplication across artist collaborations
+- [ ] Track-level import for detailed analytics
+- [ ] Artist discovery from release collaborations
+- [ ] Automatic genre tagging from Spotify
+- [ ] Release popularity tracking over time
 
-## Vorteile dieser Architektur
+## Troubleshooting
 
-✅ **Einfache Testbarkeit**: Services können mit Mock-Repositories getestet werden  
-✅ **Maximale Flexibilität**: Datenbank-Technologie ist austauschbar  
-✅ **Klare Verantwortlichkeiten**: Jede Schicht hat eine einzige, klar definierte Aufgabe  
-✅ **Wiederverwendbarkeit**: Services können mit verschiedenen Repository-Implementierungen genutzt werden  
-✅ **Skalierbarkeit**: Einfaches Hinzufügen neuer Features ohne Refactoring
+### No releases being imported
 
-## Nächste Schritte
+Check:
+1. Artists have valid Spotify links in database
+2. Spotify credentials are correct
+3. Date range is appropriate (default: last 3 months)
 
-1. Controller-Layer implementieren (API-Routen)
-2. Authentifizierungs-Service hinzufügen
-3. API-Validierungs-Middleware
-4. PostgreSQL-Repository-Implementierungen erstellen
-5. Unit-Tests für Services schreiben
+### Rate limiting errors
+
+- The system handles this automatically
+- Check logs for excessive `Rate limited by Spotify` warnings
+- Consider reducing frequency of scheduled imports
+
+### Cron not running
+
+- Verify `VITE_RELEASE_IMPORT_CRON` is set
+- Check browser console for initialization messages
+- Confirm scheduler was initialized in app startup
+
+## License
+
+Part of Dark Charts Backend System
