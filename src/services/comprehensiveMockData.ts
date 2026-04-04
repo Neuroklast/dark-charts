@@ -13,7 +13,9 @@ const generateTrackData = (
   fanScore: number,
   expertScore: number,
   streamingScore: number,
-  votes: number
+  votes: number,
+  albumArt?: string,
+  spotifyUri?: string
 ): Track => ({
   id,
   rank,
@@ -26,9 +28,10 @@ const generateTrackData = (
   fanScore,
   expertScore,
   streamingScore,
-  albumArt: `https://picsum.photos/seed/${id}/400/400`,
-  spotifyUri: `spotify:track:${id}`,
+  albumArt: albumArt || `https://i.scdn.co/image/ab67616d0000b273${id}`,
+  spotifyUri: spotifyUri || `spotify:track:${id}`,
   votes,
+  weeksInChart: Math.floor(Math.random() * 20) + 1,
   album,
   releaseDate,
   label,
