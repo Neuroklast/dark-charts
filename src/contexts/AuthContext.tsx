@@ -5,6 +5,7 @@ import { MockAuthService } from '@/services/mockAuthService';
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
+  error: Error | null;
   login: (provider: 'spotify' | 'apple' | 'mock') => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
@@ -13,19 +14,35 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const authService = new MockAuthService();
+let authService: MockAuthService | null = null;
+
+try {
+  authService = new MockAuthService();
+} catch (error) {
+  console.error('Failed to initialize AuthService:', error);
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   const refreshUser = async () => {
+    if (!authService) {
+      setError(new Error('AuthService not initialized'));
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const currentUser = await authService.getCurrentUser();
       setUser(currentUser);
-    } catch (error) {
+      setError(null);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to refresh user');
       console.error('Failed to refresh user:', error);
       setUser(null);
+      setError(error);
     }
   };
 
@@ -34,12 +51,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (provider: 'spotify' | 'apple' | 'mock') => {
+    if (!authService) {
+      throw new Error('AuthService not initialized');
+    }
+
     setIsLoading(true);
+    setError(null);
     try {
       const newUser = await authService.login(provider);
       setUser(newUser);
-    } catch (error) {
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Login failed');
       console.error('Login failed:', error);
+      setError(error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -47,12 +71,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    if (!authService) {
+      throw new Error('AuthService not initialized');
+    }
+
     setIsLoading(true);
+    setError(null);
     try {
       await authService.logout();
       setUser(null);
-    } catch (error) {
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Logout failed');
       console.error('Logout failed:', error);
+      setError(error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -60,6 +91,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
+    if (!authService) {
+      throw new Error('AuthService not initialized');
+    }
+
+    if (!updates || typeof updates !== 'object') {
+      throw new Error('Invalid profile updates');
+    }
+
     try {
       const updatedProfile = await authService.updateProfile(updates);
       if (user) {
@@ -68,14 +107,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           profile: updatedProfile
         });
       }
-    } catch (error) {
+      setError(null);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Profile update failed');
       console.error('Profile update failed:', error);
+      setError(error);
       throw error;
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, updateProfile, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, error, login, logout, updateProfile, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -28,6 +28,8 @@ import { AdminArtistManagement } from '@/components/AdminArtistManagement';
 import { trackEnrichmentService } from '@/services/trackEnrichmentService';
 import { nightlySyncService } from '@/services/nightlySyncService';
 import { useUpcomingTrackPreloader, useVisibleTracksPreloader } from '@/hooks/use-artwork-cache';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { safeFilter, safeSlice, safeFindIndex, isNullOrUndefined } from '@/lib/safe-utils';
 
 function AppContent() {
   const dataService = useDataService();
@@ -53,9 +55,13 @@ function AppContent() {
   });
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (window.location.pathname === '/oauth/callback') {
-      setCurrentView('oauth-callback');
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (window.location.pathname === '/oauth/callback') {
+        setCurrentView('oauth-callback');
+      }
+    } catch (error) {
+      console.error('Error checking URL parameters:', error);
     }
   }, []);
 
@@ -63,20 +69,50 @@ function AppContent() {
     const loadCharts = async () => {
       setIsLoading(true);
       try {
+        if (!dataService) {
+          throw new Error('DataService not available');
+        }
+
         const data = await dataService.getAllCharts();
-        setFanCharts(data.fanCharts);
-        setExpertCharts(data.expertCharts);
-        setStreamingCharts(data.streamingCharts);
-        if (data.fanCharts.length > 0) {
+        
+        if (!data || typeof data !== 'object') {
+          throw new Error('Invalid data received from service');
+        }
+
+        setFanCharts(Array.isArray(data.fanCharts) ? data.fanCharts : []);
+        setExpertCharts(Array.isArray(data.expertCharts) ? data.expertCharts : []);
+        setStreamingCharts(Array.isArray(data.streamingCharts) ? data.streamingCharts : []);
+        
+        if (Array.isArray(data.fanCharts) && data.fanCharts.length > 0) {
           setCurrentTrack(data.fanCharts[0]);
         }
 
-        const allTracks = [...data.fanCharts, ...data.expertCharts, ...data.streamingCharts];
-        trackEnrichmentService.startBackgroundSync(allTracks);
+        const allTracks = [
+          ...(Array.isArray(data.fanCharts) ? data.fanCharts : []),
+          ...(Array.isArray(data.expertCharts) ? data.expertCharts : []),
+          ...(Array.isArray(data.streamingCharts) ? data.streamingCharts : [])
+        ];
         
-        nightlySyncService.initialize();
+        if (trackEnrichmentService && allTracks.length > 0) {
+          try {
+            trackEnrichmentService.startBackgroundSync(allTracks);
+          } catch (enrichmentError) {
+            console.error('Failed to start background sync:', enrichmentError);
+          }
+        }
+        
+        if (nightlySyncService) {
+          try {
+            nightlySyncService.initialize();
+          } catch (syncError) {
+            console.error('Failed to initialize nightly sync:', syncError);
+          }
+        }
       } catch (error) {
         console.error('Failed to load charts:', error);
+        setFanCharts([]);
+        setExpertCharts([]);
+        setStreamingCharts([]);
       } finally {
         setIsLoading(false);
       }
@@ -87,9 +123,13 @@ function AppContent() {
 
   useEffect(() => {
     const interval = setInterval(async () => {
-      const allTracks = [...fanCharts, ...expertCharts, ...streamingCharts];
-      if (allTracks.length > 0) {
-        await trackEnrichmentService.syncAllTracks(allTracks);
+      try {
+        const allTracks = [...fanCharts, ...expertCharts, ...streamingCharts];
+        if (allTracks.length > 0 && trackEnrichmentService) {
+          await trackEnrichmentService.syncAllTracks(allTracks);
+        }
+      } catch (error) {
+        console.error('Failed to sync tracks:', error);
       }
     }, 24 * 60 * 60 * 1000);
 
@@ -97,38 +137,125 @@ function AppContent() {
   }, [fanCharts, expertCharts, streamingCharts]);
 
   const allGenres: Genre[] = useMemo(() => {
-    const genreSet = new Set<Genre>();
-    [...fanCharts, ...expertCharts, ...streamingCharts].forEach(track => {
-      track.genres.forEach(genre => genreSet.add(genre));
-    });
-    return Array.from(genreSet).sort();
+    try {
+      const genreSet = new Set<Genre>();
+      const allTracks = [...fanCharts, ...expertCharts, ...streamingCharts];
+      
+      allTracks.forEach(track => {
+        if (track && Array.isArray(track.genres)) {
+          track.genres.forEach(genre => {
+            if (genre) {
+              genreSet.add(genre);
+            }
+          });
+        }
+      });
+      
+      return Array.from(genreSet).sort();
+    } catch (error) {
+      console.error('Error computing all genres:', error);
+      return [];
+    }
   }, [fanCharts, expertCharts, streamingCharts]);
 
   const filterByGenre = useCallback((tracks: Track[]): Track[] => {
-    if (selectedGenres.length === 0) {
+    try {
+      if (!Array.isArray(tracks)) {
+        return [];
+      }
+      
+      if (!Array.isArray(selectedGenres) || selectedGenres.length === 0) {
+        return tracks;
+      }
+      
+      return safeFilter(tracks, (track) => {
+        if (!track || !Array.isArray(track.genres)) {
+          return false;
+        }
+        return track.genres.some(genre => selectedGenres.includes(genre));
+      });
+    } catch (error) {
+      console.error('Error filtering by genre:', error);
       return tracks;
     }
-    return tracks.filter(track => 
-      track.genres.some(genre => selectedGenres.includes(genre))
-    );
   }, [selectedGenres]);
 
-  const filteredFanCharts = useMemo(() => filterByGenre(fanCharts).slice(0, 10), [fanCharts, filterByGenre]);
-  const filteredExpertCharts = useMemo(() => filterByGenre(expertCharts).slice(0, 10), [expertCharts, filterByGenre]);
-  const filteredStreamingCharts = useMemo(() => filterByGenre(streamingCharts).slice(0, 10), [streamingCharts, filterByGenre]);
-
-  const overallChart = useMemo(() => {
-    if (!fanCharts.length || !expertCharts.length || !streamingCharts.length || !weights) {
+  const filteredFanCharts = useMemo(() => {
+    try {
+      return safeSlice(filterByGenre(fanCharts), 0, 10, []);
+    } catch (error) {
+      console.error('Error filtering fan charts:', error);
       return [];
     }
-    const chart = dataService.calculateOverallChart(weights);
-    return filterByGenre(chart).slice(0, 10);
+  }, [fanCharts, filterByGenre]);
+
+  const filteredExpertCharts = useMemo(() => {
+    try {
+      return safeSlice(filterByGenre(expertCharts), 0, 10, []);
+    } catch (error) {
+      console.error('Error filtering expert charts:', error);
+      return [];
+    }
+  }, [expertCharts, filterByGenre]);
+
+  const filteredStreamingCharts = useMemo(() => {
+    try {
+      return safeSlice(filterByGenre(streamingCharts), 0, 10, []);
+    } catch (error) {
+      console.error('Error filtering streaming charts:', error);
+      return [];
+    }
+  }, [streamingCharts, filterByGenre]);
+
+  const overallChart = useMemo(() => {
+    try {
+      if (!Array.isArray(fanCharts) || fanCharts.length === 0 ||
+          !Array.isArray(expertCharts) || expertCharts.length === 0 ||
+          !Array.isArray(streamingCharts) || streamingCharts.length === 0 ||
+          !weights) {
+        return [];
+      }
+      
+      if (!dataService || typeof dataService.calculateOverallChart !== 'function') {
+        return [];
+      }
+      
+      const chart = dataService.calculateOverallChart(weights);
+      return safeSlice(filterByGenre(chart), 0, 10, []);
+    } catch (error) {
+      console.error('Error calculating overall chart:', error);
+      return [];
+    }
   }, [weights, fanCharts, expertCharts, streamingCharts, dataService, filterByGenre]);
 
   const currentVisibleTracks = useMemo(() => {
-    if (currentView === 'home') {
+    try {
+      if (currentView === 'home') {
+        if (activePillar === 'overview') {
+          return [
+            ...safeSlice(filteredFanCharts, 0, 3, []),
+            ...safeSlice(filteredExpertCharts, 0, 3, []),
+            ...safeSlice(filteredStreamingCharts, 0, 3, [])
+          ];
+        } else if (activePillar === 'fan') {
+          return filteredFanCharts;
+        } else if (activePillar === 'expert') {
+          return filteredExpertCharts;
+        } else if (activePillar === 'streaming') {
+          return filteredStreamingCharts;
+        }
+      }
+      return [];
+    } catch (error) {
+      console.error('Error computing visible tracks:', error);
+      return [];
+    }
+  }, [currentView, activePillar, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts]);
+
+  const allTracksForPlayer = useMemo(() => {
+    try {
       if (activePillar === 'overview') {
-        return [...filteredFanCharts.slice(0, 3), ...filteredExpertCharts.slice(0, 3), ...filteredStreamingCharts.slice(0, 3)];
+        return overallChart;
       } else if (activePillar === 'fan') {
         return filteredFanCharts;
       } else if (activePillar === 'expert') {
@@ -136,165 +263,247 @@ function AppContent() {
       } else if (activePillar === 'streaming') {
         return filteredStreamingCharts;
       }
+      return [...fanCharts, ...expertCharts, ...streamingCharts];
+    } catch (error) {
+      console.error('Error computing player tracks:', error);
+      return [];
     }
-    return [];
-  }, [currentView, activePillar, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts]);
-
-  const allTracksForPlayer = useMemo(() => {
-    if (activePillar === 'overview') {
-      return overallChart;
-    } else if (activePillar === 'fan') {
-      return filteredFanCharts;
-    } else if (activePillar === 'expert') {
-      return filteredExpertCharts;
-    } else if (activePillar === 'streaming') {
-      return filteredStreamingCharts;
-    }
-    return [...fanCharts, ...expertCharts, ...streamingCharts];
   }, [activePillar, overallChart, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, fanCharts, expertCharts, streamingCharts]);
 
   useUpcomingTrackPreloader(currentTrack, allTracksForPlayer, 5);
   useVisibleTracksPreloader(currentVisibleTracks, 10);
 
   const handleWeightsChange = useCallback((newWeights: ChartWeights) => {
-    setWeights(newWeights);
+    try {
+      if (!newWeights || typeof newWeights !== 'object') {
+        console.error('Invalid weights object');
+        return;
+      }
+      setWeights(newWeights);
+    } catch (error) {
+      console.error('Error updating weights:', error);
+    }
   }, [setWeights]);
 
   const handleTrackClick = useCallback(async (track: Track) => {
-    const enrichedTrack = await trackEnrichmentService.enrichTrack(track);
-    setSelectedTrackForModal(enrichedTrack);
-    setIsModalOpen(true);
-    setCurrentTrack(enrichedTrack);
+    try {
+      if (!track) {
+        console.warn('Invalid track object');
+        return;
+      }
+
+      let enrichedTrack = track;
+      if (trackEnrichmentService && typeof trackEnrichmentService.enrichTrack === 'function') {
+        try {
+          enrichedTrack = await trackEnrichmentService.enrichTrack(track);
+        } catch (enrichmentError) {
+          console.error('Failed to enrich track:', enrichmentError);
+        }
+      }
+
+      setSelectedTrackForModal(enrichedTrack);
+      setIsModalOpen(true);
+      setCurrentTrack(enrichedTrack);
+    } catch (error) {
+      console.error('Error handling track click:', error);
+    }
   }, []);
 
   const handleToggleGenre = useCallback((genre: Genre) => {
-    setSelectedGenres(current => {
-      if (current.includes(genre)) {
-        return current.filter(g => g !== genre);
+    try {
+      if (!genre) {
+        console.warn('Invalid genre');
+        return;
       }
-      return [...current, genre];
-    });
+
+      setSelectedGenres(current => {
+        try {
+          if (!Array.isArray(current)) {
+            return [genre];
+          }
+          
+          if (current.includes(genre)) {
+            return safeFilter(current, g => g !== genre);
+          }
+          return [...current, genre];
+        } catch (error) {
+          console.error('Error toggling genre:', error);
+          return current;
+        }
+      });
+    } catch (error) {
+      console.error('Error in handleToggleGenre:', error);
+    }
   }, []);
 
   const handleClearFilters = useCallback(() => {
-    setSelectedGenres([]);
+    try {
+      setSelectedGenres([]);
+    } catch (error) {
+      console.error('Error clearing filters:', error);
+    }
   }, []);
 
   const getAllChartPositions = useCallback((track: Track) => {
-    const positions: { chartName: string; position: number; chartType?: ChartType; mainGenre?: MainGenre; subGenre?: Genre }[] = [];
-    
-    const fanIndex = fanCharts.findIndex(t => t.id === track.id);
-    if (fanIndex !== -1 && fanIndex < 10) {
-      positions.push({ chartName: 'Fan Charts', position: fanIndex + 1, chartType: 'fan' });
-    }
-    
-    const expertIndex = expertCharts.findIndex(t => t.id === track.id);
-    if (expertIndex !== -1 && expertIndex < 10) {
-      positions.push({ chartName: 'Expert Charts', position: expertIndex + 1, chartType: 'expert' });
-    }
-    
-    const streamingIndex = streamingCharts.findIndex(t => t.id === track.id);
-    if (streamingIndex !== -1 && streamingIndex < 10) {
-      positions.push({ chartName: 'Streaming Charts', position: streamingIndex + 1, chartType: 'streaming' });
-    }
-    
-    const overallIndex = overallChart.findIndex(t => t.id === track.id);
-    if (overallIndex !== -1) {
-      positions.push({ chartName: 'Overall Charts', position: overallIndex + 1 });
-    }
-
-    const mainGenreMap: Record<MainGenre, Genre[]> = {
-      'Gothic': [
-        'Gothic Rock', 'Dark Wave', 'Post Punk', 'Deathrock', 'Cold Wave',
-        'Ethereal Wave', 'Neoklassik', 'Neue Deutsche Todeskunst', 'Batcave',
-        'Neofolk', 'Pagan Folk', 'Nordic Folk', 'Ritual Ambient'
-      ],
-      'Metal': [
-        'Gothic Metal', 'Dark Metal', 'Symphonic Metal', 'Doom Metal',
-        'Symphonic Black Metal', 'Atmospheric Black Metal', 'Death Doom', 'Pagan Metal'
-      ],
-      'Dark Electro': [
-        'Electronic Body Music', 'Dark Electro', 'Electro Industrial', 'Aggrotech',
-        'Future Pop', 'Industrial', 'Rhythmic Noise', 'Dark Synthpop', 'Harsh EBM'
-      ],
-      'Crossover': [
-        'Industrial Metal', 'Neue Deutsche Härte', 'Mittelalter Rock', 'Darksynth',
-        'Cybergoth', 'Death Industrial', 'Folk Metal', 'Dark Techno',
-        'Industrial Techno', 'Darkstep', 'Crossbreed', 'Techstep', 'Neurofunk'
-      ]
-    };
-
-    Object.entries(mainGenreMap).forEach(([mainGenre, subGenres]) => {
-      const mainGenreTracks = [...fanCharts, ...expertCharts, ...streamingCharts].filter(t =>
-        t.genres.some(g => subGenres.includes(g))
-      );
-      const mainGenreIndex = mainGenreTracks.findIndex(t => t.id === track.id);
-      if (mainGenreIndex !== -1 && mainGenreIndex < 10) {
-        positions.push({
-          chartName: `${mainGenre} Charts`,
-          position: mainGenreIndex + 1,
-          mainGenre: mainGenre as MainGenre
-        });
+    try {
+      if (!track) {
+        return [];
       }
 
-      track.genres.forEach(genre => {
-        if (subGenres.includes(genre)) {
-          const subGenreTracks = mainGenreTracks.filter(t => t.genres.includes(genre));
-          const subGenreIndex = subGenreTracks.findIndex(t => t.id === track.id);
-          if (subGenreIndex !== -1 && subGenreIndex < 10) {
+      const positions: { chartName: string; position: number; chartType?: ChartType; mainGenre?: MainGenre; subGenre?: Genre }[] = [];
+      
+      const fanIndex = safeFindIndex(fanCharts, t => t?.id === track.id, -1);
+      if (fanIndex !== -1 && fanIndex < 10) {
+        positions.push({ chartName: 'Fan Charts', position: fanIndex + 1, chartType: 'fan' });
+      }
+      
+      const expertIndex = safeFindIndex(expertCharts, t => t?.id === track.id, -1);
+      if (expertIndex !== -1 && expertIndex < 10) {
+        positions.push({ chartName: 'Expert Charts', position: expertIndex + 1, chartType: 'expert' });
+      }
+      
+      const streamingIndex = safeFindIndex(streamingCharts, t => t?.id === track.id, -1);
+      if (streamingIndex !== -1 && streamingIndex < 10) {
+        positions.push({ chartName: 'Streaming Charts', position: streamingIndex + 1, chartType: 'streaming' });
+      }
+      
+      const overallIndex = safeFindIndex(overallChart, t => t?.id === track.id, -1);
+      if (overallIndex !== -1) {
+        positions.push({ chartName: 'Overall Charts', position: overallIndex + 1 });
+      }
+
+      const mainGenreMap: Record<MainGenre, Genre[]> = {
+        'Gothic': [
+          'Gothic Rock', 'Dark Wave', 'Post Punk', 'Deathrock', 'Cold Wave',
+          'Ethereal Wave', 'Neoklassik', 'Neue Deutsche Todeskunst', 'Batcave',
+          'Neofolk', 'Pagan Folk', 'Nordic Folk', 'Ritual Ambient'
+        ],
+        'Metal': [
+          'Gothic Metal', 'Dark Metal', 'Symphonic Metal', 'Doom Metal',
+          'Symphonic Black Metal', 'Atmospheric Black Metal', 'Death Doom', 'Pagan Metal'
+        ],
+        'Dark Electro': [
+          'Electronic Body Music', 'Dark Electro', 'Electro Industrial', 'Aggrotech',
+          'Future Pop', 'Industrial', 'Rhythmic Noise', 'Dark Synthpop', 'Harsh EBM'
+        ],
+        'Crossover': [
+          'Industrial Metal', 'Neue Deutsche Härte', 'Mittelalter Rock', 'Darksynth',
+          'Cybergoth', 'Death Industrial', 'Folk Metal', 'Dark Techno',
+          'Industrial Techno', 'Darkstep', 'Crossbreed', 'Techstep', 'Neurofunk'
+        ]
+      };
+
+      try {
+        Object.entries(mainGenreMap).forEach(([mainGenre, subGenres]) => {
+          const mainGenreTracks = safeFilter(
+            [...fanCharts, ...expertCharts, ...streamingCharts],
+            t => t && Array.isArray(t.genres) && t.genres.some(g => subGenres.includes(g))
+          );
+          
+          const mainGenreIndex = safeFindIndex(mainGenreTracks, t => t?.id === track.id, -1);
+          if (mainGenreIndex !== -1 && mainGenreIndex < 10) {
             positions.push({
-              chartName: `${genre}`,
-              position: subGenreIndex + 1,
-              mainGenre: mainGenre as MainGenre,
-              subGenre: genre
+              chartName: `${mainGenre} Charts`,
+              position: mainGenreIndex + 1,
+              mainGenre: mainGenre as MainGenre
             });
           }
-        }
-      });
-    });
 
-    return positions;
+          if (track.genres && Array.isArray(track.genres)) {
+            track.genres.forEach(genre => {
+              if (subGenres.includes(genre)) {
+                const subGenreTracks = safeFilter(mainGenreTracks, t => t?.genres?.includes(genre));
+                const subGenreIndex = safeFindIndex(subGenreTracks, t => t?.id === track.id, -1);
+                if (subGenreIndex !== -1 && subGenreIndex < 10) {
+                  positions.push({
+                    chartName: `${genre}`,
+                    position: subGenreIndex + 1,
+                    mainGenre: mainGenre as MainGenre,
+                    subGenre: genre
+                  });
+                }
+              }
+            });
+          }
+        });
+      } catch (error) {
+        console.error('Error computing genre chart positions:', error);
+      }
+
+      return positions;
+    } catch (error) {
+      console.error('Error getting all chart positions:', error);
+      return [];
+    }
   }, [fanCharts, expertCharts, streamingCharts, overallChart]);
 
   const handleNavigateToChart = useCallback((chartType?: ChartType, mainGenre?: MainGenre, subGenre?: Genre) => {
-    if (mainGenre) {
-      setCurrentView('main-genre');
-      setCurrentMainGenre(mainGenre);
-      if (subGenre) {
-        setCurrentSubGenre(subGenre);
-      } else {
+    try {
+      if (mainGenre) {
+        setCurrentView('main-genre');
+        setCurrentMainGenre(mainGenre);
+        if (subGenre) {
+          setCurrentSubGenre(subGenre);
+        } else {
+          setCurrentSubGenre(null);
+        }
+      } else if (chartType) {
+        setCurrentView('home');
+        setCurrentMainGenre('overall');
         setCurrentSubGenre(null);
+        setActivePillar(chartType === 'overall' ? 'overview' : chartType);
       }
-    } else if (chartType) {
-      setCurrentView('home');
-      setCurrentMainGenre('overall');
-      setCurrentSubGenre(null);
-      setActivePillar(chartType === 'overall' ? 'overview' : chartType);
+    } catch (error) {
+      console.error('Error navigating to chart:', error);
     }
   }, []);
 
   const handleNext = useCallback(() => {
-    if (!currentTrack) return;
-    const allTracks = activePillar === 'overview' ? overallChart : activePillar === 'fan' ? filteredFanCharts : activePillar === 'expert' ? filteredExpertCharts : filteredStreamingCharts;
-    const currentIndex = allTracks.findIndex(t => t.id === currentTrack.id);
-    if (currentIndex < allTracks.length - 1) {
-      setCurrentTrack(allTracks[currentIndex + 1]);
+    try {
+      if (!currentTrack) return;
+      
+      const allTracks = activePillar === 'overview' ? overallChart : 
+                        activePillar === 'fan' ? filteredFanCharts : 
+                        activePillar === 'expert' ? filteredExpertCharts : 
+                        filteredStreamingCharts;
+      
+      if (!Array.isArray(allTracks) || allTracks.length === 0) return;
+      
+      const currentIndex = safeFindIndex(allTracks, t => t?.id === currentTrack.id, -1);
+      if (currentIndex < allTracks.length - 1) {
+        setCurrentTrack(allTracks[currentIndex + 1]);
+      }
+    } catch (error) {
+      console.error('Error navigating to next track:', error);
     }
   }, [currentTrack, activePillar, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, overallChart]);
 
   const handlePrevious = useCallback(() => {
-    if (!currentTrack) return;
-    const allTracks = activePillar === 'overview' ? overallChart : activePillar === 'fan' ? filteredFanCharts : activePillar === 'expert' ? filteredExpertCharts : filteredStreamingCharts;
-    const currentIndex = allTracks.findIndex(t => t.id === currentTrack.id);
-    if (currentIndex > 0) {
-      setCurrentTrack(allTracks[currentIndex - 1]);
+    try {
+      if (!currentTrack) return;
+      
+      const allTracks = activePillar === 'overview' ? overallChart : 
+                        activePillar === 'fan' ? filteredFanCharts : 
+                        activePillar === 'expert' ? filteredExpertCharts : 
+                        filteredStreamingCharts;
+      
+      if (!Array.isArray(allTracks) || allTracks.length === 0) return;
+      
+      const currentIndex = safeFindIndex(allTracks, t => t?.id === currentTrack.id, -1);
+      if (currentIndex > 0) {
+        setCurrentTrack(allTracks[currentIndex - 1]);
+      }
+    } catch (error) {
+      console.error('Error navigating to previous track:', error);
     }
   }, [currentTrack, activePillar, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, overallChart]);
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden pb-24">
       {currentView === 'oauth-callback' ? (
-        <OAuthCallback />
+        <ErrorBoundary level="component">
+          <OAuthCallback />
+        </ErrorBoundary>
       ) : (
         <>
           <Toaster position="top-right" />
@@ -309,16 +518,22 @@ function AppContent() {
             <rect width="100%" height="100%" filter="url(#noise)"/>
           </svg>
 
-          <Navigation 
-            currentView={currentView} 
-            onNavigate={(view: ViewType) => {
-              setCurrentView(view);
-              if (view === 'home') {
-                setCurrentMainGenre('overall');
-                setCurrentSubGenre(null);
-              }
-            }}
-          />
+          <ErrorBoundary level="component">
+            <Navigation 
+              currentView={currentView} 
+              onNavigate={(view: ViewType) => {
+                try {
+                  setCurrentView(view);
+                  if (view === 'home') {
+                    setCurrentMainGenre('overall');
+                    setCurrentSubGenre(null);
+                  }
+                } catch (error) {
+                  console.error('Error navigating:', error);
+                }
+              }}
+            />
+          </ErrorBoundary>
 
           <div className="relative z-10">
             <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
@@ -330,59 +545,71 @@ function AppContent() {
                     className="w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-contain chromatic-hover"
                   />
                   <p className="font-ui text-[10px] md:text-xs text-muted-foreground tracking-[0.4em] uppercase font-medium">
-                    {t('header.subtitle')}
+                    {t?.('header.subtitle') || 'INDEPENDENT MUSIC CHARTS'}
                   </p>
                 </div>
               </div>
             </header>
 
             <main className="max-w-[1800px] mx-auto px-4 md:px-8 py-8">
-              {currentView === 'profile' && <ProfileView />}
-              {currentView === 'about' && <AboutView />}
-              {currentView === 'custom-charts' && <CustomChartsView />}
-              {currentView === 'admin' && <AdminArtistManagement />}
-              {currentView === 'voting' && (
-                <VotingArea 
-                  allTracks={[...fanCharts, ...expertCharts, ...streamingCharts]}
-              onTrackClick={handleTrackClick}
-            />
-          )}
-          {currentView === 'history' && <ChartHistoryView />}
+              <ErrorBoundary level="component">
+                {currentView === 'profile' && <ProfileView />}
+                {currentView === 'about' && <AboutView />}
+                {currentView === 'custom-charts' && <CustomChartsView />}
+                {currentView === 'admin' && <AdminArtistManagement />}
+                {currentView === 'voting' && (
+                  <VotingArea 
+                    allTracks={[...(fanCharts || []), ...(expertCharts || []), ...(streamingCharts || [])]}
+                    onTrackClick={handleTrackClick}
+                  />
+                )}
+                {currentView === 'history' && <ChartHistoryView />}
+              </ErrorBoundary>
           
           {(currentView === 'home' || currentView === 'main-genre') && (
             <>
-              <PillarNavigation 
-                activePillar={activePillar}
-                onPillarChange={setActivePillar}
-                className="mb-6 md:sticky md:top-0 md:z-40 bg-background/95 backdrop-blur-sm py-4 border-b border-border fixed top-0 left-0 right-0 z-50"
-              />
+              <ErrorBoundary level="component">
+                <PillarNavigation 
+                  activePillar={activePillar}
+                  onPillarChange={setActivePillar}
+                  className="mb-6 md:sticky md:top-0 md:z-40 bg-background/95 backdrop-blur-sm py-4 border-b border-border fixed top-0 left-0 right-0 z-50"
+                />
+              </ErrorBoundary>
 
-              <MainGenreNavigation
-                activeGenre={currentMainGenre}
-                onGenreChange={(genre) => {
-                  setCurrentMainGenre(genre);
-                  setCurrentSubGenre(null);
-                  if (genre !== 'overall') {
-                    setCurrentView('main-genre');
-                  } else {
-                    setCurrentView('home');
-                  }
-                }}
-                className="mb-6"
-              />
+              <ErrorBoundary level="component">
+                <MainGenreNavigation
+                  activeGenre={currentMainGenre}
+                  onGenreChange={(genre) => {
+                    try {
+                      setCurrentMainGenre(genre);
+                      setCurrentSubGenre(null);
+                      if (genre !== 'overall') {
+                        setCurrentView('main-genre');
+                      } else {
+                        setCurrentView('home');
+                      }
+                    } catch (error) {
+                      console.error('Error changing genre:', error);
+                    }
+                  }}
+                  className="mb-6"
+                />
+              </ErrorBoundary>
             </>
           )}
 
           {currentView === 'main-genre' && currentMainGenre && currentMainGenre !== 'overall' && (
-            <GenreCharts 
-              mainGenre={currentMainGenre}
-              activePillar={activePillar}
-              fanCharts={fanCharts}
-              expertCharts={expertCharts}
-              streamingCharts={streamingCharts}
-              isLoading={isLoading}
-              onTrackClick={handleTrackClick}
-            />
+            <ErrorBoundary level="component">
+              <GenreCharts 
+                mainGenre={currentMainGenre}
+                activePillar={activePillar}
+                fanCharts={fanCharts || []}
+                expertCharts={expertCharts || []}
+                streamingCharts={streamingCharts || []}
+                isLoading={isLoading}
+                onTrackClick={handleTrackClick}
+              />
+            </ErrorBoundary>
           )}
           
           {currentView === 'home' && (
@@ -390,105 +617,117 @@ function AppContent() {
               {activePillar === 'overview' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts} isLoading={isLoading} onTrackClick={handleTrackClick} />
-                    <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts} isLoading={isLoading} onTrackClick={handleTrackClick} />
-                    <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts} isLoading={isLoading} onTrackClick={handleTrackClick} />
+                    <ErrorBoundary level="component">
+                      <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts || []} isLoading={isLoading} onTrackClick={handleTrackClick} />
+                    </ErrorBoundary>
+                    <ErrorBoundary level="component">
+                      <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts || []} isLoading={isLoading} onTrackClick={handleTrackClick} />
+                    </ErrorBoundary>
+                    <ErrorBoundary level="component">
+                      <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts || []} isLoading={isLoading} onTrackClick={handleTrackClick} />
+                    </ErrorBoundary>
                   </div>
                 </div>
               )}
 
               {activePillar === 'fan' && (
                 <div className="space-y-6">
-                  {!isLoading && filteredFanCharts.length > 0 && (
-                    <Card className="bg-card border border-border">
-                      <div className="p-4 border-b border-border">
-                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Fan Charts</h2>
-                      </div>
-                      <motion.div layout>
-                        <AnimatePresence mode="popLayout">
-                          {filteredFanCharts.map((track, index) => (
-                            <motion.div 
-                              key={track.id}
-                              layoutId={`track-${track.id}`}
-                              layout
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -20 }}
-                              transition={{ 
-                                layout: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
-                                opacity: { duration: 0.15 }
-                              }}
-                            >
-                              <ChartEntry track={track} index={index} onClick={handleTrackClick} animate={true} />
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </motion.div>
-                    </Card>
+                  {!isLoading && Array.isArray(filteredFanCharts) && filteredFanCharts.length > 0 && (
+                    <ErrorBoundary level="component">
+                      <Card className="bg-card border border-border">
+                        <div className="p-4 border-b border-border">
+                          <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Fan Charts</h2>
+                        </div>
+                        <motion.div layout>
+                          <AnimatePresence mode="popLayout">
+                            {filteredFanCharts.map((track, index) => (
+                              <motion.div 
+                                key={track?.id || `track-${index}`}
+                                layoutId={`track-${track?.id || index}`}
+                                layout
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ 
+                                  layout: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                                  opacity: { duration: 0.15 }
+                                }}
+                              >
+                                <ChartEntry track={track} index={index} onClick={handleTrackClick} animate={true} />
+                              </motion.div>
+                            ))}
+                          </AnimatePresence>
+                        </motion.div>
+                      </Card>
+                    </ErrorBoundary>
                   )}
                 </div>
               )}
 
               {activePillar === 'expert' && (
                 <div className="space-y-6">
-                  {!isLoading && filteredExpertCharts.length > 0 && (
-                    <Card className="bg-card border border-border">
-                      <div className="p-4 border-b border-border">
-                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Expert Charts</h2>
-                      </div>
-                      <motion.div layout>
-                        <AnimatePresence mode="popLayout">
-                          {filteredExpertCharts.map((track, index) => (
-                            <motion.div 
-                              key={track.id}
-                              layoutId={`track-${track.id}`}
-                              layout
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -20 }}
-                              transition={{ 
-                                layout: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
-                                opacity: { duration: 0.15 }
-                              }}
-                            >
-                              <ChartEntry track={track} index={index} onClick={handleTrackClick} animate={true} />
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </motion.div>
-                    </Card>
+                  {!isLoading && Array.isArray(filteredExpertCharts) && filteredExpertCharts.length > 0 && (
+                    <ErrorBoundary level="component">
+                      <Card className="bg-card border border-border">
+                        <div className="p-4 border-b border-border">
+                          <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Expert Charts</h2>
+                        </div>
+                        <motion.div layout>
+                          <AnimatePresence mode="popLayout">
+                            {filteredExpertCharts.map((track, index) => (
+                              <motion.div 
+                                key={track?.id || `track-${index}`}
+                                layoutId={`track-${track?.id || index}`}
+                                layout
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ 
+                                  layout: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                                  opacity: { duration: 0.15 }
+                                }}
+                              >
+                                <ChartEntry track={track} index={index} onClick={handleTrackClick} animate={true} />
+                              </motion.div>
+                            ))}
+                          </AnimatePresence>
+                        </motion.div>
+                      </Card>
+                    </ErrorBoundary>
                   )}
                 </div>
               )}
 
               {activePillar === 'streaming' && (
                 <div className="space-y-6">
-                  {!isLoading && filteredStreamingCharts.length > 0 && (
-                    <Card className="bg-card border border-border">
-                      <div className="p-4 border-b border-border">
-                        <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Streaming Charts</h2>
-                      </div>
-                      <motion.div layout>
-                        <AnimatePresence mode="popLayout">
-                          {filteredStreamingCharts.map((track, index) => (
-                            <motion.div 
-                              key={track.id}
-                              layoutId={`track-${track.id}`}
-                              layout
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -20 }}
-                              transition={{ 
-                                layout: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
-                                opacity: { duration: 0.15 }
-                              }}
-                            >
-                              <ChartEntry track={track} index={index} onClick={handleTrackClick} animate={true} />
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </motion.div>
-                    </Card>
+                  {!isLoading && Array.isArray(filteredStreamingCharts) && filteredStreamingCharts.length > 0 && (
+                    <ErrorBoundary level="component">
+                      <Card className="bg-card border border-border">
+                        <div className="p-4 border-b border-border">
+                          <h2 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">Streaming Charts</h2>
+                        </div>
+                        <motion.div layout>
+                          <AnimatePresence mode="popLayout">
+                            {filteredStreamingCharts.map((track, index) => (
+                              <motion.div 
+                                key={track?.id || `track-${index}`}
+                                layoutId={`track-${track?.id || index}`}
+                                layout
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ 
+                                  layout: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                                  opacity: { duration: 0.15 }
+                                }}
+                              >
+                                <ChartEntry track={track} index={index} onClick={handleTrackClick} animate={true} />
+                              </motion.div>
+                            ))}
+                          </AnimatePresence>
+                        </motion.div>
+                      </Card>
+                    </ErrorBoundary>
                   )}
                 </div>
               )}
@@ -502,48 +741,58 @@ function AppContent() {
               <div>
                 <h3 className="display-font text-lg uppercase text-foreground mb-3 tracking-tight font-semibold">Dark Charts</h3>
                 <p className="font-ui text-xs text-muted-foreground leading-relaxed">
-                  {t('footer.tagline')}
+                  {t?.('footer.tagline') || 'Independent music charts for the dark scene'}
                 </p>
               </div>
               <div>
-                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-3">{t('about.principles')}</h4>
+                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-3">{t?.('about.principles') || 'PRINCIPLES'}</h4>
                 <ul className="space-y-1 text-xs text-muted-foreground font-ui">
-                  <li>• {t('about.principle1')}</li>
-                  <li>• {t('about.principle2')}</li>
-                  <li>• {t('about.principle3')}</li>
-                  <li>• {t('about.principle4')}</li>
+                  <li>• {t?.('about.principle1') || 'Community-driven'}</li>
+                  <li>• {t?.('about.principle2') || 'Independent'}</li>
+                  <li>• {t?.('about.principle3') || 'Transparent'}</li>
+                  <li>• {t?.('about.principle4') || 'Authentic'}</li>
                 </ul>
               </div>
               <div>
-                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-3">{t('nav.about')}</h4>
+                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-3">{t?.('nav.about') || 'ABOUT'}</h4>
                 <p className="text-xs text-muted-foreground font-ui leading-relaxed">
-                  {t('about.builtFor')}
+                  {t?.('about.builtFor') || 'Built for the dark music community'}
                 </p>
               </div>
             </div>
             <div className="border-t border-border pt-4 text-center">
               <p className="font-ui text-[10px] text-muted-foreground uppercase tracking-[0.3em]">
-                Dark Charts &copy; {new Date().getFullYear()} — {t('footer.underground')}
+                Dark Charts &copy; {new Date().getFullYear()} — {t?.('footer.underground') || 'UNDERGROUND'}
               </p>
             </div>
           </div>
         </footer>
       </div>
 
-      <MusicPlayer 
-        currentTrack={currentTrack} 
-        onNext={handleNext}
-        onPrevious={handlePrevious}
-        allTracks={[...fanCharts, ...expertCharts, ...streamingCharts]}
-      />
+      <ErrorBoundary level="component">
+        <MusicPlayer 
+          currentTrack={currentTrack} 
+          onNext={handleNext}
+          onPrevious={handlePrevious}
+          allTracks={[...(fanCharts || []), ...(expertCharts || []), ...(streamingCharts || [])]}
+        />
+      </ErrorBoundary>
 
-      <TrackDetailModal 
-        track={selectedTrackForModal}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        allChartPositions={selectedTrackForModal ? getAllChartPositions(selectedTrackForModal) : []}
-        onNavigateToChart={handleNavigateToChart}
-      />
+      <ErrorBoundary level="component">
+        <TrackDetailModal 
+          track={selectedTrackForModal}
+          isOpen={isModalOpen}
+          onClose={() => {
+            try {
+              setIsModalOpen(false);
+            } catch (error) {
+              console.error('Error closing modal:', error);
+            }
+          }}
+          allChartPositions={selectedTrackForModal ? getAllChartPositions(selectedTrackForModal) : []}
+          onNavigateToChart={handleNavigateToChart}
+        />
+      </ErrorBoundary>
         </>
       )}
     </div>
@@ -552,13 +801,15 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <DataProvider>
-        <LanguageProvider>
-          <AppContent />
-        </LanguageProvider>
-      </DataProvider>
-    </AuthProvider>
+    <ErrorBoundary level="root">
+      <AuthProvider>
+        <DataProvider>
+          <LanguageProvider>
+            <AppContent />
+          </LanguageProvider>
+        </DataProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
