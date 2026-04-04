@@ -75,14 +75,24 @@ The app presents chart data across multiple categories with custom weighting con
 - Progression: User selects history → View loads with current week → User selects chart type (Fan/Expert/Streaming) → Sees movers section (risers, fallers, new entries, re-entries) → Browses past weeks via dropdown → Rankings display with movement indicators
 - Success criteria: History loads within 300ms, movement indicators (arrows with +/- values) clearly visible, week selection responsive, visual distinction between risers (green), fallers (red), and stable (neutral)
 
+**Automated Error Recovery System**
+- Functionality: Automatic retry with exponential backoff, circuit breakers for failing services, resilience caching, and visual recovery status
+- Purpose: Prevent application crashes from transient failures, automatically recover from network issues, and provide transparent feedback during recovery
+- Trigger: Any failed network request, service timeout, or data fetch error
+- Progression: Operation fails → Automatic retry with 1s delay → Second failure triggers 2s delay → Third failure triggers 4s delay → After threshold, circuit breaker opens → Service blocked for 60s → Automatic recovery test → Circuit closes on success
+- Success criteria: Network failures auto-recover within 10 seconds, users see retry progress indicators, stale data served during outages, no manual page refreshes required, circuit breaker state visible in UI
+
 ## Edge Case Handling
 
 - **Empty Chart Data**: Display haunting empty state with skull iconography and "No souls ranked yet" message
 - **Slider Total > 100%**: Auto-normalize sliders proportionally so sum always equals 100%
-- **Network Failure**: Show brutal error state with stark red borders and retry mechanism
+- **Network Failure**: Automatic retry with exponential backoff (3 attempts), circuit breaker opens after 5 failures, stale cache served, visual recovery status displayed
+- **Service Unavailability**: Circuit breaker immediately blocks requests, automatic recovery test after 60s, graceful degradation with cached data
+- **Request Timeout**: 5 second default timeout, fallback values returned automatically, background retry attempts
 - **Tie Rankings**: Display tied tracks at same rank with equal visual weight
 - **Genre Overflow**: Limit to 3 most relevant tags, add "+N more" indicator if needed
 - **Loading States**: Show skeleton loaders with dark pulse animation, never blank white screens
+- **Transient Failures**: Auto-recovery for temporary network issues, no manual intervention required
 
 ## Design Direction
 
