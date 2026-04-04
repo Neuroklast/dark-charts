@@ -25,12 +25,16 @@ export class MockAuthService implements IAuthService {
       externalLinks: [],
       displayedBadges: [],
       allBadges: [],
+      isPublicProfile: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       votingCredits: 150,
       votingHistory: [],
       favoritesList: [],
-      personalCharts: []
+      personalCharts: [],
+      curatedCharts: [],
+      followingIds: [],
+      followerIds: []
     };
 
     this.currentUser = {

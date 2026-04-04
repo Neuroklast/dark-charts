@@ -227,9 +227,37 @@ export interface DJProfile extends BaseUserProfile {
     correctPredictions: number;
     totalPredictions: number;
     accuracy: number;
+    earlyPredictions: EarlyPrediction[];
   };
+  subgenreAccuracy?: Record<Genre, GenreAccuracy>;
   curatedCharts: CuratedChart[];
+  earnedBadges: Badge[];
+  nextBadgeProgress?: {
+    badgeId: string;
+    badgeName: string;
+    currentProgress: number;
+    requiredProgress: number;
+    percentageComplete: number;
+  };
   schemaOrgData?: SchemaOrgPerson;
+}
+
+export interface EarlyPrediction {
+  trackId: string;
+  trackTitle: string;
+  artistName: string;
+  supportedAt: number;
+  enteredTop10At: number;
+  weeksBeforeEntry: number;
+  finalPosition: number;
+  genres: Genre[];
+}
+
+export interface GenreAccuracy {
+  totalVotes: number;
+  successfulVotes: number;
+  accuracy: number;
+  lastUpdated: number;
 }
 
 export interface LabelProfile extends BaseUserProfile {
