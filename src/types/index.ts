@@ -171,6 +171,17 @@ export interface FanProfile extends BaseUserProfile {
     totalVotesLifetime: number;
     weeklyActivity: number;
   };
+  tasteProfile?: {
+    genreScores: Record<Genre, number>;
+    topGenres: Genre[];
+  };
+  roadToSuperfan?: {
+    artistId: string;
+    artistName: string;
+    currentLevel: number;
+    maxLevel: number;
+    progress: number;
+  }[];
   schemaOrgData?: SchemaOrgPerson;
 }
 
@@ -178,16 +189,22 @@ export interface BandProfile extends BaseUserProfile {
   userType: 'band';
   genres: Genre[];
   spotifyArtistId?: string;
+  bannerUrl?: string;
+  isVerified?: boolean;
   latestReleases: {
     title: string;
     releaseDate: number;
     spotifyUri?: string;
+    previewUrl?: string;
+    albumArt?: string;
   }[];
   isPremium: boolean;
   analytics?: {
     totalVotes: number;
-    chartPositions: { chartType: ChartType; position: number }[];
+    chartPositions: { chartType: ChartType; position: number; peakPosition?: number }[];
     demographics: Record<string, number>;
+    weeksInChart: number;
+    peakPosition: number;
   };
   bookingInfo?: {
     available: boolean;
@@ -200,6 +217,7 @@ export interface BandProfile extends BaseUserProfile {
     username: string;
     avatarUrl?: string;
     voteCount: number;
+    userType: 'fan' | 'dj';
   }[];
   upcomingEvents?: MusicEvent[];
   mediaGallery?: {
@@ -262,17 +280,41 @@ export interface GenreAccuracy {
 
 export interface LabelProfile extends BaseUserProfile {
   userType: 'label';
+  logoUrl?: string;
+  bannerUrl?: string;
+  businessLinks?: {
+    websiteUrl?: string;
+    shopUrl?: string;
+    contactEmail?: string;
+  };
   managedBands: string[];
+  roster?: {
+    bandId: string;
+    bandName: string;
+    avatarUrl?: string;
+    genres: Genre[];
+    chartRelevance: number;
+  }[];
   aggregatedAnalytics?: {
     totalVotes: number;
     totalStreams: number;
-    topBands: { bandId: string; performance: number }[];
+    chartWeeks: number;
+    top10Placements: number;
+    topBands: { bandId: string; bandName: string; performance: number }[];
   };
+  latestRosterReleases?: {
+    bandId: string;
+    bandName: string;
+    releaseTitle: string;
+    releaseDate: number;
+    albumArt?: string;
+  }[];
   scoutingNotes: {
     bandId: string;
     note: string;
     timestamp: number;
   }[];
+  schemaOrgData?: SchemaOrgOrganization;
 }
 
 export type UserProfile = FanProfile | BandProfile | DJProfile | LabelProfile;
@@ -425,6 +467,25 @@ export interface SchemaOrgMusicGroup {
   sameAs?: string[];
   member?: string[];
   event?: MusicEvent[];
+  foundingDate?: string;
+  albumRelease?: {
+    '@type': 'MusicAlbum';
+    name: string;
+    datePublished: string;
+  }[];
+}
+
+export interface SchemaOrgOrganization {
+  '@context': 'https://schema.org';
+  '@type': 'Organization' | 'RecordLabel';
+  name: string;
+  logo?: string;
+  image?: string;
+  description?: string;
+  url?: string;
+  sameAs?: string[];
+  email?: string;
+  member?: string[];
 }
 
 export interface ActivityFeedItem {
