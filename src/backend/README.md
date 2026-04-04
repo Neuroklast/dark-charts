@@ -79,6 +79,14 @@ The system follows a strict **three-layer architecture** to ensure maximum decou
 - Provides manual trigger capability
 - Runs import every minute to check schedule
 
+**StreamingChartCalculationService** ⭐ NEW
+- Calculates fair rankings for streaming charts
+- Implements mathematical algorithm combining:
+  1. **Logarithmic Scaling** - Prevents large artists from dominating
+  2. **Growth Factor** - Rewards trending artists with high weekly growth
+  3. **Engagement Ratio** - Values streams per follower over absolute numbers
+- See [STREAMING_CHART_SERVICE.md](./services/STREAMING_CHART_SERVICE.md) for detailed documentation
+
 ## Configuration
 
 ### Environment Variables
