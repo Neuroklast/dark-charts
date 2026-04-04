@@ -25,6 +25,7 @@ import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { Toaster } from '@/components/ui/sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminArtistManagement } from '@/components/AdminArtistManagement';
+import { ArtistDatabaseManager } from '@/components/ArtistDatabaseManager';
 import { trackEnrichmentService } from '@/services/trackEnrichmentService';
 import { nightlySyncService } from '@/services/nightlySyncService';
 import { useUpcomingTrackPreloader, useVisibleTracksPreloader } from '@/hooks/use-artwork-cache';
@@ -585,7 +586,12 @@ function AppContent() {
                 {currentView === 'profile' && <ProfileView />}
                 {currentView === 'about' && <AboutView />}
                 {currentView === 'custom-charts' && <CustomChartsView />}
-                {currentView === 'admin' && <AdminArtistManagement />}
+                {currentView === 'admin' && (
+                  <div className="space-y-6">
+                    <AdminArtistManagement />
+                    <ArtistDatabaseManager />
+                  </div>
+                )}
                 {currentView === 'profiles-demo' && <ProfilesDemo />}
                 {currentView === 'voting' && (
                   <VotingArea 
