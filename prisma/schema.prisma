@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  LABEL
+  BAND
+  DJ
+  FAN
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  passwordHash  String?
+  role          UserRole      @default(FAN)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  fanProfile    FanProfile?
+  djProfile     DJProfile?
+  bandProfile   BandProfile?
+  labelProfile  LabelProfile?
+  
+  @@index([email])
+  @@index([role])
+}
+
+model FanProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nickname      String
+  avatarUrl     String?
+  credits       Int      @default(150)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  votes         Vote[]
+  
+  @@index([userId])
+}
+
+model DJProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio             String?
+  soundcloudLink  String?
+  expertStatus    Boolean  @default(false)
+  reputationScore Float    @default(0.0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  expertVotes     ExpertVote[]
+  
+  @@index([userId])
+  @@index([expertStatus])
+}
+
+model BandProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artistId    String   @unique
+  artist      Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  members     String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([artistId])
+}
+
+model LabelProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  roster      Artist[]
+  
+  @@index([userId])
+}
+
+model Artist {
+  id              String         @id @default(cuid())
+  name            String
+  spotifyId       String?        @unique
+  genres          String[]
+  bio             String?
+  profileLink     String?
+  imageUrl        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  releases        Release[]
+  bandProfile     BandProfile?
+  labelId         String?
+  label           LabelProfile?  @relation(fields: [labelId], references: [id])
+  
+  @@index([spotifyId])
+  @@index([name])
+  @@index([labelId])
+}
+
+model Release {
+  id                String       @id @default(cuid())
+  title             String
+  releaseType       String
+  releaseDate       DateTime
+  spotifyId         String?      @unique
+  odesliLinks       Json?
+  itunesArtworkUrl  String?
+  vercelBlobUrl     String?
+  artistId          String
+  artist            Artist       @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  chartEntries      ChartEntry[]
+  votes             Vote[]
+  expertVotes       ExpertVote[]
+  
+  @@index([spotifyId])
+  @@index([artistId])
+  @@index([releaseDate])
+}
+
+model ChartEntry {
+  id            String   @id @default(cuid())
+  placement     Int
+  score         Float
+  communityPower Float   @default(0.0)
+  releaseId     String
+  release       Release  @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  chartType     String
+  weekStart     DateTime
+  createdAt     DateTime @default(now())
+  
+  @@index([placement])
+  @@index([createdAt])
+  @@index([releaseId])
+  @@index([chartType])
+  @@index([weekStart])
+}
+
+model Vote {
+  id          String     @id @default(cuid())
+  fanId       String
+  fan         FanProfile @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  releaseId   String
+  release     Release    @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  credits     Int
+  votes       Int
+  createdAt   DateTime   @default(now())
+  
+  @@unique([fanId, releaseId])
+  @@index([fanId])
+  @@index([releaseId])
+  @@index([createdAt])
+}
+
+model ExpertVote {
+  id          String    @id @default(cuid())
+  djId        String
+  dj          DJProfile @relation(fields: [djId], references: [id], onDelete: Cascade)
+  releaseId   String
+  release     Release   @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  rating      Float
+  createdAt   DateTime  @default(now())
+  
+  @@unique([djId, releaseId])
+  @@index([djId])
+  @@index([releaseId])
+  @@index([createdAt])
+}
