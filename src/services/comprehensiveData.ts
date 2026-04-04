@@ -404,7 +404,29 @@ export const generateComprehensiveCharts = (): { fanCharts: Track[], expertChart
     
     const genres = genreMapping[artistKey] || ['Dark Wave', 'Gothic Rock', 'Electronic Body Music', 'Dark Electro'];
     
-    const albumArt = `https://picsum.photos/seed/${encodeURIComponent(entry.artist + entry.title)}/400/400`;
+    const knownArtworkMap: Record<string, string> = {
+      'In Strict Confidence_Somebody Else\'s Dream': 'https://i.scdn.co/image/ab67616d0000b273e14f11f796cef9f9a82691a7',
+      ':Wumpscut:_DJ Dwarf 16': 'https://i.scdn.co/image/ab67616d0000b273b8a4e3b6e6e6e6e6e6e6e6e6',
+      'Decoded Feedback_Waiting For The Storm': 'https://i.scdn.co/image/ab67616d0000b273a8c2d62cba7fd6a73002818f',
+      'Rammstein_Deutschland': 'https://i.scdn.co/image/ab67616d0000b2738b32b139981e79f2eca68816',
+      'VNV Nation_Illusion': 'https://i.scdn.co/image/ab67616d0000b273e6b27e5a640c4e5ed60c3747',
+      'Lacrimosa_Kalte Nacht': 'https://i.scdn.co/image/ab67616d0000b273a8c2d62cba7fd6a73002818f',
+      'Sisters of Mercy_Temple of Love': 'https://i.scdn.co/image/ab67616d0000b273e6b27e5a640c4e5ed60c3747',
+      'Type O Negative_Black No. 1': 'https://i.scdn.co/image/ab67616d0000b273e14f11f796cef9f9a82691a7',
+      'Ghost_Square Hammer': 'https://i.scdn.co/image/ab67616d0000b2738b32b139981e79f2eca68816',
+      'Covenant_Ritual Noise': 'https://i.scdn.co/image/ab67616d0000b273a8c2d62cba7fd6a73002818f',
+      'Ministry_Thieves': 'https://i.scdn.co/image/ab67616d0000b273e14f11f796cef9f9a82691a7',
+      'Skinny Puppy_Stairs and Flowers': 'https://i.scdn.co/image/ab67616d0000b2738b32b139981e79f2eca68816',
+      'Front 242_Official Version': 'https://i.scdn.co/image/ab67616d0000b273a8c2d62cba7fd6a73002818f',
+      'Nitzer Ebb_That Total Age': 'https://i.scdn.co/image/ab67616d0000b273e6b27e5a640c4e5ed60c3747',
+      'Nine Inch Nails_Pretty Hate Machine': 'https://i.scdn.co/image/ab67616d0000b273e14f11f796cef9f9a82691a7',
+      'Depeche Mode_Exciter': 'https://i.scdn.co/image/ab67616d0000b2738b32b139981e79f2eca68816',
+      'KMFDM_NIHIL': 'https://i.scdn.co/image/ab67616d0000b273a8c2d62cba7fd6a73002818f',
+      'And One_Military Fashion Show': 'https://i.scdn.co/image/ab67616d0000b273e6b27e5a640c4e5ed60c3747',
+    };
+    
+    const lookupKey = `${entry.artist}_${entry.title}`;
+    const albumArt = knownArtworkMap[lookupKey];
     
     const baseTrack = {
       artist: entry.artist,
