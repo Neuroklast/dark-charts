@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { DJProfile, Genre, CuratedChart
 import { DJProfile, Genre, CuratedChart } from '@/types';
 import {
-  Sheet,
+  SheetH
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -14,254 +14,249 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import {
-  Microphone,
-  TrendUp,
-  CheckCircle,
-  Crown,
-  SpotifyLogo,
-  AppleLogo,
-  YoutubeLogo,
-  InstagramLogo,
-  TwitterLogo,
-  GlobeHemisphereWest,
-  MusicNotes,
-  ChartLine,
-  Trophy,
-  Users,
-  Target,
-  Eye,
   EyeSlash,
-  ArrowRight,
   Star
-} from '@phosphor-icons/react';
-import { cn } from '@/lib/utils';
-import { SafeImage } from '@/components/SafeImage';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { cn } 
+import {
+import { toast
 
-interface EnhancedDJProfileDrawerProps {
-  profile: DJProfile | null;
-  isOpen: boolean;
-  onClose: () => void;
-  isOwnProfile?: boolean;
+  profile: DJP
+  onClose: () =>
 }
+export function Enhanc
+  const [isLo
+  const [edi
 
-export function EnhancedDJProfileDrawer({ profile, isOpen, onClose, isOwnProfile = false }: EnhancedDJProfileDrawerProps) {
-  const { updateProfile } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedBiography, setEditedBiography] = useState('');
-  const [isPublicProfile, setIsPublicProfile] = useState(false);
-
-  useEffect(() => {
-    if (isOpen && profile) {
-      setIsLoading(true);
-      setEditedBiography(profile.biography || '');
-      setIsPublicProfile(profile.isPublicProfile || false);
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 800);
-    }
-  }, [isOpen, profile]);
-
-  useEffect(() => {
-    if (isOpen && profile?.schemaOrgData) {
-      const script = document.createElement('script');
-      script.type = 'application/ld+json';
-      script.id = 'dj-profile-schema';
-      script.innerHTML = JSON.stringify(profile.schemaOrgData);
+    if (
+      set
+      
+      }, 80
+  }, [isOpen,
+  useE
+      const script = document.c
+      script.id = 'dj-profile-sch
       document.head.appendChild(script);
-
       return () => {
-        const existingScript = document.getElementById('dj-profile-schema');
         if (existingScript) {
-          document.head.removeChild(existingScript);
         }
-      };
     }
-  }, [isOpen, profile]);
 
-  const handleSaveBiography = async () => {
     if (!profile) return;
-    
     try {
-      await updateProfile({
-        ...profile,
-        biography: editedBiography
+        ...profile
       });
-      toast.success('Biography updated successfully');
-      setIsEditing(false);
-    } catch (error) {
-      toast.error('Failed to update biography');
-    }
-  };
+      setIsEditing(false)
+ 
 
   const handleTogglePublicProfile = async (checked: boolean) => {
-    if (!profile) return;
     
-    try {
       setIsPublicProfile(checked);
-      await updateProfile({
         ...profile,
-        isPublicProfile: checked
       });
-      toast.success(checked ? 'Profile is now public' : 'Profile is now private');
     } catch (error) {
-      toast.error('Failed to update privacy settings');
-      setIsPublicProfile(!checked);
-    }
+
   };
+  const getPlatformIcon = (p
+    if (normalizedPlatfor
+    if (normalizedPlatform.includes('youtube')) re
+    if (normalizedPlatform.includes('twitter') || normalize
+    return <GlobeHemisph
 
-  const getPlatformIcon = (platform: string) => {
-    const normalizedPlatform = platform.toLowerCase();
-    if (normalizedPlatform.includes('spotify')) return <SpotifyLogo weight="fill" className="w-4 h-4" />;
-    if (normalizedPlatform.includes('apple')) return <AppleLogo weight="fill" className="w-4 h-4" />;
-    if (normalizedPlatform.includes('youtube')) return <YoutubeLogo weight="fill" className="w-4 h-4" />;
-    if (normalizedPlatform.includes('instagram')) return <InstagramLogo weight="fill" className="w-4 h-4" />;
-    if (normalizedPlatform.includes('twitter') || normalizedPlatform.includes('x.com')) return <TwitterLogo weight="fill" className="w-4 h-4" />;
-    if (normalizedPlatform.includes('website') || normalizedPlatform.includes('mixcloud')) return <GlobeHemisphereWest weight="fill" className="w-4 h-4" />;
-    return <GlobeHemisphereWest weight="fill" className="w-4 h-4" />;
-  };
 
-  if (!profile) return null;
+  con
+  const subgenreAccuracy
 
-  const reputationPercentage = (profile.reputation / 100) * 100;
-  const expertWeight = profile.expertWeight || 1.0;
-  const predictivePower = profile.predictivePower;
-  const subgenreAccuracy = profile.subgenreAccuracy || {};
-  const curatedCharts = profile.curatedCharts || [];
-  const earnedBadges = profile.earnedBadges || [];
-  const nextBadgeProgress = profile.nextBadgeProgress;
 
-  const topSubgenres = Object.entries(subgenreAccuracy)
     .sort((a, b) => {
-      const aData = a[1];
       const bData = b[1];
-      return bData.accuracy - aData.accuracy;
     })
-    .slice(0, 5)
-    .map(([genre, data]) => ({ genre, data }));
-
+    .map(([genre, data]) => ({ genre, 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto bg-background border-l border-accent" side="right">
-        <SheetHeader className="border-b border-border pb-4">
-          <div className="flex items-start gap-4">
-            <div className="relative">
-              {profile.avatarUrl ? (
-                <div className="border-2 border-accent overflow-hidden">
-                  <SafeImage
-                    src={profile.avatarUrl}
-                    alt={profile.username}
-                    width={80}
-                    height={80}
-                    className="object-cover"
-                    priority={true}
-                  />
-                </div>
-              ) : (
-                <div className="w-20 h-20 bg-secondary border-2 border-accent flex items-center justify-center">
-                  <span className="display-font text-2xl text-muted-foreground">
-                    {profile.username.substring(0, 2).toUpperCase()}
-                  </span>
-                </div>
-              )}
-              <div className="absolute -bottom-2 -right-2 bg-accent p-1.5 shadow-lg">
-                <Crown weight="fill" className="w-4 h-4 text-background" />
-              </div>
-            </div>
-            <div className="flex-1">
-              <SheetTitle className="display-font text-2xl uppercase tracking-tight text-foreground mb-1">
-                {profile.username}
-              </SheetTitle>
-              <div className="flex items-center gap-2 mb-2">
-                <BadgeUI variant="outline" className="font-ui text-[10px] uppercase tracking-widest border-accent text-accent">
-                  DJ / Curator
-                </BadgeUI>
-                {isOwnProfile && (
-                  <BadgeUI variant="outline" className="font-ui text-[10px] uppercase tracking-widest border-primary text-primary">
-                    You
-                  </BadgeUI>
-                )}
-              </div>
-              {!isEditing ? (
-                <div>
-                  {profile.biography && (
-                    <p className="font-ui text-xs text-muted-foreground leading-relaxed mb-2">
-                      {profile.biography}
-                    </p>
-                  )}
-                  {isOwnProfile && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsEditing(true)}
-                      className="h-6 px-2 text-[10px] uppercase tracking-wider"
-                    >
-                      Edit Bio
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Textarea
-                    value={editedBiography}
-                    onChange={(e) => setEditedBiography(e.target.value)}
-                    placeholder="Describe your expertise and involvement in the scene..."
-                    className="font-ui text-xs min-h-[80px]"
-                    maxLength={500}
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={handleSaveBiography}
-                      className="h-7 px-3 text-[10px] uppercase tracking-wider"
-                    >
-                      Save
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setEditedBiography(profile.biography || '');
-                      }}
-                      className="h-7 px-3 text-[10px] uppercase tracking-wider"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </SheetHeader>
+      <SheetContent className="w-full sm
 
-        <div className="space-y-6 py-6">
-          {isOwnProfile && (
-            <Card className="bg-secondary/50 border border-border p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    {isPublicProfile ? <Eye weight="duotone" className="w-4 h-4 text-accent" /> : <EyeSlash weight="duotone" className="w-4 h-4 text-muted-foreground" />}
-                    <Label htmlFor="public-profile" className="font-ui text-xs uppercase tracking-wider text-foreground cursor-pointer">
-                      Public Profile
-                    </Label>
-                  </div>
-                  <p className="font-ui text-[10px] text-muted-foreground leading-relaxed">
-                    {isPublicProfile 
-                      ? 'Your profile is visible to others. Your votes count and you appear in Top Supporters.'
-                      : 'Profile is private. Your votes count, but you remain completely anonymous.'}
-                  </p>
-                </div>
-                <Switch
-                  id="public-profile"
-                  checked={isPublicProfile}
-                  onCheckedChange={handleTogglePublicProfile}
-                />
+              {profi
+                  <SafeImage
+                    alt={prof
+                    height={80}
+         
+        
+     
+                    {pro
+
+              <div className="absolute -bot
               </div>
+    
+         
+              <div classNam
+                  D
+                {isOwnProfile && (
+         
+                )}
+              {!isEditing 
+                  {pr
+                      {profile.biography}
+     
+    
+
+                      className="h-6 px-2 text-[10px] uppercase t
+                      Edi
+    
+         
+                  <Textarea
+                    onChang
+                   
+                  />
+         
+                      onClick={handleSaveBiography}
+                    >
+                    </Button>
+                      variant="outl
+     
+    
+
+                      Cancel
+                  </div>
+              )}
+          </div>
+
+          {isOwnProfile && (
+              <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Label htmlFor="public-profile" className="font-u
+    
+
+                      ? 'You
+
+                <Switch
+                  checked={isPublicProfile}
+                />
+            </Card>
+
+            <div className="flex items-center just
+                <ChartLine weight="duotone" className=
+
+                {profile.reputation}/100
+            </div>
+            <p cl
+
+          
+                  Expert Weight
+                <p className="data-font text-lg font-bold text-foreground">
+                </p>
+                  Vote multiplier
+              </div>
+                <p className="font-u
+                </p>
+                  {profile.r
+                <p className="font-ui text-
+                </p>
+            </div>
+
+            <div>
+                <TrendUp weight="du
+              </div>
+              <Card cl
+                  <
+                      Accuracy
+                    <p className="data-font text-2xl font-bold text-accent">
+                    </p>
+                  <div cl
+                      
+                
+                    </p>
+                  <div className="text-center">
+              </div>
+                  
+                    </p>
+                </div>
+              </Card>
+              {isLoading ? 
+                  {[0, 1, 2, 3, 4].map((i) => (
+                  ))}
+              ) : predictivePo
+                  <p class
+                  </p>
+                    <motion.div
+                      i
+                      transi
+                  
+                    
+                            <
+                     
+                              {prediction
+                            <div className="flex items-center gap-3 mt-2 text-[10px] font-ui t
+                              <span>•</sp
+                        
+                    
+                    </motion.div>
+                </div>
+                <Card className="bg-s
+                  <p className=
+                  </p>
+              )}
+          )}
+          {topSubgenres.length
+              <div className=
+                <h3 
+
+                <di
+                    <div key={i} className=
+                      <div 
+                  ))}
+              ) : (
+                  <p className="font-ui text-xs text-muted-foreground mb-3 uppercase trac
+                  </p>
+                    {topSubgenres.m
+                    
+                        animate={{ opacity: 1,
+                        cla
+                        <div cl
+                            {genre}
+                          <div className="flex items-center gap-2">
+                     
+                          
+                            <
+                        </d
+                      </motion.div>
+                  </div>
+              )}
+          )}
+          {curatedCharts.length > 0 && (
+              <div class
+                <h3 className="display-font text-sm uppercase tracking-tight te
+
+                <div classNa
+                    <div key=
+                </div>
+                <div c
+                
+                  
+                
+                      
+
+                              <p classNa
+                            
+                                <Eye weight="duotone" className="w-3 h-
+                            </div>
+                              <p classNa
+                              </p>
+                            <div className="flex items-center gap-3 text-[10px] font-ui text-muted-foreground uppercase tracking-wider">
+                              <span>•</span>
+                              <span>
+                            
+                        
+                            variant="outline"
+                          >
+                          </Button>
+                      </Card>
+                  ))}
+              )}
+          )}
+          {earnedBadges.length > 0 &&
+              <div className="flex items-ce
+                <h3 className="display-font text-sm uppercase
+
+                {ear
             </Card>
           )}
 
@@ -414,7 +409,7 @@ export function EnhancedDJProfileDrawer({ profile, isOpen, onClose, isOwnProfile
                     Accuracy across {Object.keys(subgenreAccuracy).length} subgenres
                   </p>
                   <div className="space-y-3">
-                    {topSubgenres.map(({ genre, data }, index) => (
+                    {topSubgenres.map(([genre, data], index) => (
                       <motion.div
                         key={genre}
                         initial={{ opacity: 0, y: 10 }}
@@ -527,19 +522,19 @@ export function EnhancedDJProfileDrawer({ profile, isOpen, onClose, isOwnProfile
                         {badge.name}
                       </p>
                       <p className="font-ui text-[10px] text-muted-foreground leading-tight">
-                        {badge.description}
-                      </p>
+
+
                       <p className="font-ui text-[9px] text-muted-foreground uppercase tracking-widest mt-2">
                         Earned {new Date(badge.earnedAt).toLocaleDateString()}
                       </p>
                     </Card>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {isOwnProfile && nextBadgeProgress && (
+                ))}
+
+            </div>
+
+
+
             <Card className="bg-secondary/50 border border-border p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Star weight="duotone" className="w-4 h-4 text-accent" />
@@ -549,7 +544,7 @@ export function EnhancedDJProfileDrawer({ profile, isOpen, onClose, isOwnProfile
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-[10px] font-ui text-muted-foreground">
                   <span>{nextBadgeProgress.currentProgress} / {nextBadgeProgress.requiredProgress}</span>
-                  <span>{nextBadgeProgress.percentageComplete.toFixed(0)}%</span>
+
                 </div>
                 <Progress value={nextBadgeProgress.percentageComplete} className="h-2" />
               </div>
@@ -559,27 +554,27 @@ export function EnhancedDJProfileDrawer({ profile, isOpen, onClose, isOwnProfile
           {!isOwnProfile && (
             <div className="flex items-center gap-3 pt-4">
               <Button className="flex-1 font-ui uppercase tracking-wider" size="lg">
-                <Users weight="bold" className="w-4 h-4 mr-2" />
-                Follow DJ
-              </Button>
-            </div>
-          )}
 
-          {isOwnProfile && (
+                Follow DJ
+
+            </div>
+
+
+
             <Card className="bg-secondary/30 border border-border p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Users weight="duotone" className="w-4 h-4 text-accent" />
                 <h4 className="font-ui text-xs uppercase tracking-wider text-foreground">Your Following</h4>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
                 <div>
-                  <p className="data-font text-2xl font-bold text-foreground">
+
                     {profile.followerIds?.length || 0}
-                  </p>
+
                   <p className="font-ui text-[10px] text-muted-foreground uppercase tracking-wider">
                     Followers
                   </p>
-                </div>
+
                 <div>
                   <p className="data-font text-2xl font-bold text-foreground">
                     {profile.followingIds?.length || 0}
@@ -589,11 +584,11 @@ export function EnhancedDJProfileDrawer({ profile, isOpen, onClose, isOwnProfile
                   </p>
                 </div>
               </div>
-            </Card>
+
           )}
 
           {profile.externalLinks && profile.externalLinks.length > 0 && (
-            <div>
+
               <h3 className="display-font text-sm uppercase tracking-tight text-foreground mb-3">Social Links</h3>
               <div className="flex flex-wrap gap-2">
                 {profile.externalLinks.map((link, index) => (
@@ -611,17 +606,17 @@ export function EnhancedDJProfileDrawer({ profile, isOpen, onClose, isOwnProfile
                     </a>
                   </Button>
                 ))}
-              </div>
-            </div>
-          )}
 
-          <div className="pt-4 border-t border-border">
+            </div>
+
+
+
             <p className="data-font text-[9px] text-muted-foreground uppercase tracking-widest">
               Curator since {new Date(profile.createdAt).toLocaleDateString()}
             </p>
           </div>
         </div>
-      </SheetContent>
+
     </Sheet>
-  );
+
 }
