@@ -12,6 +12,8 @@ import { Badge as BadgeUI } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Coins,
   Trophy,
@@ -22,7 +24,9 @@ import {
   InstagramLogo,
   TwitchLogo,
   X,
-  CheckCircle
+  CheckCircle,
+  Eye,
+  EyeSlash
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { SafeImage } from '@/components/SafeImage';
@@ -31,6 +35,7 @@ interface FanProfileDrawerProps {
   profile: FanProfile | null;
   isOpen: boolean;
   onClose: () => void;
+  onUpdateProfile?: (updates: Partial<FanProfile>) => Promise<void>;
 }
 
 interface ContributionDay {
@@ -39,9 +44,17 @@ interface ContributionDay {
   level: 0 | 1 | 2 | 3 | 4;
 }
 
-export function FanProfileDrawer({ profile, isOpen, onClose }: FanProfileDrawerProps) {
+export function FanProfileDrawer({ profile, isOpen, onClose, onUpdateProfile }: FanProfileDrawerProps) {
   const [contributionData, setContributionData] = useState<ContributionDay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPublicProfile, setIsPublicProfile] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setIsPublicProfile(profile.isPublicProfile || false);
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (isOpen && profile) {
@@ -286,6 +299,46 @@ export function FanProfileDrawer({ profile, isOpen, onClose }: FanProfileDrawerP
               </div>
             </div>
           )}
+
+          <Card className="bg-secondary/30 border border-border p-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {isPublicProfile ? (
+                    <Eye weight="duotone" className="w-5 h-5 text-accent" />
+                  ) : (
+                    <EyeSlash weight="duotone" className="w-5 h-5 text-muted-foreground" />
+                  )}
+                  <div>
+                    <Label htmlFor="public-profile" className="display-font text-sm uppercase tracking-tight text-foreground cursor-pointer">
+                      Profil öffentlich machen
+                    </Label>
+                    <p className="font-ui text-[10px] text-muted-foreground leading-relaxed mt-1">
+                      Wenn deaktiviert, zählen deine Votes weiterhin, aber du bleibst komplett anonym.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="public-profile"
+                  checked={isPublicProfile}
+                  onCheckedChange={async (checked) => {
+                    if (onUpdateProfile) {
+                      setIsUpdating(true);
+                      try {
+                        await onUpdateProfile({ isPublicProfile: checked });
+                        setIsPublicProfile(checked);
+                      } catch (error) {
+                        console.error('Failed to update profile visibility:', error);
+                      } finally {
+                        setIsUpdating(false);
+                      }
+                    }
+                  }}
+                  disabled={isUpdating}
+                />
+              </div>
+            </div>
+          </Card>
 
           <div className="pt-4 border-t border-border">
             <p className="data-font text-[9px] text-muted-foreground uppercase tracking-widest">

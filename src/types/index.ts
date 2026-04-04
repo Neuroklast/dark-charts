@@ -46,6 +46,15 @@ export interface Track {
   odesliData?: OdesliData;
   community_power?: number;
   trend_direction?: 'up' | 'down' | 'stable' | 'new';
+  topSupporters?: TrackSupporter[];
+}
+
+export interface TrackSupporter {
+  userId: string;
+  username: string;
+  avatarUrl?: string;
+  voteCount: number;
+  userType: 'fan' | 'dj';
 }
 
 export interface OdesliData {
@@ -142,6 +151,7 @@ export interface BaseUserProfile {
   externalLinks: ExternalLink[];
   displayedBadges: string[];
   allBadges: Badge[];
+  isPublicProfile: boolean;
   createdAt: number;
   updatedAt: number;
 }
