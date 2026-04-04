@@ -21,39 +21,7 @@ export function AlbumArtwork({
   showLoadingIndicator = true
 }: AlbumArtworkProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [isLoading, setIsLoading] = useState(!!src);
-  const [hasError, setHasError] = useState(false);
-  const [loadedSrc, setLoadedSrc] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    if (!src) {
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setHasError(false);
-
-    const img = new Image();
-    
-    img.onload = () => {
-      setLoadedSrc(src);
-      setIsLoading(false);
-      artworkCacheService.preloadArtwork(src);
-    };
-
-    img.onerror = () => {
-      setHasError(true);
-      setIsLoading(false);
-    };
-
-    img.src = src;
-
-    return () => {
-      img.onload = null;
-      img.onerror = null;
-    };
-  }, [src]);
+  const [imageError, setImageError] = useState(false);
 
   const sizeClasses = {
     small: 'w-16 h-16',
@@ -75,6 +43,7 @@ export function AlbumArtwork({
   };
 
   const placeholderText = artist.charAt(0).toUpperCase();
+  const hasValidSrc = src && src.trim().length > 0;
 
   return (
     <div 
@@ -82,18 +51,16 @@ export function AlbumArtwork({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {isLoading && showLoadingIndicator ? (
-        <div className="w-full h-full aspect-square bg-secondary border-2 border-border flex items-center justify-center animate-pulse">
-          <div className="w-3 h-3 bg-muted-foreground/30 rounded-full animate-ping" />
-        </div>
-      ) : loadedSrc && !hasError ? (
+      {hasValidSrc && !imageError ? (
         <div className={`relative w-full h-full aspect-square overflow-hidden ${isHovered ? 'chromatic-hover' : ''}`}>
           <img
-            src={loadedSrc}
+            src={src}
             alt={alt}
             className={`w-full h-full object-cover instant-transition ${getGlowClass()} ${
               isHovered ? 'scale-110' : 'scale-100'
             }`}
+            onError={() => setImageError(true)}
+            loading="lazy"
             style={{
               imageRendering: 'crisp-edges'
             }}
