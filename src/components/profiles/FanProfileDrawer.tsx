@@ -25,6 +25,7 @@ import {
   CheckCircle
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
+import { SafeImage } from '@/components/SafeImage';
 
 interface FanProfileDrawerProps {
   profile: FanProfile | null;

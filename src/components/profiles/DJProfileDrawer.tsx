@@ -26,6 +26,7 @@ import {
   ChartLine
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
+import { SafeImage } from '@/components/SafeImage';
 
 interface DJProfileDrawerProps {
   profile: DJProfile | null;
@@ -88,11 +89,16 @@ export function DJProfileDrawer({ profile, isOpen, onClose }: DJProfileDrawerPro
           <div className="flex items-start gap-4">
             <div className="relative">
               {profile.avatarUrl ? (
-                <img
-                  src={profile.avatarUrl}
-                  alt={profile.username}
-                  className="w-20 h-20 object-cover border-2 border-accent"
-                />
+                <div className="border-2 border-accent overflow-hidden">
+                  <SafeImage
+                    src={profile.avatarUrl}
+                    alt={profile.username}
+                    width={80}
+                    height={80}
+                    className="object-cover"
+                    priority={true}
+                  />
+                </div>
               ) : (
                 <div className="w-20 h-20 bg-secondary border-2 border-accent flex items-center justify-center">
                   <span className="display-font text-2xl text-muted-foreground">

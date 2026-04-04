@@ -19,6 +19,7 @@ import {
 import { Slider } from '@/components/ui/slider';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { VotingAreaSkeleton } from '@/components/skeletons';
+import { AlbumArtwork } from './AlbumArtwork';
 
 interface VotingAreaProps {
   allTracks: Track[];
@@ -326,18 +327,19 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                         </div>
                       </div>
 
-                      {track.albumArt && (
-                        <div 
-                          className="w-20 h-20 bg-muted cursor-pointer shrink-0 hover:opacity-80 transition-opacity"
-                          onClick={() => onTrackClick(track)}
-                        >
-                          <img
-                            src={track.albumArt}
-                            alt={track.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
+                      <div 
+                        className="shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => onTrackClick(track)}
+                      >
+                        <AlbumArtwork
+                          src={track.albumArt}
+                          alt={`${track.artist} - ${track.title}`}
+                          artist={track.artist}
+                          title={track.title}
+                          size="medium"
+                          glowColor="primary"
+                        />
+                      </div>
 
                       <div className="flex-1 min-w-0 space-y-3">
                         <div>

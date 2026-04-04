@@ -27,6 +27,7 @@ import {
   Buildings
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
+import { SafeImage } from '@/components/SafeImage';
 
 interface ArtistProfileDrawerProps {
   profile: BandProfile | null;
@@ -77,11 +78,16 @@ export function ArtistProfileDrawer({ profile, isOpen, onClose }: ArtistProfileD
             }}
           />
           {profile.avatarUrl && (
-            <img
-              src={profile.avatarUrl}
-              alt={profile.username}
-              className="absolute inset-0 w-full h-full object-cover opacity-40"
-            />
+            <div className="absolute inset-0 opacity-40">
+              <SafeImage
+                src={profile.avatarUrl}
+                alt={profile.username}
+                width={800}
+                height={192}
+                className="w-full h-full object-cover"
+                priority={true}
+              />
+            </div>
           )}
         </div>
 
@@ -89,11 +95,16 @@ export function ArtistProfileDrawer({ profile, isOpen, onClose }: ArtistProfileD
           <div className="flex items-end gap-4 mb-6">
             <div className="relative">
               {profile.avatarUrl ? (
-                <img
-                  src={profile.avatarUrl}
-                  alt={profile.username}
-                  className="w-32 h-32 object-cover border-4 border-background shadow-lg"
-                />
+                <div className="border-4 border-background shadow-lg overflow-hidden">
+                  <SafeImage
+                    src={profile.avatarUrl}
+                    alt={profile.username}
+                    width={128}
+                    height={128}
+                    className="object-cover"
+                    priority={true}
+                  />
+                </div>
               ) : (
                 <div className="w-32 h-32 bg-secondary border-4 border-background shadow-lg flex items-center justify-center">
                   <span className="display-font text-4xl text-muted-foreground">
