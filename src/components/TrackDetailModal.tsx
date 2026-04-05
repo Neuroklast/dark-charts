@@ -4,7 +4,7 @@ import { Track, MainGenre, Genre, ChartType, TrackSupporter } from '@/types';
 import { 
   X, Play, CaretUp, CaretDown, Info, ArrowRight, 
   SpotifyLogo, AppleLogo, YoutubeLogo, AmazonLogo,
-  SoundcloudLogo, TidalLogo, MusicNote, Users
+  SoundcloudLogo, TidalLogo, MusicNote, Users, ShareFat
 } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { audioPlayerService } from '@/services/audioPlayerService';
 import { useTrackData } from '@/hooks/use-track-data';
+import { TrackShareCard } from '@/components/TrackShareCard';
+import { toBlob } from 'html-to-image';
+import { toast } from 'sonner';
 
 interface ChartPosition {
   chartName: string;
@@ -39,8 +42,10 @@ interface TrackDetailModalProps {
 export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, allChartPositions = [], onNavigateToChart }: TrackDetailModalProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const shareCardRef = useRef<HTMLDivElement>(null);
   const [artworkLoaded, setArtworkLoaded] = useState(false);
   const [spotifyLoaded, setSpotifyLoaded] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   
   const {
     enrichedTrack,
@@ -97,6 +102,52 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
     if (onNavigateToChart) {
       onNavigateToChart(position.chartType, position.mainGenre, position.subGenre);
       onClose();
+    }
+  };
+
+  const handleSharePlacements = async () => {
+    if (!shareCardRef.current || !track) return;
+
+    setIsGeneratingImage(true);
+
+    try {
+      const blob = await toBlob(shareCardRef.current, {
+        quality: 1,
+        pixelRatio: 2,
+        cacheBust: true,
+      });
+
+      if (!blob) {
+        throw new Error('Failed to generate image');
+      }
+
+      const file = new File([blob], `dark-charts-${track.artist}-${track.title}.png`, {
+        type: 'image/png',
+      });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `${track.title} - ${track.artist} on Dark Charts`,
+          text: `Check out ${track.title} by ${track.artist} on Dark Charts!`,
+        });
+        toast.success('Chart positions shared successfully!');
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `dark-charts-${track.artist}-${track.title}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success('Image downloaded successfully!');
+      }
+    } catch (error) {
+      console.error('Failed to share chart positions:', error);
+      toast.error('Failed to generate share image. Please try again.');
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -339,6 +390,24 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                               </button>
                             ))}
                           </div>
+                          <Button
+                            onClick={handleSharePlacements}
+                            disabled={isGeneratingImage}
+                            className="w-full mt-3 font-ui uppercase tracking-wider"
+                            variant="outline"
+                          >
+                            {isGeneratingImage ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <ShareFat size={18} weight="fill" className="mr-2" />
+                                Share Placements
+                              </>
+                            )}
+                          </Button>
                         </div>
                       )}
 
@@ -547,6 +616,25 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                 </div>
               </motion.div>
             </div>
+          </div>
+
+          <div 
+            ref={shareCardRef}
+            className="fixed pointer-events-none"
+            style={{
+              position: 'fixed',
+              left: '-9999px',
+              top: '-9999px',
+              zIndex: -1,
+            }}
+          >
+            {track && artworkUrl && (
+              <TrackShareCard
+                track={track}
+                artworkUrl={artworkUrl}
+                chartPositions={allChartPositions}
+              />
+            )}
           </div>
         </>
       )}
