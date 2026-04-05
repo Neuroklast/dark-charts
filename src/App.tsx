@@ -608,7 +608,7 @@ function AppContent() {
             )}
 
             <main id="main-content" className="w-full px-4 md:px-8 py-8">
-              <div className="mx-auto max-w-7xl">
+              <div className="mx-auto max-w-5xl">
                 <ErrorBoundary level="component">
                   {currentView === 'profile' && <ProfileView />}
                   {currentView === 'about' && <AboutView />}
