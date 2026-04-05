@@ -3,179 +3,126 @@ import { Separator } from '@/components/ui/separator';
 
 export function PrivacyPolicyView() {
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
-      <Card className="bg-card border border-border p-8">
-        <h1 className="font-display text-3xl uppercase text-foreground mb-8 tracking-tight">
-          Datenschutzerklärung / Privacy Policy
-        </h1>
+    <div className="w-full max-w-4xl mx-auto space-y-8 py-8 px-4">
+      <div className="space-y-2">
+        <h1 className="font-display text-3xl uppercase text-foreground">Datenschutzerklärung</h1>
+        <p className="text-muted-foreground text-sm">Stand: April 2026</p>
+      </div>
 
-        <div className="space-y-8 font-ui text-sm text-muted-foreground leading-relaxed">
+      <Card className="p-6 bg-card border-border">
+        <div className="space-y-8">
+          {/* 1. Verantwortliche Stelle */}
           <section>
             <h2 className="font-display text-xl uppercase text-foreground mb-4">1. Verantwortliche Stelle</h2>
-            <p>
+            <p className="text-muted-foreground leading-relaxed">
               Die verantwortliche Stelle für die Datenverarbeitung auf dieser Website ist im Impressum angegeben.
             </p>
           </section>
 
           <Separator />
 
+          {/* 2. Erfassung und Authentifizierung */}
           <section>
-            <h2 className="font-display text-xl uppercase text-foreground mb-4">2. Erfassung allgemeiner Informationen</h2>
-            <p className="mb-4">
-              Beim Aufruf dieser Website werden durch den Internet-Browser automatisch Informationen an unseren Server übermittelt. 
-              Diese Informationen werden temporär in einem sogenannten Logfile gespeichert.
+            <h2 className="font-display text-xl uppercase text-foreground mb-4">2. Spotify-Authentifizierung</h2>
+            <p className="mb-4 text-muted-foreground leading-relaxed">
+              Wir bieten Ihnen die Möglichkeit, sich über Spotify zu authentifizieren. Dabei werden folgende Daten von Spotify übertragen:
             </p>
-            <p className="mb-4">
-              Folgende Informationen werden dabei ohne Ihr Zutun erfasst und bis zur automatisierten Löschung gespeichert:
-            </p>
-            <ul className="list-disc list-inside space-y-2 ml-4">
-              <li>IP-Adresse des anfragenden Rechners</li>
-              <li>Datum und Uhrzeit des Zugriffs</li>
-              <li>Name und URL der abgerufenen Datei</li>
-              <li>Website, von der aus der Zugriff erfolgt (Referrer-URL)</li>
-              <li>Verwendeter Browser und ggf. das Betriebssystem Ihres Rechners</li>
-            </ul>
-          </section>
-
-          <Separator />
-
-          <section>
-            <h2 className="font-display text-xl uppercase text-foreground mb-4">3. OAuth-Authentifizierung (Spotify)</h2>
-            <p className="mb-4">
-              Wir bieten Ihnen die Möglichkeit, sich über Spotify zu authentifizieren. Dabei werden folgende Daten von Spotify übermittelt:
-            </p>
-            <ul className="list-disc list-inside space-y-2 ml-4">
-              <li>Spotify-Benutzer-ID</li>
+            <ul className="list-disc list-inside space-y-2 ml-4 text-muted-foreground">
               <li>E-Mail-Adresse</li>
-              <li>Profilbild (falls vorhanden)</li>
               <li>Öffentlicher Benutzername</li>
+              <li>Spotify-Benutzer-ID</li>
             </ul>
-            <p className="mt-4">
-              Diese Daten werden zur Erstellung und Verwaltung Ihres Accounts auf unserer Plattform verwendet. 
-              Die Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).
+            <p className="mt-4 text-sm text-muted-foreground italic">
+              Die Rechtsgrundlage für die Verarbeitung ist Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).
             </p>
           </section>
 
           <Separator />
 
+          {/* 3. Voting-Daten */}
           <section>
-            <h2 className="font-display text-xl uppercase text-foreground mb-4">4. Nutzungsdaten und Voting</h2>
-            <p className="mb-4">
-              Wenn Sie auf unserer Plattform Votes abgeben, werden diese Daten gespeichert, um die Charts zu berechnen. 
-              Folgende Informationen werden erfasst:
+            <h2 className="font-display text-xl uppercase text-foreground mb-4">3. Erfassung von Voting-Daten</h2>
+            <p className="mb-4 text-muted-foreground leading-relaxed">
+              Um die Charts zu generieren, werden bei jeder Stimmabgabe folgende Informationen erfasst:
             </p>
-            <ul className="list-disc list-inside space-y-2 ml-4">
-              <li>Benutzer-ID (pseudonymisiert)</li>
+            <ul className="list-disc list-inside space-y-2 ml-4 text-muted-foreground">
               <li>Track-ID des bewerteten Songs</li>
-              <li>Anzahl der eingesetzten Voting-Credits</li>
               <li>Zeitstempel des Votings</li>
+              <li>IP-Adresse (anonymisiert, zur Missbrauchsprävention)</li>
             </ul>
-            <p className="mt-4">
-              Diese Daten werden zur Berechnung der Fan Charts verwendet. Nach Löschung Ihres Accounts werden die Votes anonymisiert, 
-              um die historische Integrität der Charts zu bewahren.
-            </p>
           </section>
 
           <Separator />
 
+          {/* 4. Hosting & Infrastruktur */}
           <section>
-            <h2 className="font-display text-xl uppercase text-foreground mb-4">5. Auftragsverarbeiter</h2>
-            <p className="mb-4">
-              Wir nutzen folgende externe Dienstleister zur Bereitstellung unserer Services:
+            <h2 className="font-display text-xl uppercase text-foreground mb-4">4. Infrastruktur & Hosting</h2>
+            <p className="mb-4 text-muted-foreground leading-relaxed">
+              Unsere Dienste werden bei folgenden Anbietern betrieben:
             </p>
-            <ul className="list-disc list-inside space-y-2 ml-4">
-              <li><strong>Vercel Inc.</strong> (Hosting und CDN) - USA, Privacy Shield zertifiziert</li>
-              <li><strong>Neon</strong> (Datenbank-Hosting) - EU-basiert</li>
-              <li><strong>Upstash</strong> (Redis Cache) - EU-basiert</li>
-              <li><strong>Spotify AB</strong> (OAuth und Musik-Metadaten) - Schweden</li>
-              <li><strong>Stripe Inc.</strong> (Zahlungsabwicklung für Werbeplätze) - USA, DSGVO-konform</li>
+            <ul className="list-disc list-inside space-y-2 ml-4 text-muted-foreground">
+              <li><strong>Vercel</strong> (Hosting & Edge Functions) - Globaler Anbieter</li>
+              <li><strong>Upstash</strong> (Redis Cache) - EU-basierter Datenspeicher</li>
             </ul>
-            <p className="mt-4">
-              Mit allen Dienstleistern wurden Auftragsverarbeitungsverträge (AVV) gemäß Art. 28 DSGVO geschlossen.
-            </p>
           </section>
 
           <Separator />
 
+          {/* 5. Cookies */}
           <section>
-            <h2 className="font-display text-xl uppercase text-foreground mb-4">6. Cookies und Tracking</h2>
-            <p className="mb-4">
-              Unsere Website verwendet Cookies, um die Benutzerfreundlichkeit zu verbessern. Cookies sind kleine Textdateien, 
-              die auf Ihrem Gerät gespeichert werden.
+            <h2 className="font-display text-xl uppercase text-foreground mb-4">5. Cookies & Lokale Speicherung</h2>
+            <p className="mb-4 text-muted-foreground leading-relaxed">
+              Wir verwenden technisch notwendige Cookies und den Local Storage Ihres Browsers:
             </p>
-            <p className="mb-4">
-              Wir verwenden folgende Arten von Cookies:
-            </p>
-            <ul className="list-disc list-inside space-y-2 ml-4">
-              <li><strong>Technisch notwendige Cookies:</strong> Session-Management, Authentifizierung</li>
-              <li><strong>Funktionale Cookies:</strong> Speicherung von Einstellungen (Theme, Sprache)</li>
-              <li><strong>Drittanbieter-Cookies:</strong> Spotify-Embeds, Stripe-Zahlungsformulare</li>
+            <ul className="list-disc list-inside space-y-2 ml-4 text-muted-foreground">
+              <li>Session-Tokens zur Aufrechterhaltung des Logins</li>
+              <li>Präferenzen wie Sprach- oder Designeinstellungen</li>
             </ul>
-            <p className="mt-4">
-              Sie können Ihren Browser so einstellen, dass Cookies blockiert werden. Dies kann jedoch die Funktionalität der Website einschränken.
-            </p>
           </section>
 
           <Separator />
 
+          {/* 6. Ihre Rechte */}
           <section>
-            <h2 className="font-display text-xl uppercase text-foreground mb-4">7. Ihre Rechte (DSGVO)</h2>
-            <p className="mb-4">
-              Sie haben folgende Rechte bezüglich Ihrer personenbezogenen Daten:
-            </p>
-            <ul className="list-disc list-inside space-y-2 ml-4">
-              <li><strong>Recht auf Auskunft</strong> (Art. 15 DSGVO): Sie können eine Kopie aller über Sie gespeicherten Daten anfordern</li>
-              <li><strong>Recht auf Berichtigung</strong> (Art. 16 DSGVO): Korrektur falscher Daten</li>
-              <li><strong>Recht auf Löschung</strong> (Art. 17 DSGVO): "Right to be forgotten" - siehe Profil-Einstellungen</li>
-              <li><strong>Recht auf Datenübertragbarkeit</strong> (Art. 20 DSGVO): Export Ihrer Daten als JSON</li>
-              <li><strong>Recht auf Widerspruch</strong> (Art. 21 DSGVO): Widerspruch gegen die Verarbeitung</li>
+            <h2 className="font-display text-xl uppercase text-foreground mb-4">6. Ihre Rechte</h2>
+            <ul className="list-disc list-inside space-y-3 ml-4 text-muted-foreground">
+              <li><strong>Recht auf Auskunft</strong> (Art. 15 DSGVO): Sie können eine Kopie Ihrer Daten anfordern.</li>
+              <li><strong>Recht auf Löschung</strong> (Art. 17 DSGVO): Sie können die Löschung Ihres Kontos verlangen.</li>
+              <li><strong>Widerspruchsrecht</strong>: Sie können der künftigen Verarbeitung widersprechen.</li>
             </ul>
-            <p className="mt-4">
-              Diese Funktionen stehen Ihnen direkt in Ihrem Profil zur Verfügung. Alternativ können Sie sich per E-Mail an uns wenden.
-            </p>
           </section>
 
           <Separator />
 
+          {/* 7. Speicherdauer */}
           <section>
-            <h2 className="font-display text-xl uppercase text-foreground mb-4">8. Speicherdauer</h2>
-            <p className="mb-4">
-              Wir speichern Ihre Daten nur so lange, wie es für die jeweiligen Zwecke erforderlich ist:
-            </p>
-            <ul className="list-disc list-inside space-y-2 ml-4">
-              <li>Account-Daten: Bis zur Löschung des Accounts</li>
-              <li>Voting-Historie: Anonymisiert nach Account-Löschung, historisch archiviert für Chart-Integrität</li>
-              <li>Zahlungsdaten: 10 Jahre (gesetzliche Aufbewahrungspflicht)</li>
-              <li>Server-Logs: 30 Tage</li>
+            <h2 className="font-display text-xl uppercase text-foreground mb-4">7. Speicherdauer</h2>
+            <ul className="list-disc list-inside space-y-2 ml-4 text-muted-foreground">
+              <li>Voting-Historie: Anonymisiert nach Account-Löschung zur Chart-Integrität.</li>
+              <li>Server-Logs: Automatisierte Löschung nach 30 Tagen.</li>
+            </ul>
+          </section>
+
+          <Separator />
+
+          {/* 8. Datensicherheit */}
+          <section>
+            <h2 className="font-display text-xl uppercase text-foreground mb-4">8. Datensicherheit</h2>
+            <ul className="list-disc list-inside space-y-2 ml-4 text-muted-foreground">
+              <li>Verschlüsselung (SSL/TLS) aller Übertragungen</li>
+              <li>Regelmäßige Sicherheitsaudits der Infrastruktur</li>
+              <li>Rate Limiting zum Schutz vor Brute-Force-Angriffen</li>
             </ul>
           </section>
 
           <Separator />
 
           <section>
-            <h2 className="font-display text-xl uppercase text-foreground mb-4">9. Sicherheit</h2>
-            <p>
-              Wir verwenden technische und organisatorische Sicherheitsmaßnahmen, um Ihre Daten zu schützen:
-            </p>
-            <ul className="list-disc list-inside space-y-2 ml-4 mt-4">
-              <li>HTTPS-Verschlüsselung für alle Datenübertragungen</li>
-              <li>JWT-Tokens mit HttpOnly-Cookies für Authentifizierung</li>
-              <li>Regelmäßige Sicherheitsaudits</li>
-              <li>Passwort-Hashing mit bcrypt</li>
-              <li>Rate Limiting gegen Brute-Force-Angriffe</li>
-            </ul>
-          </section>
-
-          <Separator />
-
-          <section>
-            <h2 className="font-display text-xl uppercase text-foreground mb-4">10. Änderungen dieser Datenschutzerklärung</h2>
-            <p>
-              Wir behalten uns vor, diese Datenschutzerklärung anzupassen, um sie an geänderte Rechtslage oder Änderungen unserer Services anzupassen. 
-              Die aktuelle Version finden Sie stets auf dieser Seite.
+            <p className="text-muted-foreground leading-relaxed">
+              Die aktuelle Version der Datenschutzerklärung finden Sie stets auf dieser Seite.
             </p>
             <p className="mt-4 text-xs text-muted-foreground">
-              Letzte Aktualisierung: {new Date().toLocaleDateString('de-DE')}
+              Letzte Aktualisierung: April 2026. Diese Erklärung unterliegt dem Recht der Bundesrepublik Deutschland.
             </p>
           </section>
         </div>
