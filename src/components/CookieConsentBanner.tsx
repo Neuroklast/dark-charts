@@ -4,28 +4,32 @@ import { Button } from '@/components/ui/button';
 import { X } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 
-export function CookieConsentBanner() {
-  const [consentGiven, setConsentGiven] = useKV('cookie-consent', false);
+interface CookieConsentBannerProps {
+  onNavigateToPrivacy?: () => void;
+}
+
+export function CookieConsentBanner({ onNavigateToPrivacy }: CookieConsentBannerProps) {
+  const [consentGiven, setConsentGiven] = useKV<'unset' | 'acceptedAll' | 'essentialOnly'>('cookie-consent', 'unset');
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
-    if (!consentGiven) {
+    if (consentGiven === 'unset') {
       const timer = setTimeout(() => setShowBanner(true), 1000);
       return () => clearTimeout(timer);
     }
   }, [consentGiven]);
 
   const handleAccept = () => {
-    setConsentGiven(true);
+    setConsentGiven('acceptedAll');
     setShowBanner(false);
   };
 
   const handleReject = () => {
-    setConsentGiven(true);
+    setConsentGiven('essentialOnly');
     setShowBanner(false);
   };
 
-  if (!showBanner || consentGiven) {
+  if (!showBanner || consentGiven !== 'unset') {
     return null;
   }
 
@@ -47,7 +51,9 @@ export function CookieConsentBanner() {
                 Weitere Informationen finden Sie in unserer{' '}
                 <button
                   onClick={() => {
-                    window.dispatchEvent(new CustomEvent('navigate-to-privacy'));
+                    if (onNavigateToPrivacy) {
+                      onNavigateToPrivacy();
+                    }
                     setShowBanner(false);
                   }}
                   className="text-accent hover:text-primary transition-colors underline"

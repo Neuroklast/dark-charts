@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { DJProfile, Genre, CuratedChart
-import { DJProfile, Genre, CuratedChart } from '@/types';
+import { motion } from 'framer-motion';
+import { DJProfile, Genre, GenreAccuracy } from '@/types';
 import {
-  SheetH
+  Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -13,250 +13,231 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
-  EyeSlash,
-  Star
-import { cn }
-import {
-import { toast
+  Star,
+  Eye,
+  Trophy,
+  Target,
+  CheckCircle,
+  ChartLine,
+  TrendUp,
+  MusicNotes,
+  Users,
+  GlobeHemisphereWest,
+  SpotifyLogo,
+  AppleLogo,
+  YoutubeLogo,
+  InstagramLogo,
+  TwitterLogo,
+  Crown,
+} from '@phosphor-icons/react';
+import { toast } from 'sonner';
+import { SafeImage } from '@/components/SafeImage';
+import { JsonLdScript } from '@/components/JsonLdScript';
 
-  profile: DJP
-  onClose: () =>
+interface EnhancedDJProfileDrawerProps {
+  profile: DJProfile | null;
+  isOpen: boolean;
+  onClose: () => void;
+  isOwnProfile?: boolean;
+  onUpdateProfile?: (profile: DJProfile) => Promise<void>;
 }
-export function Enhanc
-  const [isLo
-  const [edi
 
-    if (
-      set
+export function EnhancedDJProfileDrawer({
+  profile,
+  isOpen,
+  onClose,
+  isOwnProfile = false,
+  onUpdateProfile,
+}: EnhancedDJProfileDrawerProps) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isPublicProfile, setIsPublicProfile] = useState(false);
+  const [biographyDraft, setBiographyDraft] = useState('');
 
-      }, 80
-  }, [isOpen,
-  useE
-      const script = document.c
-      script.id = 'dj-profile-sch
-      document.head.appendChild(script);
-      return () => {
-        if (existingScript) {
-        }
+  useEffect(() => {
+    if (isOpen && profile) {
+      setIsLoading(true);
+      setIsPublicProfile(profile.isPublicProfile || false);
+      setBiographyDraft(profile.biography || '');
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 800);
     }
+  }, [isOpen, profile]);
 
-    if (!profile) return;
+  useEffect(() => {
+    if (!profile || !isPublicProfile) return;
+    const existingScript = document.getElementById('dj-profile-schema');
+    if (existingScript) return;
+    const script = document.createElement('script');
+    script.id = 'dj-profile-schema';
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(profile.schemaOrgData || {
+      '@context': 'https://schema.org',
+      '@type': 'Person',
+      name: profile.username,
+      image: profile.avatarUrl,
+      description: profile.biography,
+    });
+    document.head.appendChild(script);
+    return () => {
+      const el = document.getElementById('dj-profile-schema');
+      if (el) document.head.removeChild(el);
+    };
+  }, [profile, isPublicProfile]);
+
+  const handleSaveBiography = async () => {
+    if (!profile || !onUpdateProfile) return;
     try {
-        ...profile
+      await onUpdateProfile({
+        ...profile,
+        biography: biographyDraft,
       });
-      setIsEditing(false)
-
+      setIsEditing(false);
+      toast.success('Biography updated');
+    } catch (error) {
+      toast.error('Failed to update biography');
+    }
+  };
 
   const handleTogglePublicProfile = async (checked: boolean) => {
-
+    if (!profile || !onUpdateProfile) return;
+    try {
       setIsPublicProfile(checked);
+      await onUpdateProfile({
         ...profile,
+        isPublicProfile: checked,
       });
     } catch (error) {
-
+      setIsPublicProfile(!checked);
+      toast.error('Failed to update profile visibility');
+    }
   };
-  const getPlatformIcon = (p
-    if (normalizedPlatfor
-    if (normalizedPlatform.includes('youtube')) re
-    if (normalizedPlatform.includes('twitter') || normalize
-    return <GlobeHemisph
 
+  const getPlatformIcon = (platform: string) => {
+    const normalizedPlatform = platform.toLowerCase();
+    if (normalizedPlatform.includes('spotify')) return <SpotifyLogo weight="fill" className="w-4 h-4" />;
+    if (normalizedPlatform.includes('apple')) return <AppleLogo weight="fill" className="w-4 h-4" />;
+    if (normalizedPlatform.includes('youtube')) return <YoutubeLogo weight="fill" className="w-4 h-4" />;
+    if (normalizedPlatform.includes('instagram')) return <InstagramLogo weight="fill" className="w-4 h-4" />;
+    if (normalizedPlatform.includes('twitter') || normalizedPlatform.includes('x.com')) return <TwitterLogo weight="fill" className="w-4 h-4" />;
+    return <GlobeHemisphereWest weight="fill" className="w-4 h-4" />;
+  };
 
-  con
-  const subgenreAccuracy
+  if (!profile) return null;
 
+  const reputationPercentage = (profile.reputation / 100) * 100;
+  const expertWeight = profile.expertWeight || 1.0;
+  const subgenreAccuracy: Partial<Record<Genre, GenreAccuracy>> = profile.subgenreAccuracy ?? {};
+  const topSubgenres = (Object.entries(subgenreAccuracy) as [Genre, GenreAccuracy][])
+    .sort((a, b) => b[1].accuracy - a[1].accuracy)
+    .slice(0, 5);
+  const predictivePower = profile.predictivePower;
+  const curatedCharts = profile.curatedCharts || [];
+  const earnedBadges = profile.earnedBadges || [];
+  const nextBadgeProgress = profile.nextBadgeProgress;
 
-    .sort((a, b) => {
-      const bData = b[1];
-    })
-    .map(([genre, data]) => ({ genre,
   return (
-      <SheetContent className="w-full sm
-
-              {profi
-                  <SafeImage
-                    alt={prof
-                    height={80}
-
-
-
-                    {pro
-
-              <div className="absolute -bot
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      {isPublicProfile && profile.schemaOrgData && <JsonLdScript data={profile.schemaOrgData} />}
+      <SheetContent className="w-full sm:max-w-xl overflow-y-auto bg-background border-l border-accent" side="right">
+        <SheetHeader className="border-b border-border pb-4">
+          <div className="flex items-start gap-4">
+            <div className="relative">
+              {profile.avatarUrl ? (
+                <SafeImage
+                  src={profile.avatarUrl}
+                  alt={profile.username}
+                  width={80}
+                  height={80}
+                  className="object-cover border-2 border-accent"
+                  priority={true}
+                />
+              ) : (
+                <div className="w-20 h-20 bg-secondary border-2 border-accent flex items-center justify-center">
+                  <span className="display-font text-2xl text-muted-foreground">
+                    {profile.username.substring(0, 2).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <div className="absolute -bottom-2 -right-2 bg-accent p-1.5 shadow-lg">
+                <Crown weight="fill" className="w-4 h-4 text-background" />
               </div>
-
-
-              <div classNam
-                  D
-                {isOwnProfile && (
-
-                )}
-              {!isEditing
-                  {pr
+            </div>
+            <div className="flex-1">
+              <SheetTitle className="display-font text-2xl uppercase tracking-tight text-foreground mb-1">
+                DJ
+              </SheetTitle>
+              {isOwnProfile && (
+                <BadgeUI variant="outline" className="font-ui text-[10px] uppercase tracking-widest border-accent text-accent mb-2">
+                  Your Profile
+                </BadgeUI>
+              )}
+              {!isEditing ? (
+                <div>
+                  {profile.biography && (
+                    <p className="font-ui text-xs text-muted-foreground leading-relaxed mb-2">
                       {profile.biography}
-
-
-
-                      className="h-6 px-2 text-[10px] uppercase t
-                      Edi
-
-
+                    </p>
+                  )}
+                  {isOwnProfile && onUpdateProfile && (
+                    <Button
+                      variant="ghost"
+                      className="h-6 px-2 text-[10px] uppercase tracking-wider"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      Edit
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
                   <Textarea
-                    onChang
-
+                    value={biographyDraft}
+                    onChange={(e) => setBiographyDraft(e.target.value)}
+                    className="text-xs min-h-[80px]"
                   />
-
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="h-7 text-[10px] uppercase tracking-wider"
                       onClick={handleSaveBiography}
                     >
+                      Save
                     </Button>
-                      variant="outl
-
-
-
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[10px] uppercase tracking-wider"
+                      onClick={() => setIsEditing(false)}
+                    >
                       Cancel
+                    </Button>
                   </div>
+                </div>
               )}
+            </div>
           </div>
+        </SheetHeader>
 
+        <div className="space-y-6 py-6">
           {isOwnProfile && (
+            <Card className="bg-card border border-border p-4">
               <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Label htmlFor="public-profile" className="font-u
-
-
-                      ? 'You
-
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="public-profile" className="font-ui text-xs uppercase tracking-wider">
+                    {isPublicProfile ? 'Your profile is public' : 'Your profile is private'}
+                  </Label>
+                </div>
                 <Switch
+                  id="public-profile"
                   checked={isPublicProfile}
+                  onCheckedChange={handleTogglePublicProfile}
+                  disabled={!onUpdateProfile}
                 />
-            </Card>
-
-            <div className="flex items-center just
-                <ChartLine weight="duotone" className=
-
-                {profile.reputation}/100
-            </div>
-            <p cl
-
-
-                  Expert Weight
-                <p className="data-font text-lg font-bold text-foreground">
-                </p>
-                  Vote multiplier
               </div>
-                <p className="font-u
-                </p>
-                  {profile.r
-                <p className="font-ui text-
-                </p>
-            </div>
-
-            <div>
-                <TrendUp weight="du
-              </div>
-              <Card cl
-                  <
-                      Accuracy
-                    <p className="data-font text-2xl font-bold text-accent">
-                    </p>
-                  <div cl
-
-
-                    </p>
-                  <div className="text-center">
-              </div>
-
-                    </p>
-                </div>
-              </Card>
-              {isLoading ?
-                  {[0, 1, 2, 3, 4].map((i) => (
-                  ))}
-              ) : predictivePo
-                  <p class
-                  </p>
-                    <motion.div
-                      i
-                      transi
-
-
-                            <
-
-                              {prediction
-                            <div className="flex items-center gap-3 mt-2 text-[10px] font-ui t
-                              <span>•</sp
-
-
-                    </motion.div>
-                </div>
-                <Card className="bg-s
-                  <p className=
-                  </p>
-              )}
-          )}
-          {topSubgenres.length
-              <div className=
-                <h3
-
-                <di
-                    <div key={i} className=
-                      <div
-                  ))}
-              ) : (
-                  <p className="font-ui text-xs text-muted-foreground mb-3 uppercase trac
-                  </p>
-                    {topSubgenres.m
-
-                        animate={{ opacity: 1,
-                        cla
-                        <div cl
-                            {genre}
-                          <div className="flex items-center gap-2">
-
-
-                            <
-                        </d
-                      </motion.div>
-                  </div>
-              )}
-          )}
-          {curatedCharts.length > 0 && (
-              <div class
-                <h3 className="display-font text-sm uppercase tracking-tight te
-
-                <div classNa
-                    <div key=
-                </div>
-                <div c
-
-
-
-
-
-                              <p classNa
-
-                                <Eye weight="duotone" className="w-3 h-
-                            </div>
-                              <p classNa
-                              </p>
-                            <div className="flex items-center gap-3 text-[10px] font-ui text-muted-foreground uppercase tracking-wider">
-                              <span>•</span>
-                              <span>
-
-
-                            variant="outline"
-                          >
-                          </Button>
-                      </Card>
-                  ))}
-              )}
-          )}
-          {earnedBadges.length > 0 &&
-              <div className="flex items-ce
-                <h3 className="display-font text-sm uppercase
-
-                {ear
             </Card>
           )}
 
@@ -508,7 +489,7 @@ export function Enhanc
                 <h3 className="display-font text-sm uppercase tracking-tight text-foreground">Earned Badges</h3>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 mb-4">
                 {earnedBadges.map((badge, index) => (
                   <motion.div
                     key={badge.id}
@@ -522,73 +503,72 @@ export function Enhanc
                         {badge.name}
                       </p>
                       <p className="font-ui text-[10px] text-muted-foreground leading-tight">
-
-
+                        {badge.description}
+                      </p>
                       <p className="font-ui text-[9px] text-muted-foreground uppercase tracking-widest mt-2">
                         Earned {new Date(badge.earnedAt).toLocaleDateString()}
                       </p>
                     </Card>
-
+                  </motion.div>
                 ))}
+              </div>
 
+              {nextBadgeProgress && (
+                <Card className="bg-secondary/50 border border-border p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Star weight="duotone" className="w-4 h-4 text-accent" />
+                    <h4 className="font-ui text-xs uppercase tracking-wider text-foreground">Next Badge Progress</h4>
+                  </div>
+                  <p className="font-ui text-sm font-semibold text-foreground mb-2">{nextBadgeProgress.badgeName}</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-[10px] font-ui text-muted-foreground">
+                      <span>{nextBadgeProgress.currentProgress} / {nextBadgeProgress.requiredProgress}</span>
+                      <span>{nextBadgeProgress.percentageComplete.toFixed(0)}%</span>
+                    </div>
+                    <Progress value={nextBadgeProgress.percentageComplete} className="h-2" />
+                  </div>
+                </Card>
+              )}
             </div>
-
-
-
-            <Card className="bg-secondary/50 border border-border p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Star weight="duotone" className="w-4 h-4 text-accent" />
-                <h4 className="font-ui text-xs uppercase tracking-wider text-foreground">Next Badge Progress</h4>
-              </div>
-              <p className="font-ui text-sm font-semibold text-foreground mb-2">{nextBadgeProgress.badgeName}</p>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-[10px] font-ui text-muted-foreground">
-                  <span>{nextBadgeProgress.currentProgress} / {nextBadgeProgress.requiredProgress}</span>
-
-                </div>
-                <Progress value={nextBadgeProgress.percentageComplete} className="h-2" />
-              </div>
-            </Card>
           )}
 
           {!isOwnProfile && (
-            <div className="flex items-center gap-3 pt-4">
-              <Button className="flex-1 font-ui uppercase tracking-wider" size="lg">
-
-                Follow DJ
-
-            </div>
-
-
-
-            <Card className="bg-secondary/30 border border-border p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Users weight="duotone" className="w-4 h-4 text-accent" />
-                <h4 className="font-ui text-xs uppercase tracking-wider text-foreground">Your Following</h4>
+            <div>
+              <div className="flex items-center gap-3 pt-4 mb-4">
+                <Button className="flex-1 font-ui uppercase tracking-wider" size="lg">
+                  Follow DJ
+                </Button>
               </div>
 
-                <div>
-
-                    {profile.followerIds?.length || 0}
-
-                  <p className="font-ui text-[10px] text-muted-foreground uppercase tracking-wider">
-                    Followers
-                  </p>
-
-                <div>
-                  <p className="data-font text-2xl font-bold text-foreground">
-                    {profile.followingIds?.length || 0}
-                  </p>
-                  <p className="font-ui text-[10px] text-muted-foreground uppercase tracking-wider">
-                    Following
-                  </p>
+              <Card className="bg-secondary/30 border border-border p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users weight="duotone" className="w-4 h-4 text-accent" />
+                  <h4 className="font-ui text-xs uppercase tracking-wider text-foreground">Following</h4>
                 </div>
-              </div>
-
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="data-font text-2xl font-bold text-foreground">
+                      {profile.followerIds?.length || 0}
+                    </p>
+                    <p className="font-ui text-[10px] text-muted-foreground uppercase tracking-wider">
+                      Followers
+                    </p>
+                  </div>
+                  <div>
+                    <p className="data-font text-2xl font-bold text-foreground">
+                      {profile.followingIds?.length || 0}
+                    </p>
+                    <p className="font-ui text-[10px] text-muted-foreground uppercase tracking-wider">
+                      Following
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </div>
           )}
 
           {profile.externalLinks && profile.externalLinks.length > 0 && (
-
+            <div>
               <h3 className="display-font text-sm uppercase tracking-tight text-foreground mb-3">Social Links</h3>
               <div className="flex flex-wrap gap-2">
                 {profile.externalLinks.map((link, index) => (
@@ -606,17 +586,17 @@ export function Enhanc
                     </a>
                   </Button>
                 ))}
-
+              </div>
             </div>
+          )}
 
-
-
+          <div className="pt-4 border-t border-border">
             <p className="data-font text-[9px] text-muted-foreground uppercase tracking-widest">
               Curator since {new Date(profile.createdAt).toLocaleDateString()}
             </p>
           </div>
         </div>
-
+      </SheetContent>
     </Sheet>
-
+  );
 }

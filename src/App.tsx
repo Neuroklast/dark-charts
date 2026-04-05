@@ -869,7 +869,7 @@ function AppContent() {
         />
       </ErrorBoundary>
 
-      <CookieConsentBanner />
+      <CookieConsentBanner onNavigateToPrivacy={() => setCurrentView('privacy')} />
         </>
       )}
     </div>
