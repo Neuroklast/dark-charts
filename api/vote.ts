@@ -1,5 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../src/backend/lib/prisma';
+import { z } from 'zod';
+
+const bodySchema = z.object({
+  fanId: z.string().min(1, "fanId is required"),
+  releaseId: z.string().min(1, "releaseId is required"),
+  credits: z.number().int().min(1, "Credits must be at least 1"),
+  votes: z.number().int().min(1, "Votes must be at least 1")
+});
 
 export default async function handler(
   req: VercelRequest,
@@ -20,19 +28,13 @@ export default async function handler(
   }
 
   try {
-    const { fanId, releaseId, credits, votes } = req.body;
+    const parseResult = bodySchema.safeParse(req.body);
 
-    if (!fanId || !releaseId) {
-      return res.status(400).json({ error: 'fanId and releaseId are required' });
+    if (!parseResult.success) {
+      return res.status(400).json({ error: 'Invalid body parameters', details: parseResult.error.format() });
     }
 
-    if (!credits || credits < 1) {
-      return res.status(400).json({ error: 'Credits must be at least 1' });
-    }
-
-    if (!votes || votes < 1) {
-      return res.status(400).json({ error: 'Votes must be at least 1' });
-    }
+    const { fanId, releaseId, credits, votes } = parseResult.data;
 
     const fan = await prisma.fanProfile.findUnique({
       where: { id: fanId },
