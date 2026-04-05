@@ -123,22 +123,6 @@ export function TrackDetailModal({
                       )}
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button 
-                        className="flex-1" 
-                        variant={userVote === 'up' ? 'default' : 'outline'}
-                        onClick={() => onVote?.(track.id, 'up')}
-                      >
-                        <CaretUp weight="bold" className="mr-2" /> Vote Up
-                      </Button>
-                      <Button 
-                        className="flex-1" 
-                        variant={userVote === 'down' ? 'destructive' : 'outline'}
-                        onClick={() => onVote?.(track.id, 'down')}
-                      >
-                        <CaretDown weight="bold" className="mr-2" /> Vote Down
-                      </Button>
-                    </div>
                   </div>
 
                   {/* Right Column: Info & Links */}
@@ -164,9 +148,18 @@ export function TrackDetailModal({
                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Placements</p>
                         <div className="flex flex-wrap gap-2">
                           {allChartPositions.map((pos, idx) => (
-                            <Badge key={idx} variant="outline" className="text-[10px] py-0.5">
-                              {pos.chartName}: #{pos.position}
-                            </Badge>
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                onClose();
+                                onNavigateToChart?.(pos.chartType, pos.mainGenre, pos.subGenre);
+                              }}
+                              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md"
+                            >
+                              <Badge variant="outline" className="text-xs py-1 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
+                                {pos.chartName}: #{pos.position}
+                              </Badge>
+                            </button>
                           ))}
                         </div>
                       </div>
@@ -199,7 +192,7 @@ export function TrackDetailModal({
                           <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Genres</p>
                           <div className="flex flex-wrap gap-2">
                             {track.genres.map((genre) => (
-                              <Badge key={genre} variant="secondary" className="text-[10px]">
+                              <Badge key={genre} variant="secondary" className="text-xs">
                                 {genre}
                               </Badge>
                             ))}

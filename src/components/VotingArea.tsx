@@ -115,11 +115,6 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
   }, []);
 
   const handleVoteChange = useCallback((trackId: string, newCredits: number) => {
-    if (!user) {
-      toast.error(t?.('voting.loginRequired') || 'Please log in to vote');
-      return;
-    }
-
     const currentCredits = (userVotes && userVotes[trackId]) || 0;
     const currentCost = calculateQuadraticCost(currentCredits);
     const newCost = calculateQuadraticCost(newCredits);
@@ -310,7 +305,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
             const tempValue = tempVoteValues[track.id];
             const sliderValue = tempValue !== undefined ? tempValue : userCredits;
             const remainingCredits = creditsRemaining || MAX_CREDITS;
-            const maxAffordable = Math.floor(Math.sqrt(remainingCredits + calculateQuadraticCost(userCredits)));
+            const maxAffordable = Math.floor(Math.sqrt(Math.max(0, remainingCredits + calculateQuadraticCost(userCredits))));
 
             return (
               <motion.div
@@ -381,7 +376,6 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                                 max={Math.max(maxAffordable, userCredits)}
                                 step={1}
                                 className="w-full"
-                                disabled={!user}
                               />
                             </div>
                             <div className="flex items-center gap-2 min-w-[120px]">
