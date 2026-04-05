@@ -558,7 +558,7 @@ function AppContent() {
           </svg>
 
           <ErrorBoundary level="component">
-            <TopNavigation 
+            <TopNavigation
               currentView={currentView} 
               onNavigate={(view: ViewType) => {
                 try {
@@ -578,7 +578,7 @@ function AppContent() {
             {(currentView === 'home' || currentView === 'main-genre') && (
               <>
                 <ErrorBoundary level="component">
-                  <PillarNavigation 
+                  <PillarNavigation
                     activePillar={activePillar}
                     onPillarChange={setActivePillar}
                     className="mb-0"
@@ -608,7 +608,7 @@ function AppContent() {
             )}
 
             <main id="main-content" className="w-full px-4 md:px-8 py-8">
-              <div className="mx-auto max-w-7xl">
+              <div className="mx-auto max-w-5xl">
                 <ErrorBoundary level="component">
                   {currentView === 'profile' && <ProfileView />}
                   {currentView === 'about' && <AboutView />}
@@ -624,7 +624,7 @@ function AppContent() {
                   )}
                   {currentView === 'profiles-demo' && <ProfilesDemo />}
                   {currentView === 'voting' && (
-                    <VotingArea 
+                    <VotingArea
                       allTracks={[...(fanCharts || []), ...(expertCharts || []), ...(streamingCharts || [])]}
                       onTrackClick={handleTrackClick}
                     />
@@ -634,7 +634,7 @@ function AppContent() {
 
                 {currentView === 'main-genre' && currentMainGenre && currentMainGenre !== 'overall' && (
                   <ErrorBoundary level="component">
-                    <GenreCharts 
+                    <GenreCharts
                       mainGenre={currentMainGenre}
                       activePillar={activePillar}
                       fanCharts={fanCharts || []}
@@ -645,7 +645,7 @@ function AppContent() {
                     />
                   </ErrorBoundary>
                 )}
-                
+
                 {currentView === 'home' && (
                   <>
                     {activePillar === 'overview' && (
@@ -789,7 +789,7 @@ function AppContent() {
                       </main>
 
                       <footer className="w-full border-t border-border py-8 px-4 md:px-8 mt-16 bg-secondary/50">
-                        <div className="mx-auto max-w-7xl">
+                        <div className="mx-auto max-w-5xl">
                           <div className="grid md:grid-cols-3 gap-8 mb-8">
                             <div>
                               <h3 className="font-display text-lg uppercase text-foreground mb-4 tracking-tight font-semibold">Dark Charts</h3>
@@ -869,7 +869,7 @@ function AppContent() {
         />
       </ErrorBoundary>
 
-      <CookieConsentBanner />
+      <CookieConsentBanner onNavigateToPrivacy={() => setCurrentView('privacy')} />
         </>
       )}
     </div>

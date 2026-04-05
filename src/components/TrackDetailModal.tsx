@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
-import { Track, MainGenre, Genre, ChartType, TrackSupporter } from '@/types';
+import { Track, MainGenre, Genre, ChartType } from '@/types';
 import { 
   X, Play, CaretUp, CaretDown, Info, ArrowRight, 
   SpotifyLogo, AppleLogo, YoutubeLogo, AmazonLogo,
@@ -108,7 +108,14 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
   const handleSharePlacements = async () => {
     if (!shareCardRef.current || !track) return;
 
+    if (!artworkUrl) {
+      toast.error('Share image is still loading. Please try again in a moment.');
+      return;
+    }
+
     setIsGeneratingImage(true);
+
+    const sanitizeFilename = (str: string) => str.replace(/[/\\:*?"<>|]/g, '-');
 
     try {
       const blob = await toBlob(shareCardRef.current, {
@@ -123,7 +130,11 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
         throw new Error('Failed to generate image');
       }
 
-      const file = new File([blob], `dark-charts-${track.artist}-${track.title}.png`, {
+      const safeArtist = sanitizeFilename(track.artist);
+      const safeTitle = sanitizeFilename(track.title);
+      const filename = `dark-charts-${safeArtist}-${safeTitle}.png`;
+
+      const file = new File([blob], filename, {
         type: 'image/png',
       });
 
@@ -138,7 +149,7 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `dark-charts-${track.artist}-${track.title}.png`;
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -229,6 +240,7 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
   const streamingLinks = getStreamingLinks();
 
   return (
+    <TooltipProvider>
     <AnimatePresence>
       {isOpen && (
         <>
@@ -640,7 +652,7 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
             </div>
           </div>
 
-          <div 
+          <div
             ref={shareCardRef}
             className="fixed pointer-events-none"
             style={{
@@ -661,5 +673,6 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
         </>
       )}
     </AnimatePresence>
+    </TooltipProvider>
   );
 }

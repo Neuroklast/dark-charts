@@ -37,7 +37,7 @@ export function MainGenreNavigation({ activeGenre, onGenreChange, className }: M
       <div className="w-full px-4 md:px-8 py-4">
         <div className="mx-auto max-w-7xl">
           {isMobile ? (
-            <div 
+            <div
               ref={scrollRef}
               className="flex overflow-x-auto gap-2 snap-x snap-mandatory scrollbar-hide"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}

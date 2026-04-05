@@ -502,13 +502,13 @@ export type UserRole = 'user' | 'moderator' | 'admin';
 
 export type UserStatus = 'active' | 'restricted' | 'banned';
 
-export type AuditAction = 
-  | 'user_banned' 
-  | 'user_restricted' 
-  | 'user_activated' 
+export type AuditAction =
+  | 'user_banned'
+  | 'user_restricted'
+  | 'user_activated'
   | 'user_deleted'
-  | 'genre_created' 
-  | 'genre_updated' 
+  | 'genre_created'
+  | 'genre_updated'
   | 'genre_deactivated'
   | 'genre_activated'
   | 'track_approved'

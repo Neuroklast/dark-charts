@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { FanProfile, Badge, Genre } from '@/types';
+import { FanProfile, Badge } from '@/types';
 import {
   Sheet,
   SheetContent,
@@ -125,25 +125,27 @@ export function FanProfileDrawer({ profile, isOpen, onClose, onUpdateProfile }: 
     return null;
   };
 
+  const fallbackSchemaOrgData = useMemo(() => ({
+    '@context': 'https://schema.org' as const,
+    '@type': 'Person' as const,
+    name: profile?.username ?? '',
+    image: profile?.avatarUrl,
+    description: profile?.biography,
+    sameAs: profile?.externalLinks?.map(link => link.url) ?? []
+  }), [profile?.username, profile?.avatarUrl, profile?.biography, profile?.externalLinks]);
+
   if (!profile) return null;
 
   const maxCredits = 150;
   const creditsPercentage = (profile.votingCredits / maxCredits) * 100;
   const totalVotes = profile.votingHistory?.length || 0;
   const displayedBadges = profile.allBadges?.filter(b => profile.displayedBadges?.includes(b.id)) || [];
-  
+
   const tasteProfileData = profile.tasteProfile?.genreScores || profile.engagementStats?.genreAffinity || {};
   const roadToSuperfan = profile.roadToSuperfan || [];
   const personalCharts = profile.personalCharts || [];
 
-  const schemaOrgData = profile.schemaOrgData || {
-    '@context': 'https://schema.org' as const,
-    '@type': 'Person' as const,
-    name: profile.username,
-    image: profile.avatarUrl,
-    description: profile.biography,
-    sameAs: profile.externalLinks?.map(link => link.url) || []
-  };
+  const schemaOrgData = profile.schemaOrgData || fallbackSchemaOrgData;
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -420,7 +422,7 @@ export function FanProfileDrawer({ profile, isOpen, onClose, onUpdateProfile }: 
                       }
                     }
                   }}
-                  disabled={isUpdating}
+                  disabled={isUpdating || !onUpdateProfile}
                 />
               </div>
             </div>
