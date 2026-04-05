@@ -4,6 +4,10 @@ import { Card } from '@/components/ui/card';
 import { ChartEntry } from '@/components/ChartEntry';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChartEntrySkeleton } from '@/components/skeletons';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Funnel, X } from '@phosphor-icons/react';
+import { cn } from '@/lib/utils';
 
 interface GenreChartsProps {
   mainGenre: MainGenre;
@@ -46,12 +50,21 @@ export function GenreCharts({
   onTrackClick 
 }: GenreChartsProps) {
   const [selectedSubGenre, setSelectedSubGenre] = useState<Genre | null>(null);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const subGenres = subGenresByMainGenre[mainGenre];
 
   useEffect(() => {
     setSelectedSubGenre(null);
   }, [mainGenre]);
+
+  const handleSubGenreSelect = (genre: Genre | null) => {
+    setSelectedSubGenre(genre);
+    if (isMobile) {
+      setIsFilterSheetOpen(false);
+    }
+  };
 
   const filterByMainGenre = useCallback((tracks: Track[]): Track[] => {
     return tracks.filter(track => {
@@ -174,43 +187,125 @@ export function GenreCharts({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4">
-        <h1 className="display-font text-4xl uppercase tracking-wider text-foreground font-semibold">
+    <div className="flex flex-col h-full">
+      <div className="flex-shrink-0 space-y-4 mb-6">
+        <h1 className="display-font text-4xl uppercase tracking-wider text-foreground font-semibold px-4 md:px-0">
           {mainGenre} Charts
         </h1>
         
-        <div className="flex flex-col gap-3">
-          <span className="font-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold">
-            Filter by Subgenre
-          </span>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedSubGenre(null)}
-              className={`px-3 py-1.5 border font-ui text-[10px] uppercase tracking-[0.15em] font-semibold snap-transition
-                ${!selectedSubGenre 
-                  ? 'bg-accent border-accent text-accent-foreground' 
-                  : 'bg-card border-border hover:bg-accent/20'}`}
-            >
-              All
-            </button>
-            {subGenres.map((genre) => (
-              <button
-                key={genre}
-                onClick={() => setSelectedSubGenre(genre)}
-                className={`px-3 py-1.5 border font-ui text-[10px] uppercase tracking-[0.15em] font-semibold snap-transition
-                  ${selectedSubGenre === genre 
-                    ? 'bg-accent border-accent text-accent-foreground' 
-                    : 'bg-card border-border hover:bg-accent/20'}`}
-              >
-                {genre}
-              </button>
-            ))}
+        {isMobile ? (
+          <div className="px-4">
+            <span className="font-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold block mb-3">
+              Filter by Subgenre
+            </span>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex gap-2 overflow-x-auto scrollbar-hide pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                <button
+                  onClick={() => handleSubGenreSelect(null)}
+                  className={cn(
+                    "flex-shrink-0 px-4 py-2 border font-ui text-[10px] uppercase tracking-[0.15em] font-semibold snap-transition whitespace-nowrap",
+                    !selectedSubGenre 
+                      ? 'bg-accent border-accent text-accent-foreground' 
+                      : 'bg-card border-border text-foreground hover:bg-accent/20'
+                  )}
+                >
+                  All
+                </button>
+                {subGenres.slice(0, 3).map((genre) => (
+                  <button
+                    key={genre}
+                    onClick={() => handleSubGenreSelect(genre)}
+                    className={cn(
+                      "flex-shrink-0 px-4 py-2 border font-ui text-[10px] uppercase tracking-[0.15em] font-semibold snap-transition whitespace-nowrap",
+                      selectedSubGenre === genre 
+                        ? 'bg-accent border-accent text-accent-foreground' 
+                        : 'bg-card border-border text-foreground hover:bg-accent/20'
+                    )}
+                  >
+                    {genre}
+                  </button>
+                ))}
+              </div>
+              <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+                <SheetTrigger asChild>
+                  <button className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-card border border-border hover:bg-accent/20 snap-transition">
+                    <Funnel weight="bold" className="w-5 h-5 text-foreground" />
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="h-[80vh] bg-background border-t border-border">
+                  <SheetHeader className="border-b border-border pb-4 mb-4">
+                    <SheetTitle className="font-ui text-lg uppercase tracking-[0.15em] font-bold text-foreground">
+                      {mainGenre} Subgenres
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="flex flex-col gap-2 overflow-y-auto h-[calc(80vh-100px)]">
+                    <button
+                      onClick={() => handleSubGenreSelect(null)}
+                      className={cn(
+                        "w-full px-6 py-4 text-left font-ui text-sm uppercase tracking-[0.1em] font-semibold snap-transition border",
+                        !selectedSubGenre
+                          ? "bg-accent text-accent-foreground border-accent"
+                          : "bg-card text-muted-foreground border-border hover:bg-accent/20"
+                      )}
+                    >
+                      All Subgenres
+                    </button>
+                    {subGenres.map((genre) => (
+                      <button
+                        key={genre}
+                        onClick={() => handleSubGenreSelect(genre)}
+                        className={cn(
+                          "w-full px-6 py-4 text-left font-ui text-sm uppercase tracking-[0.1em] font-semibold snap-transition border",
+                          selectedSubGenre === genre
+                            ? "bg-accent text-accent-foreground border-accent"
+                            : "bg-card text-muted-foreground border-border hover:bg-accent/20"
+                        )}
+                      >
+                        {genre}
+                      </button>
+                    ))}
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col gap-3 px-4 md:px-0">
+            <span className="font-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold">
+              Filter by Subgenre
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedSubGenre(null)}
+                className={cn(
+                  "px-3 py-1.5 border font-ui text-[10px] uppercase tracking-[0.15em] font-semibold snap-transition",
+                  !selectedSubGenre 
+                    ? 'bg-accent border-accent text-accent-foreground' 
+                    : 'bg-card border-border hover:bg-accent/20'
+                )}
+              >
+                All
+              </button>
+              {subGenres.map((genre) => (
+                <button
+                  key={genre}
+                  onClick={() => setSelectedSubGenre(genre)}
+                  className={cn(
+                    "px-3 py-1.5 border font-ui text-[10px] uppercase tracking-[0.15em] font-semibold snap-transition",
+                    selectedSubGenre === genre 
+                      ? 'bg-accent border-accent text-accent-foreground' 
+                      : 'bg-card border-border hover:bg-accent/20'
+                  )}
+                >
+                  {genre}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="mt-6">
+      <div className="flex-1 overflow-y-auto px-4 md:px-0">
         {renderChartSection(currentChartTracks)}
       </div>
     </div>
