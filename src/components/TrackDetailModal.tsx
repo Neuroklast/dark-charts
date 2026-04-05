@@ -159,6 +159,72 @@ export function TrackDetailModal({
                       </div>
                     </div>
 
+                    {allChartPositions.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Placements</p>
+                        <div className="flex flex-wrap gap-2">
+                          {allChartPositions.map((pos, idx) => (
+                            <Badge key={idx} variant="outline" className="text-[10px] py-0.5">
+                              {pos.chartName}: #{pos.position}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        {track.album && (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Album</p>
+                            <p className="font-ui">{track.album}</p>
+                          </div>
+                        )}
+                        {track.releaseDate && (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Release Date</p>
+                            <p className="font-ui">{track.releaseDate}</p>
+                          </div>
+                        )}
+                        {track.label && (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Label</p>
+                            <p className="font-ui">{track.label}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {track.genres && track.genres.length > 0 && (
+                        <div>
+                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Genres</p>
+                          <div className="flex flex-wrap gap-2">
+                            {track.genres.map((genre) => (
+                              <Badge key={genre} variant="secondary" className="text-[10px]">
+                                {genre}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {(track.previewUrl || track.spotifyUri) && (
+                      <div className="pt-4 border-t border-border">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Track Preview</p>
+                        {track.previewUrl ? (
+                          <audio
+                            ref={audioRef}
+                            controls
+                            className="w-full h-10"
+                            preload="metadata"
+                          >
+                            <source src={track.previewUrl} type="audio/mpeg" />
+                            Your browser does not support the audio element.
+                          </audio>
+                        ) : null}
+                      </div>
+                    )}
+
                     <div className="space-y-4">
                       <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Listen On</p>
                       <div className="grid grid-cols-4 gap-2">
@@ -167,6 +233,7 @@ export function TrackDetailModal({
                             key={link.platform} 
                             href={link.url} 
                             target="_blank" 
+                            rel="noopener noreferrer"
                             className="flex flex-col items-center p-2 bg-secondary/20 hover:bg-primary/20 border border-border transition-colors"
                           >
                             {getPlatformIcon(link.platform)}
@@ -174,6 +241,22 @@ export function TrackDetailModal({
                           </a>
                         ))}
                       </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-border">
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Artist Links</p>
+                      {track.odesliData?.pageUrl ? (
+                        <a
+                          href={track.odesliData.pageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline flex items-center gap-1 inline-flex"
+                        >
+                          More Streaming Options <ArrowRight size={14} />
+                        </a>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">No additional links available.</p>
+                      )}
                     </div>
                   </div>
                 </div>
