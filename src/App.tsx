@@ -608,7 +608,7 @@ function AppContent() {
             )}
 
             <main id="main-content" className="w-full px-4 md:px-8 py-8">
-              <div className="mx-auto max-w-7xl">
+              <div className="mx-auto max-w-5xl">
                 <ErrorBoundary level="component">
                   {currentView === 'profile' && <ProfileView />}
                   {currentView === 'about' && <AboutView />}
@@ -789,7 +789,7 @@ function AppContent() {
                       </main>
 
                       <footer className="w-full border-t border-border py-8 px-4 md:px-8 mt-16 bg-secondary/50">
-                        <div className="mx-auto max-w-7xl">
+                        <div className="mx-auto max-w-5xl">
                           <div className="grid md:grid-cols-3 gap-8 mb-8">
                             <div>
                               <h3 className="font-display text-lg uppercase text-foreground mb-4 tracking-tight font-semibold">Dark Charts</h3>
