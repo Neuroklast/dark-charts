@@ -32,6 +32,10 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { safeFilter, safeSlice, safeFindIndex, isNullOrUndefined } from '@/lib/safe-utils';
 import { ChartEntrySkeleton } from '@/components/skeletons';
 import { ProfilesDemo } from '@/components/ProfilesDemo';
+import { PrivacyPolicyView } from '@/components/PrivacyPolicyView';
+import { TermsOfServiceView } from '@/components/TermsOfServiceView';
+import { ImprintView } from '@/components/ImprintView';
+import { CookieConsentBanner } from '@/components/CookieConsentBanner';
 
 function AppContent() {
   const dataService = useDataService();
@@ -609,6 +613,9 @@ function AppContent() {
                   {currentView === 'profile' && <ProfileView />}
                   {currentView === 'about' && <AboutView />}
                   {currentView === 'custom-charts' && <CustomChartsView />}
+                  {currentView === 'privacy' && <PrivacyPolicyView />}
+                  {currentView === 'terms' && <TermsOfServiceView />}
+                  {currentView === 'imprint' && <ImprintView />}
                   {currentView === 'admin' && (
                     <div className="space-y-6">
                       <AdminArtistManagement />
@@ -806,8 +813,30 @@ function AppContent() {
                               </p>
                             </div>
                           </div>
-                          <div className="border-t border-border pt-4 text-center">
-                            <p className="font-ui text-[10px] text-muted-foreground uppercase tracking-[0.3em]">
+                          <div className="border-t border-border pt-4">
+                            <div className="flex flex-wrap justify-center gap-4 mb-4">
+                              <button
+                                onClick={() => setCurrentView('privacy')}
+                                className="font-ui text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
+                              >
+                                Datenschutz
+                              </button>
+                              <span className="text-muted-foreground">•</span>
+                              <button
+                                onClick={() => setCurrentView('terms')}
+                                className="font-ui text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
+                              >
+                                AGB
+                              </button>
+                              <span className="text-muted-foreground">•</span>
+                              <button
+                                onClick={() => setCurrentView('imprint')}
+                                className="font-ui text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
+                              >
+                                Impressum
+                              </button>
+                            </div>
+                            <p className="font-ui text-[10px] text-muted-foreground uppercase tracking-[0.3em] text-center">
                               Dark Charts &copy; {new Date().getFullYear()} — {t?.('footer.underground') || 'UNDERGROUND'}
                             </p>
                           </div>
@@ -839,6 +868,8 @@ function AppContent() {
           onNavigateToChart={handleNavigateToChart}
         />
       </ErrorBoundary>
+
+      <CookieConsentBanner />
         </>
       )}
     </div>

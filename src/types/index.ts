@@ -14,7 +14,7 @@ export type Genre =
 
 export type ChartType = 'fan' | 'expert' | 'streaming' | 'overall';
 
-export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'history' | 'admin' | 'oauth-callback' | 'profiles-demo';
+export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'history' | 'admin' | 'oauth-callback' | 'profiles-demo' | 'privacy' | 'terms' | 'imprint';
 
 export interface Track {
   id: string;
@@ -496,4 +496,100 @@ export interface ActivityFeedItem {
   avatarUrl?: string;
   timestamp: number;
   data: Record<string, any>;
+}
+
+export type UserRole = 'user' | 'moderator' | 'admin';
+
+export type UserStatus = 'active' | 'restricted' | 'banned';
+
+export type AuditAction = 
+  | 'user_banned' 
+  | 'user_restricted' 
+  | 'user_activated' 
+  | 'user_deleted'
+  | 'genre_created' 
+  | 'genre_updated' 
+  | 'genre_deactivated'
+  | 'genre_activated'
+  | 'track_approved'
+  | 'track_rejected'
+  | 'verification_approved'
+  | 'verification_rejected'
+  | 'report_resolved'
+  | 'report_dismissed';
+
+export interface AuditLog {
+  id: string;
+  adminId: string;
+  adminUsername: string;
+  action: AuditAction;
+  targetType: 'user' | 'genre' | 'track' | 'verification' | 'report';
+  targetId: string;
+  metadata?: Record<string, any>;
+  timestamp: number;
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: number;
+  lastLogin?: number;
+  votingHistory: Vote[];
+  reportCount: number;
+}
+
+export interface GenreDefinition {
+  id: string;
+  name: Genre;
+  mainGenre: MainGenre;
+  keywords: string[];
+  isActive: boolean;
+  trackCount: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface VerificationRequest {
+  id: string;
+  userId: string;
+  username: string;
+  userType: 'dj' | 'band' | 'label';
+  socialProofLinks: string[];
+  submittedAt: number;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedBy?: string;
+  reviewedAt?: number;
+  notes?: string;
+}
+
+export interface Report {
+  id: string;
+  reporterId: string;
+  reporterUsername: string;
+  targetType: 'user' | 'track' | 'profile';
+  targetId: string;
+  reason: 'spam' | 'harassment' | 'fake_profile' | 'inappropriate_content' | 'other';
+  description: string;
+  submittedAt: number;
+  status: 'pending' | 'resolved' | 'dismissed';
+  reviewedBy?: string;
+  reviewedAt?: number;
+  resolution?: string;
+}
+
+export interface SpotlightBooking {
+  id: string;
+  userId: string;
+  artistName: string;
+  trackId?: string;
+  startDate: number;
+  endDate: number;
+  position: 'hero' | 'sidebar' | 'featured';
+  amount: number;
+  isPaid: boolean;
+  stripePaymentId?: string;
+  createdAt: number;
 }
