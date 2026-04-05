@@ -17,8 +17,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { audioPlayerService } from '@/services/audioPlayerService';
 import { useTrackData } from '@/hooks/use-track-data';
-import { TrackShareCard } from '@/components/TrackShareCard';
-import { toBlob } from 'html-to-image';
 import { toast } from 'sonner';
 
 interface ChartPosition {
@@ -50,16 +48,15 @@ export function TrackDetailModal({
 }: TrackDetailModalProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const shareCardRef = useRef<HTMLDivElement>(null);
   const [artworkLoaded, setArtworkLoaded] = useState(false);
   const [spotifyLoaded, setSpotifyLoaded] = useState(false);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   
   const {
     enrichedTrack,
-    artworkUrl,
-    spotifyId
+    artworkUrl
   } = useTrackData(isOpen ? track : null);
+  
+  const spotifyId = enrichedTrack?.spotifyId || track?.spotifyId || null;
 
   // Artwork loading logic with CORS support
   useEffect(() => {
@@ -87,47 +84,6 @@ export function TrackDetailModal({
   }, [isOpen]);
 
   if (!track) return null;
-
-  const handleSharePlacements = async () => {
-    if (!shareCardRef.current || !track) return;
-    setIsGeneratingImage(true);
-
-    try {
-      const blob = await toBlob(shareCardRef.current, {
-        quality: 1,
-        pixelRatio: 2,
-        skipFonts: false,
-        cacheBust: true,
-        backgroundColor: '#0a0a0a',
-      });
-
-      if (!blob) throw new Error('Image generation failed');
-
-      const filename = `dark-charts-${track.artist.replace(/\s+/g, '-')}.png`;
-      const file = new File([blob], filename, { type: 'image/png' });
-
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: 'Dark Charts Share',
-          text: `Check out ${track.title} on Dark Charts!`,
-        });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.click();
-        URL.revokeObjectURL(url);
-      }
-      toast.success('Successfully shared!');
-    } catch (error) {
-      console.error(error);
-      toast.error('Could not generate share image');
-    } finally {
-      setIsGeneratingImage(false);
-    }
-  };
 
   const streamingLinks = getStreamingLinks(enrichedTrack || track, spotifyId);
 
@@ -219,10 +175,6 @@ export function TrackDetailModal({
                         ))}
                       </div>
                     </div>
-
-                    <Button variant="outline" className="w-full" onClick={handleSharePlacements} disabled={isGeneratingImage}>
-                      <ShareFat className="mr-2" /> Share Placements
-                    </Button>
                   </div>
                 </div>
 
@@ -245,15 +197,6 @@ export function TrackDetailModal({
                   <X size={20} />
                 </button>
               </motion.div>
-            </div>
-
-            {/* Hidden Share Card for Export */}
-            <div ref={shareCardRef} className="fixed left-[-9999px] top-[-9999px]">
-               <TrackShareCard
-                track={track}
-                artworkUrl={artworkUrl || ''}
-                position={{ position: track.rank, trend: 'neutral' }}
-              />
             </div>
           </>
         )}
