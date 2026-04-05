@@ -114,7 +114,9 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
       const blob = await toBlob(shareCardRef.current, {
         quality: 1,
         pixelRatio: 2,
+        useCORS: true,
         cacheBust: true,
+        backgroundColor: '#000000',
       });
 
       if (!blob) {
@@ -456,9 +458,15 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                         <h2 className="text-3xl md:text-4xl font-display uppercase tracking-tight text-foreground mb-2 leading-tight">
                           {track.title}
                         </h2>
-                        <div className="text-xl text-muted-foreground font-ui">
-                          {track.artist}
-                        </div>
+                        <button
+                          onClick={() => {
+                            toast.info('Artist profile feature coming soon!');
+                          }}
+                          className="text-xl text-muted-foreground font-ui hover:text-primary transition-colors text-left group inline-flex items-center gap-2"
+                        >
+                          <span className="group-hover:underline">{track.artist}</span>
+                          <ArrowRight size={18} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
                       </div>
 
                       {track.album && (
@@ -613,6 +621,20 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                       </div>
                     </div>
                   )}
+
+                  <div className="pt-4 border-t border-border">
+                    <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground mb-4">
+                      Artist Links
+                    </div>
+                    <div className="p-4 bg-secondary/30 border border-border/50">
+                      <p className="text-sm font-ui text-muted-foreground text-center">
+                        Artist social links coming soon...
+                      </p>
+                      <p className="text-xs font-ui text-muted-foreground/70 text-center mt-2">
+                        Instagram, Website, Spotify, and more will be available here.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             </div>
