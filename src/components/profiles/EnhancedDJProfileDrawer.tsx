@@ -122,7 +122,7 @@ export function EnhancedDJProfileDrawer({
     if (normalizedPlatform.includes('apple')) return <AppleLogo weight="fill" className="w-4 h-4" />;
     if (normalizedPlatform.includes('youtube')) return <YoutubeLogo weight="fill" className="w-4 h-4" />;
     if (normalizedPlatform.includes('instagram')) return <InstagramLogo weight="fill" className="w-4 h-4" />;
-    if (normalizedPlatform.includes('twitter') || normalizedPlatform.includes('x.com')) return <TwitterLogo weight="fill" className="w-4 h-4" />;
+    if (normalizedPlatform.includes('twitter') || normalizedPlatform === 'x.com' || normalizedPlatform === 'x') return <TwitterLogo weight="fill" className="w-4 h-4" />;
     return <GlobeHemisphereWest weight="fill" className="w-4 h-4" />;
   };
 
