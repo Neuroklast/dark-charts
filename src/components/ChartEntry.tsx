@@ -44,11 +44,11 @@ export function ChartEntry({ track, index, onClick, animate = false }: ChartEntr
       
       <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary opacity-0 group-hover:opacity-100 instant-transition" />
       
-      <div className="flex items-center gap-4 relative z-10">
-        <div className="flex items-center gap-3 min-w-[100px]">
-          <div className="relative flex items-center gap-2">
+      <div className="flex items-start gap-3 md:gap-4 relative z-10">
+        <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+          <div className="relative flex items-center gap-1 md:gap-2">
             {trendDirection && (
-              <div className={`${trendDirection === 'up' ? 'text-accent' : trendDirection === 'down' ? 'text-primary' : trendDirection === 'new' ? 'text-accent' : 'text-muted-foreground'}`} aria-label={`Trend: ${trendDirection}`}>
+              <div className={`flex-shrink-0 ${trendDirection === 'up' ? 'text-accent' : trendDirection === 'down' ? 'text-primary' : trendDirection === 'new' ? 'text-accent' : 'text-muted-foreground'}`} aria-label={`Trend: ${trendDirection}`}>
                 {getTrendIcon()}
               </div>
             )}
@@ -59,47 +59,67 @@ export function ChartEntry({ track, index, onClick, animate = false }: ChartEntr
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.5, y: 20 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className={`display-font text-4xl leading-none font-semibold ${track.rank === 1 ? 'text-primary' : track.rank <= 3 ? 'text-accent' : 'text-foreground/80'}`}
+                className={`display-font text-2xl md:text-4xl leading-none font-semibold ${track.rank === 1 ? 'text-primary' : track.rank <= 3 ? 'text-accent' : 'text-foreground/80'}`}
               >
                 {String(track.rank).padStart(2, '0')}
               </motion.div>
             ) : (
-              <div className={`display-font text-4xl leading-none font-semibold snap-transition ${track.rank === 1 ? 'text-primary' : track.rank <= 3 ? 'text-accent' : 'text-foreground/80'}`}>
+              <div className={`display-font text-2xl md:text-4xl leading-none font-semibold snap-transition ${track.rank === 1 ? 'text-primary' : track.rank <= 3 ? 'text-accent' : 'text-foreground/80'}`}>
                 {String(track.rank).padStart(2, '0')}
               </div>
             )}
           </div>
           
           {track.movement !== undefined && track.movement !== 0 && (
-            <div className={`flex flex-col items-center ${movementColor}`}>
+            <div className={`flex flex-col items-center flex-shrink-0 ${movementColor}`}>
               {track.movement > 0 ? (
-                <CaretUp weight="fill" className="w-5 h-5" />
+                <CaretUp weight="fill" className="w-4 h-4 md:w-5 md:h-5" />
               ) : (
-                <CaretDown weight="fill" className="w-5 h-5" />
+                <CaretDown weight="fill" className="w-4 h-4 md:w-5 md:h-5" />
               )}
-              <span className="cyber-data-label">{Math.abs(track.movement)}</span>
+              <span className="cyber-data-label text-[8px] md:text-[10px]">{Math.abs(track.movement)}</span>
             </div>
           )}
         </div>
 
-        <AlbumArtwork
-          src={track.albumArt}
-          alt={`${track.artist} - ${track.title}`}
-          artist={track.artist}
-          title={track.title}
-          size="medium"
-          glowColor={glowColor}
-        />
+        <div className="flex-shrink-0">
+          <AlbumArtwork
+            src={track.albumArt}
+            alt={`${track.artist} - ${track.title}`}
+            artist={track.artist}
+            title={track.title}
+            size="medium"
+            glowColor={glowColor}
+          />
+        </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="cyber-hover-chromatic data-font text-xl font-bold text-foreground truncate">
-            {track.title}
+        <div className="flex-1 min-w-0 flex flex-col gap-2">
+          <div>
+            <div className="cyber-hover-chromatic data-font text-base md:text-xl font-bold text-foreground truncate">
+              {track.title}
+            </div>
+            <div className="data-font text-sm md:text-base text-muted-foreground truncate mt-0.5">
+              {track.artist}
+            </div>
           </div>
-          <div className="data-font text-base text-muted-foreground truncate mt-1">
-            {track.artist}
+
+          <div className="flex flex-col gap-2 md:hidden">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <TrendUp className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                <span className="data-font text-[10px] text-muted-foreground uppercase">Wochen</span>
+                <span className="data-font text-sm font-bold text-foreground">{track.weeksInChart || 1}</span>
+              </div>
+              
+              <div className="flex items-center gap-1.5">
+                <span className="data-font text-[10px] text-muted-foreground uppercase">Votes</span>
+                <span className="data-font text-sm font-bold text-accent">{track.votes || 0}</span>
+              </div>
+            </div>
           </div>
+
           {communityPower > 0 && (
-            <div className="mt-2 space-y-1">
+            <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-ui text-[9px] uppercase tracking-[0.15em] text-muted-foreground">Community Power</span>
                 <span className="data-font text-xs font-bold text-accent">{communityPower}%</span>
@@ -107,12 +127,14 @@ export function ChartEntry({ track, index, onClick, animate = false }: ChartEntr
               <Progress value={communityPower} className="h-1.5 bg-secondary" aria-label={`Community power: ${communityPower}%`} />
             </div>
           )}
-          <div className="flex flex-wrap gap-1.5 mt-2">
+
+          <div className="flex flex-wrap gap-1.5">
             {track.genres.slice(0, 3).map((genre, idx) => (
               <Badge 
                 key={idx} 
                 variant="outline"
-                className="uppercase text-[8px] font-ui font-semibold tracking-[0.1em] border border-border text-foreground/70 hover:bg-primary/20 hover:border-primary/50 snap-transition px-1.5 py-0.5"
+                className="uppercase text-[8px] font-ui font-semibold tracking-[0.1em] border border-border text-foreground/70 hover:bg-primary/20 hover:border-primary/50 snap-transition px-1.5 py-0.5 truncate max-w-[120px]"
+                title={genre}
               >
                 {genre}
               </Badge>
@@ -125,21 +147,21 @@ export function ChartEntry({ track, index, onClick, animate = false }: ChartEntr
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="flex flex-col items-center gap-1 min-w-[60px]">
+        <div className="hidden md:flex items-center gap-6 flex-shrink-0 min-w-[140px]">
+          <div className="flex flex-col items-center gap-1">
             <TrendUp className="w-4 h-4 text-muted-foreground" />
             <span className="data-font text-xs text-muted-foreground">Wochen</span>
             <span className="data-font text-base font-bold text-foreground">{track.weeksInChart || 1}</span>
           </div>
           
-          <div className="flex flex-col items-center gap-1 min-w-[60px]">
+          <div className="flex flex-col items-center gap-1">
             <span className="data-font text-xs text-muted-foreground">Votes</span>
             <span className="data-font text-base font-bold text-accent">{track.votes || 0}</span>
           </div>
         </div>
       </div>
 
-      <div className="pl-28">
+      <div className="pl-0 md:pl-28">
         <SpotifyEmbed 
           spotifyUri={track.spotifyUri} 
           artist={track.artist}

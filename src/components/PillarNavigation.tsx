@@ -1,6 +1,7 @@
 import { ChartType } from '@/types';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PillarNavigationProps {
   activePillar: ChartType | 'overview';
@@ -10,6 +11,7 @@ interface PillarNavigationProps {
 
 export function PillarNavigation({ activePillar, onPillarChange, className }: PillarNavigationProps) {
   const { t } = useLanguage();
+  const isMobile = useIsMobile();
   
   const pillars: { value: ChartType | 'overview'; label: string }[] = [
     { value: 'overview', label: t('pillar.overview') },
@@ -19,27 +21,46 @@ export function PillarNavigation({ activePillar, onPillarChange, className }: Pi
   ];
 
   return (
-    <div className={cn("w-full bg-card/50 border-y border-border", className)}>
+    <div className={cn("sticky top-16 z-40 w-full bg-card/50 border-y border-border backdrop-blur-md", className)}>
       <div className="w-full px-4 md:px-8 py-4">
         <div className="mx-auto max-w-7xl">
-          <div className="flex items-center justify-center gap-0">
-            <div className="inline-flex border border-border w-full md:w-auto overflow-hidden">
+          {isMobile ? (
+            <div className="flex overflow-x-auto gap-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {pillars.map((pillar) => (
                 <button
                   key={pillar.value}
                   onClick={() => onPillarChange(pillar.value)}
                   className={cn(
-                    "flex-1 md:flex-none px-4 md:px-8 py-3 font-ui text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold snap-transition border-r last:border-r-0 border-border",
+                    "flex-shrink-0 whitespace-nowrap px-6 py-3 font-ui text-xs uppercase tracking-[0.15em] font-bold snap-transition border",
                     activePillar === pillar.value
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card text-muted-foreground hover:bg-primary/20 hover:text-foreground"
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-muted-foreground border-border hover:bg-primary/20 hover:text-foreground"
                   )}
                 >
                   {pillar.label}
                 </button>
               ))}
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-center gap-0">
+              <div className="inline-flex border border-border w-full md:w-auto overflow-hidden">
+                {pillars.map((pillar) => (
+                  <button
+                    key={pillar.value}
+                    onClick={() => onPillarChange(pillar.value)}
+                    className={cn(
+                      "flex-1 md:flex-none px-4 md:px-8 py-3 font-ui text-xs uppercase tracking-[0.2em] font-bold snap-transition border-r last:border-r-0 border-border",
+                      activePillar === pillar.value
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card text-muted-foreground hover:bg-primary/20 hover:text-foreground"
+                    )}
+                  >
+                    {pillar.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
