@@ -2,6 +2,7 @@ import { ChartWeights } from '@/types';
 import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
 import { Sliders } from '@phosphor-icons/react';
+import { calculateTotalWeight } from '@/lib/math/normalization';
 
 interface WeightingPanelProps {
   weights: ChartWeights;
@@ -22,7 +23,7 @@ export function WeightingPanel({ weights, onChange }: WeightingPanelProps) {
     onChange({ ...weights, streaming: value[0] });
   };
 
-  const total = weights.fan + weights.expert + weights.streaming;
+  const total = calculateTotalWeight(weights);
 
   return (
     <Card className="bg-card border border-border p-5 sticky top-24">

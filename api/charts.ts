@@ -1,5 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../src/backend/lib/prisma';
+import { z } from 'zod';
+
+const querySchema = z.object({
+  type: z.enum(['fan', 'expert', 'streaming']),
+  limit: z.string().optional().default('10').transform((val) => parseInt(val, 10)).pipe(z.number().min(1).max(100))
+});
 
 export default async function handler(
   req: VercelRequest,
@@ -15,16 +21,13 @@ export default async function handler(
   }
 
   try {
-    const { type, limit = '10' } = req.query;
+    const parseResult = querySchema.safeParse(req.query);
 
-    if (!type || (type !== 'fan' && type !== 'expert' && type !== 'streaming')) {
-      return res.status(400).json({ error: 'Invalid chart type' });
+    if (!parseResult.success) {
+      return res.status(400).json({ error: 'Invalid parameters', details: parseResult.error.format() });
     }
 
-    const limitNum = parseInt(limit as string, 10);
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-      return res.status(400).json({ error: 'Limit must be between 1 and 100' });
-    }
+    const { type, limit: limitNum } = parseResult.data;
 
     const now = new Date();
     const startOfWeek = new Date(now);

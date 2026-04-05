@@ -1,5 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../src/backend/lib/prisma';
+import { z } from 'zod';
+
+const querySchema = z.object({
+  id: z.string().optional(),
+  limit: z.string().optional().default('20').transform((val) => parseInt(val, 10)).pipe(z.number().min(1).max(100)),
+  offset: z.string().optional().default('0').transform((val) => parseInt(val, 10)).pipe(z.number().min(0))
+});
 
 export default async function handler(
   req: VercelRequest,
@@ -20,7 +27,13 @@ export default async function handler(
   }
 
   try {
-    const { id, limit = '20', offset = '0' } = req.query;
+    const parseResult = querySchema.safeParse(req.query);
+
+    if (!parseResult.success) {
+      return res.status(400).json({ error: 'Invalid parameters', details: parseResult.error.format() });
+    }
+
+    const { id, limit: limitNum, offset: offsetNum } = parseResult.data;
 
     if (id) {
       const release = await prisma.release.findUnique({
@@ -44,17 +57,6 @@ export default async function handler(
         success: true,
         release,
       });
-    }
-
-    const limitNum = parseInt(limit as string, 10);
-    const offsetNum = parseInt(offset as string, 10);
-
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-      return res.status(400).json({ error: 'Limit must be between 1 and 100' });
-    }
-
-    if (isNaN(offsetNum) || offsetNum < 0) {
-      return res.status(400).json({ error: 'Offset must be non-negative' });
     }
 
     const releases = await prisma.release.findMany({
