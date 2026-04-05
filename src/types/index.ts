@@ -14,7 +14,7 @@ export type Genre =
 
 export type ChartType = 'fan' | 'expert' | 'streaming' | 'overall';
 
-export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'history' | 'admin' | 'oauth-callback' | 'profiles-demo';
+export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'history' | 'admin' | 'oauth-callback' | 'profiles-demo' | 'privacy' | 'terms' | 'imprint';
 
 export interface Track {
   id: string;
@@ -46,6 +46,15 @@ export interface Track {
   odesliData?: OdesliData;
   community_power?: number;
   trend_direction?: 'up' | 'down' | 'stable' | 'new';
+  topSupporters?: TrackSupporter[];
+}
+
+export interface TrackSupporter {
+  userId: string;
+  username: string;
+  avatarUrl?: string;
+  voteCount: number;
+  userType: 'fan' | 'dj';
 }
 
 export interface OdesliData {
@@ -142,6 +151,7 @@ export interface BaseUserProfile {
   externalLinks: ExternalLink[];
   displayedBadges: string[];
   allBadges: Badge[];
+  isPublicProfile: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -161,6 +171,17 @@ export interface FanProfile extends BaseUserProfile {
     totalVotesLifetime: number;
     weeklyActivity: number;
   };
+  tasteProfile?: {
+    genreScores: Record<Genre, number>;
+    topGenres: Genre[];
+  };
+  roadToSuperfan?: {
+    artistId: string;
+    artistName: string;
+    currentLevel: number;
+    maxLevel: number;
+    progress: number;
+  }[];
   schemaOrgData?: SchemaOrgPerson;
 }
 
@@ -168,16 +189,22 @@ export interface BandProfile extends BaseUserProfile {
   userType: 'band';
   genres: Genre[];
   spotifyArtistId?: string;
+  bannerUrl?: string;
+  isVerified?: boolean;
   latestReleases: {
     title: string;
     releaseDate: number;
     spotifyUri?: string;
+    previewUrl?: string;
+    albumArt?: string;
   }[];
   isPremium: boolean;
   analytics?: {
     totalVotes: number;
-    chartPositions: { chartType: ChartType; position: number }[];
+    chartPositions: { chartType: ChartType; position: number; peakPosition?: number }[];
     demographics: Record<string, number>;
+    weeksInChart: number;
+    peakPosition: number;
   };
   bookingInfo?: {
     available: boolean;
@@ -190,6 +217,7 @@ export interface BandProfile extends BaseUserProfile {
     username: string;
     avatarUrl?: string;
     voteCount: number;
+    userType: 'fan' | 'dj';
   }[];
   upcomingEvents?: MusicEvent[];
   mediaGallery?: {
@@ -217,24 +245,76 @@ export interface DJProfile extends BaseUserProfile {
     correctPredictions: number;
     totalPredictions: number;
     accuracy: number;
+    earlyPredictions: EarlyPrediction[];
   };
+  subgenreAccuracy?: Record<Genre, GenreAccuracy>;
   curatedCharts: CuratedChart[];
+  earnedBadges: Badge[];
+  nextBadgeProgress?: {
+    badgeId: string;
+    badgeName: string;
+    currentProgress: number;
+    requiredProgress: number;
+    percentageComplete: number;
+  };
   schemaOrgData?: SchemaOrgPerson;
+}
+
+export interface EarlyPrediction {
+  trackId: string;
+  trackTitle: string;
+  artistName: string;
+  supportedAt: number;
+  enteredTop10At: number;
+  weeksBeforeEntry: number;
+  finalPosition: number;
+  genres: Genre[];
+}
+
+export interface GenreAccuracy {
+  totalVotes: number;
+  successfulVotes: number;
+  accuracy: number;
+  lastUpdated: number;
 }
 
 export interface LabelProfile extends BaseUserProfile {
   userType: 'label';
+  logoUrl?: string;
+  bannerUrl?: string;
+  businessLinks?: {
+    websiteUrl?: string;
+    shopUrl?: string;
+    contactEmail?: string;
+  };
   managedBands: string[];
+  roster?: {
+    bandId: string;
+    bandName: string;
+    avatarUrl?: string;
+    genres: Genre[];
+    chartRelevance: number;
+  }[];
   aggregatedAnalytics?: {
     totalVotes: number;
     totalStreams: number;
-    topBands: { bandId: string; performance: number }[];
+    chartWeeks: number;
+    top10Placements: number;
+    topBands: { bandId: string; bandName: string; performance: number }[];
   };
+  latestRosterReleases?: {
+    bandId: string;
+    bandName: string;
+    releaseTitle: string;
+    releaseDate: number;
+    albumArt?: string;
+  }[];
   scoutingNotes: {
     bandId: string;
     note: string;
     timestamp: number;
   }[];
+  schemaOrgData?: SchemaOrgOrganization;
 }
 
 export type UserProfile = FanProfile | BandProfile | DJProfile | LabelProfile;
@@ -387,6 +467,25 @@ export interface SchemaOrgMusicGroup {
   sameAs?: string[];
   member?: string[];
   event?: MusicEvent[];
+  foundingDate?: string;
+  albumRelease?: {
+    '@type': 'MusicAlbum';
+    name: string;
+    datePublished: string;
+  }[];
+}
+
+export interface SchemaOrgOrganization {
+  '@context': 'https://schema.org';
+  '@type': 'Organization' | 'RecordLabel';
+  name: string;
+  logo?: string;
+  image?: string;
+  description?: string;
+  url?: string;
+  sameAs?: string[];
+  email?: string;
+  member?: string[];
 }
 
 export interface ActivityFeedItem {
@@ -397,4 +496,100 @@ export interface ActivityFeedItem {
   avatarUrl?: string;
   timestamp: number;
   data: Record<string, any>;
+}
+
+export type UserRole = 'user' | 'moderator' | 'admin';
+
+export type UserStatus = 'active' | 'restricted' | 'banned';
+
+export type AuditAction =
+  | 'user_banned'
+  | 'user_restricted'
+  | 'user_activated'
+  | 'user_deleted'
+  | 'genre_created'
+  | 'genre_updated'
+  | 'genre_deactivated'
+  | 'genre_activated'
+  | 'track_approved'
+  | 'track_rejected'
+  | 'verification_approved'
+  | 'verification_rejected'
+  | 'report_resolved'
+  | 'report_dismissed';
+
+export interface AuditLog {
+  id: string;
+  adminId: string;
+  adminUsername: string;
+  action: AuditAction;
+  targetType: 'user' | 'genre' | 'track' | 'verification' | 'report';
+  targetId: string;
+  metadata?: Record<string, any>;
+  timestamp: number;
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: number;
+  lastLogin?: number;
+  votingHistory: Vote[];
+  reportCount: number;
+}
+
+export interface GenreDefinition {
+  id: string;
+  name: Genre;
+  mainGenre: MainGenre;
+  keywords: string[];
+  isActive: boolean;
+  trackCount: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface VerificationRequest {
+  id: string;
+  userId: string;
+  username: string;
+  userType: 'dj' | 'band' | 'label';
+  socialProofLinks: string[];
+  submittedAt: number;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedBy?: string;
+  reviewedAt?: number;
+  notes?: string;
+}
+
+export interface Report {
+  id: string;
+  reporterId: string;
+  reporterUsername: string;
+  targetType: 'user' | 'track' | 'profile';
+  targetId: string;
+  reason: 'spam' | 'harassment' | 'fake_profile' | 'inappropriate_content' | 'other';
+  description: string;
+  submittedAt: number;
+  status: 'pending' | 'resolved' | 'dismissed';
+  reviewedBy?: string;
+  reviewedAt?: number;
+  resolution?: string;
+}
+
+export interface SpotlightBooking {
+  id: string;
+  userId: string;
+  artistName: string;
+  trackId?: string;
+  startDate: number;
+  endDate: number;
+  position: 'hero' | 'sidebar' | 'featured';
+  amount: number;
+  isPaid: boolean;
+  stripePaymentId?: string;
+  createdAt: number;
 }

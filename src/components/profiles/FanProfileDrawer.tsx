@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { FanProfile, Badge } from '@/types';
+import { FanProfile, Badge, Genre } from '@/types';
 import {
   Sheet,
   SheetContent,
@@ -12,6 +12,8 @@ import { Badge as BadgeUI } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Coins,
   Trophy,
@@ -22,15 +24,23 @@ import {
   InstagramLogo,
   TwitchLogo,
   X,
-  CheckCircle
+  CheckCircle,
+  Eye,
+  EyeSlash,
+  ChartPolar,
+  Flame,
+  Star
 } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { SafeImage } from '@/components/SafeImage';
+import { TasteProfileRadar } from '@/components/TasteProfileRadar';
+import { JsonLdScript } from '@/components/JsonLdScript';
 
 interface FanProfileDrawerProps {
   profile: FanProfile | null;
   isOpen: boolean;
   onClose: () => void;
+  onUpdateProfile?: (updates: Partial<FanProfile>) => Promise<void>;
 }
 
 interface ContributionDay {
@@ -39,9 +49,17 @@ interface ContributionDay {
   level: 0 | 1 | 2 | 3 | 4;
 }
 
-export function FanProfileDrawer({ profile, isOpen, onClose }: FanProfileDrawerProps) {
+export function FanProfileDrawer({ profile, isOpen, onClose, onUpdateProfile }: FanProfileDrawerProps) {
   const [contributionData, setContributionData] = useState<ContributionDay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPublicProfile, setIsPublicProfile] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setIsPublicProfile(profile.isPublicProfile || false);
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (isOpen && profile) {
@@ -114,8 +132,22 @@ export function FanProfileDrawer({ profile, isOpen, onClose }: FanProfileDrawerP
   const totalVotes = profile.votingHistory?.length || 0;
   const displayedBadges = profile.allBadges?.filter(b => profile.displayedBadges?.includes(b.id)) || [];
 
+  const tasteProfileData = profile.tasteProfile?.genreScores || profile.engagementStats?.genreAffinity || {};
+  const roadToSuperfan = profile.roadToSuperfan || [];
+  const personalCharts = profile.personalCharts || [];
+
+  const schemaOrgData = profile.schemaOrgData || {
+    '@context': 'https://schema.org' as const,
+    '@type': 'Person' as const,
+    name: profile.username,
+    image: profile.avatarUrl,
+    description: profile.biography,
+    sameAs: profile.externalLinks?.map(link => link.url) || []
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
+      {profile.isPublicProfile && <JsonLdScript data={schemaOrgData} />}
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto bg-background border-l border-accent" side="right">
         <SheetHeader className="border-b border-border pb-4">
           <div className="flex items-start gap-4">
@@ -286,6 +318,113 @@ export function FanProfileDrawer({ profile, isOpen, onClose }: FanProfileDrawerP
               </div>
             </div>
           )}
+
+          {Object.keys(tasteProfileData).length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <ChartPolar weight="duotone" className="w-5 h-5 text-accent" />
+                <h3 className="display-font text-sm uppercase tracking-tight text-foreground">Taste Profile</h3>
+              </div>
+              <Card className="bg-secondary border border-border p-6">
+                <TasteProfileRadar genreScores={tasteProfileData} size={300} />
+                <p className="font-ui text-[10px] text-muted-foreground text-center uppercase tracking-widest mt-4">
+                  Genre-Affinität basierend auf deiner Voting-Historie
+                </p>
+              </Card>
+            </div>
+          )}
+
+          {roadToSuperfan.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Flame weight="duotone" className="w-5 h-5 text-accent" />
+                <h3 className="display-font text-sm uppercase tracking-tight text-foreground">Road to Superfan</h3>
+              </div>
+              <div className="space-y-3">
+                {roadToSuperfan.map((artist, index) => (
+                  <Card key={index} className="bg-secondary border border-border p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="font-ui text-sm font-semibold text-foreground uppercase tracking-wider">{artist.artistName}</p>
+                        <p className="data-font text-xs text-muted-foreground mt-1">
+                          Level {artist.currentLevel} / {artist.maxLevel}
+                        </p>
+                      </div>
+                      <div className="data-font text-lg font-bold text-accent">
+                        {artist.progress}%
+                      </div>
+                    </div>
+                    <Progress value={artist.progress} className="h-2" />
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {personalCharts.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Star weight="duotone" className="w-5 h-5 text-accent" />
+                <h3 className="display-font text-sm uppercase tracking-tight text-foreground">Personal All-Time Favorites</h3>
+              </div>
+              <Card className="bg-secondary border border-border p-4">
+                <div className="space-y-2">
+                  {personalCharts.slice(0, 10).map((trackId, index) => (
+                    <div key={trackId} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
+                      <span className="data-font text-sm font-bold text-accent w-6">
+                        {index + 1}
+                      </span>
+                      <div className="flex-1">
+                        <p className="font-ui text-xs text-foreground uppercase tracking-wider">
+                          Track ID: {trackId.substring(0, 12)}...
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          )}
+
+          <Card className="bg-secondary/30 border border-border p-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {isPublicProfile ? (
+                    <Eye weight="duotone" className="w-5 h-5 text-accent" />
+                  ) : (
+                    <EyeSlash weight="duotone" className="w-5 h-5 text-muted-foreground" />
+                  )}
+                  <div>
+                    <Label htmlFor="public-profile" className="display-font text-sm uppercase tracking-tight text-foreground cursor-pointer">
+                      Profil öffentlich machen
+                    </Label>
+                    <p className="font-ui text-[10px] text-muted-foreground leading-relaxed mt-1">
+                      Wenn deaktiviert, zählen deine Votes weiterhin, aber du bleibst komplett anonym.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="public-profile"
+                  checked={isPublicProfile}
+                  onCheckedChange={async (checked) => {
+                    if (onUpdateProfile) {
+                      setIsUpdating(true);
+                      try {
+                        await onUpdateProfile({ isPublicProfile: checked });
+                        setIsPublicProfile(checked);
+                      } catch (error) {
+                        console.error('Failed to update profile visibility:', error);
+                      } finally {
+                        setIsUpdating(false);
+                      }
+                    }
+                  }}
+                  disabled={isUpdating}
+                />
+              </div>
+            </div>
+          </Card>
 
           <div className="pt-4 border-t border-border">
             <p className="data-font text-[9px] text-muted-foreground uppercase tracking-widest">

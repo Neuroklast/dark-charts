@@ -1,10 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
-import { Track, MainGenre, Genre, ChartType } from '@/types';
+import { Track, MainGenre, Genre, ChartType, TrackSupporter } from '@/types';
 import { 
   X, Play, CaretUp, CaretDown, Info, ArrowRight, 
   SpotifyLogo, AppleLogo, YoutubeLogo, AmazonLogo,
-  SoundcloudLogo, TidalLogo, MusicNote
+  SoundcloudLogo, TidalLogo, MusicNote, Users, ShareFat
 } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { audioPlayerService } from '@/services/audioPlayerService';
 import { useTrackData } from '@/hooks/use-track-data';
+import { TrackShareCard } from '@/components/TrackShareCard';
+import { toBlob } from 'html-to-image';
+import { toast } from 'sonner';
 
 interface ChartPosition {
   chartName: string;
@@ -38,8 +42,10 @@ interface TrackDetailModalProps {
 export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, allChartPositions = [], onNavigateToChart }: TrackDetailModalProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const shareCardRef = useRef<HTMLDivElement>(null);
   const [artworkLoaded, setArtworkLoaded] = useState(false);
   const [spotifyLoaded, setSpotifyLoaded] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   
   const {
     enrichedTrack,
@@ -96,6 +102,52 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
     if (onNavigateToChart) {
       onNavigateToChart(position.chartType, position.mainGenre, position.subGenre);
       onClose();
+    }
+  };
+
+  const handleSharePlacements = async () => {
+    if (!shareCardRef.current || !track) return;
+
+    setIsGeneratingImage(true);
+
+    try {
+      const blob = await toBlob(shareCardRef.current, {
+        quality: 1,
+        pixelRatio: 2,
+        cacheBust: true,
+      });
+
+      if (!blob) {
+        throw new Error('Failed to generate image');
+      }
+
+      const file = new File([blob], `dark-charts-${track.artist}-${track.title}.png`, {
+        type: 'image/png',
+      });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `${track.title} - ${track.artist} on Dark Charts`,
+          text: `Check out ${track.title} by ${track.artist} on Dark Charts!`,
+        });
+        toast.success('Chart positions shared successfully!');
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `dark-charts-${track.artist}-${track.title}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success('Image downloaded successfully!');
+      }
+    } catch (error) {
+      console.error('Failed to share chart positions:', error);
+      toast.error('Failed to generate share image. Please try again.');
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -324,7 +376,7 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                               <button
                                 key={idx}
                                 onClick={() => handleChartClick(position)}
-                                className="flex items-center justify-between p-3 bg-secondary/30 border border-border hover:border-primary hover:bg-primary/10 transition-all group"
+                                className="flex items-center justify-between p-3 bg-secondary/30 border border-border hover:border-foreground hover:shadow-[0_0_8px_rgba(255,255,255,0.15)] transition-all group"
                               >
                                 <span className="font-ui text-xs uppercase tracking-wider text-foreground text-left flex-1">
                                   {position.chartName}
@@ -336,6 +388,65 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                                   <ArrowRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
                                 </div>
                               </button>
+                            ))}
+                          </div>
+                          <Button
+                            onClick={handleSharePlacements}
+                            disabled={isGeneratingImage}
+                            className="w-full mt-3 font-ui uppercase tracking-wider"
+                            variant="outline"
+                          >
+                            {isGeneratingImage ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <ShareFat size={18} weight="fill" className="mr-2" />
+                                Share Placements
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+
+                      {track.topSupporters && track.topSupporters.length > 0 && (
+                        <div className="space-y-3 pt-2 border-t border-border">
+                          <div className="flex items-center gap-2">
+                            <Users weight="duotone" className="w-4 h-4 text-accent" />
+                            <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground">
+                              Top Supporters
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {track.topSupporters.slice(0, 3).map((supporter) => (
+                              <Tooltip key={supporter.userId}>
+                                <TooltipTrigger asChild>
+                                  <div className="flex flex-col items-center gap-2 group cursor-pointer">
+                                    <Avatar className="w-12 h-12 border-2 border-border group-hover:border-accent transition-colors">
+                                      {supporter.avatarUrl ? (
+                                        <AvatarImage src={supporter.avatarUrl} alt={supporter.username} />
+                                      ) : (
+                                        <AvatarFallback className="bg-secondary text-foreground font-display text-sm">
+                                          {supporter.username.substring(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                      )}
+                                    </Avatar>
+                                    <div className="text-center">
+                                      <p className="font-ui text-[10px] text-foreground uppercase tracking-wider">
+                                        {supporter.username}
+                                      </p>
+                                      <p className="font-ui text-[9px] text-muted-foreground uppercase tracking-widest">
+                                        {supporter.userType === 'fan' ? 'Fan' : 'DJ'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="font-ui text-xs">{supporter.voteCount} votes</p>
+                                </TooltipContent>
+                              </Tooltip>
                             ))}
                           </div>
                         </div>
@@ -461,7 +572,7 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-3 bg-secondary/50 border border-border hover:border-primary transition-all flex flex-col items-center justify-center gap-2 text-center font-ui text-[10px] uppercase tracking-wider hover:bg-primary/10 group min-h-[80px]"
+                            className="p-3 bg-secondary/50 border border-border hover:border-foreground hover:shadow-[0_0_8px_rgba(255,255,255,0.15)] transition-all flex flex-col items-center justify-center gap-2 text-center font-ui text-[10px] uppercase tracking-wider group min-h-[80px]"
                           >
                             <div className="text-muted-foreground group-hover:text-primary transition-colors">
                               {getPlatformIcon(link.platform)}
@@ -505,6 +616,25 @@ export function TrackDetailModal({ track, isOpen, onClose, onVote, userVote, all
                 </div>
               </motion.div>
             </div>
+          </div>
+
+          <div
+            ref={shareCardRef}
+            className="fixed pointer-events-none"
+            style={{
+              position: 'fixed',
+              left: '-9999px',
+              top: '-9999px',
+              zIndex: -1,
+            }}
+          >
+            {track && artworkUrl && (
+              <TrackShareCard
+                track={track}
+                artworkUrl={artworkUrl}
+                chartPositions={allChartPositions}
+              />
+            )}
           </div>
         </>
       )}

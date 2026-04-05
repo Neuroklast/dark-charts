@@ -5,7 +5,7 @@ import { ChartEntry } from '@/components/ChartEntry';
 import { Card } from '@/components/ui/card';
 import { Skull } from '@phosphor-icons/react';
 import { MusicPlayer } from '@/components/MusicPlayer';
-import { Navigation } from '@/components/Navigation';
+import { TopNavigation } from '@/components/TopNavigation';
 import { GenreCharts } from '@/components/GenreCharts';
 import { ProfileView } from '@/components/ProfileView';
 import { AboutView } from '@/components/AboutView';
@@ -18,7 +18,6 @@ import { SubGenreNavigation } from '@/components/SubGenreNavigation';
 import { TrackDetailModal } from '@/components/TrackDetailModal';
 import { OAuthCallback } from '@/components/OAuthCallback';
 import { useKV } from '@github/spark/hooks';
-import logo from '@/assets/images/Gemini_Generated_Image_fa3defa3defa3def.png';
 import { DataProvider, useDataService } from '@/contexts/DataContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
@@ -33,6 +32,10 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { safeFilter, safeSlice, safeFindIndex, isNullOrUndefined } from '@/lib/safe-utils';
 import { ChartEntrySkeleton } from '@/components/skeletons';
 import { ProfilesDemo } from '@/components/ProfilesDemo';
+import { PrivacyPolicyView } from '@/components/PrivacyPolicyView';
+import { TermsOfServiceView } from '@/components/TermsOfServiceView';
+import { ImprintView } from '@/components/ImprintView';
+import { CookieConsentBanner } from '@/components/CookieConsentBanner';
 
 function AppContent() {
   const dataService = useDataService();
@@ -529,10 +532,10 @@ function AppContent() {
   }, [currentTrack, activePillar, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, overallChart]);
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden pb-24">
+    <div className="min-h-screen bg-background relative overflow-x-hidden pb-32">
       <a 
         href="#main-content" 
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-20 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:font-ui focus:text-sm focus:uppercase focus:tracking-wider focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:font-ui focus:text-sm focus:uppercase focus:tracking-wider focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         Skip to main content
       </a>
@@ -555,7 +558,7 @@ function AppContent() {
           </svg>
 
           <ErrorBoundary level="component">
-            <Navigation 
+            <TopNavigation
               currentView={currentView} 
               onNavigate={(view: ViewType) => {
                 try {
@@ -572,98 +575,87 @@ function AppContent() {
           </ErrorBoundary>
 
           <div className="relative z-10">
-            <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-              <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-6 md:py-8">
-                <div className="flex flex-col items-center justify-center gap-4">
-                  <img 
-                    src={logo} 
-                    alt="Dark Charts" 
-                    className="w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-contain chromatic-hover"
+            {(currentView === 'home' || currentView === 'main-genre') && (
+              <>
+                <ErrorBoundary level="component">
+                  <PillarNavigation
+                    activePillar={activePillar}
+                    onPillarChange={setActivePillar}
+                    className="mb-0"
                   />
-                  <p className="font-ui text-[10px] md:text-xs text-muted-foreground tracking-[0.4em] uppercase font-medium">
-                    {t?.('header.subtitle') || 'INDEPENDENT MUSIC CHARTS'}
-                  </p>
-                </div>
-              </div>
-            </header>
+                </ErrorBoundary>
 
-            <main id="main-content" className="max-w-[1800px] mx-auto px-4 md:px-8 py-8">
-              <ErrorBoundary level="component">
-                {currentView === 'profile' && <ProfileView />}
-                {currentView === 'about' && <AboutView />}
-                {currentView === 'custom-charts' && <CustomChartsView />}
-                {currentView === 'admin' && (
-                  <div className="space-y-6">
-                    <AdminArtistManagement />
-                    <ArtistDatabaseManager />
-                  </div>
-                )}
-                {currentView === 'profiles-demo' && <ProfilesDemo />}
-                {currentView === 'voting' && (
-                  <VotingArea 
-                    allTracks={[...(fanCharts || []), ...(expertCharts || []), ...(streamingCharts || [])]}
-                    onTrackClick={handleTrackClick}
-                  />
-                )}
-                {currentView === 'history' && <ChartHistoryView />}
-              </ErrorBoundary>
-          
-          {(currentView === 'home' || currentView === 'main-genre') && (
-            <>
-              <ErrorBoundary level="component">
-                <PillarNavigation 
-                  activePillar={activePillar}
-                  onPillarChange={setActivePillar}
-                  className="mb-6 md:sticky md:top-0 md:z-40 bg-background/95 backdrop-blur-sm py-4 border-b border-border fixed top-0 left-0 right-0 z-50"
-                />
-              </ErrorBoundary>
-
-              <ErrorBoundary level="component">
-                <MainGenreNavigation
-                  activeGenre={currentMainGenre}
-                  onGenreChange={(genre) => {
-                    try {
-                      setCurrentMainGenre(genre);
-                      setCurrentSubGenre(null);
-                      if (genre !== 'overall') {
-                        setCurrentView('main-genre');
-                      } else {
-                        setCurrentView('home');
+                <ErrorBoundary level="component">
+                  <MainGenreNavigation
+                    activeGenre={currentMainGenre}
+                    onGenreChange={(genre) => {
+                      try {
+                        setCurrentMainGenre(genre);
+                        setCurrentSubGenre(null);
+                        if (genre !== 'overall') {
+                          setCurrentView('main-genre');
+                        } else {
+                          setCurrentView('home');
+                        }
+                      } catch (error) {
+                        console.error('Error changing genre:', error);
                       }
-                    } catch (error) {
-                      console.error('Error changing genre:', error);
-                    }
-                  }}
-                  className="mb-6"
-                />
-              </ErrorBoundary>
-            </>
-          )}
+                    }}
+                    className="mb-0"
+                  />
+                </ErrorBoundary>
+              </>
+            )}
 
-          {currentView === 'main-genre' && currentMainGenre && currentMainGenre !== 'overall' && (
-            <ErrorBoundary level="component">
-              <GenreCharts 
-                mainGenre={currentMainGenre}
-                activePillar={activePillar}
-                fanCharts={fanCharts || []}
-                expertCharts={expertCharts || []}
-                streamingCharts={streamingCharts || []}
-                isLoading={isLoading}
-                onTrackClick={handleTrackClick}
-              />
-            </ErrorBoundary>
-          )}
-          
-          {currentView === 'home' && (
-            <>
-              {activePillar === 'overview' && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <ErrorBoundary level="component">
-                      <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts || []} isLoading={isLoading} onTrackClick={handleTrackClick} />
-                    </ErrorBoundary>
-                    <ErrorBoundary level="component">
-                      <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts || []} isLoading={isLoading} onTrackClick={handleTrackClick} />
+            <main id="main-content" className="w-full px-4 md:px-8 py-8">
+              <div className="mx-auto max-w-7xl">
+                <ErrorBoundary level="component">
+                  {currentView === 'profile' && <ProfileView />}
+                  {currentView === 'about' && <AboutView />}
+                  {currentView === 'custom-charts' && <CustomChartsView />}
+                  {currentView === 'privacy' && <PrivacyPolicyView />}
+                  {currentView === 'terms' && <TermsOfServiceView />}
+                  {currentView === 'imprint' && <ImprintView />}
+                  {currentView === 'admin' && (
+                    <div className="space-y-6">
+                      <AdminArtistManagement />
+                      <ArtistDatabaseManager />
+                    </div>
+                  )}
+                  {currentView === 'profiles-demo' && <ProfilesDemo />}
+                  {currentView === 'voting' && (
+                    <VotingArea
+                      allTracks={[...(fanCharts || []), ...(expertCharts || []), ...(streamingCharts || [])]}
+                      onTrackClick={handleTrackClick}
+                    />
+                  )}
+                  {currentView === 'history' && <ChartHistoryView />}
+                </ErrorBoundary>
+
+                {currentView === 'main-genre' && currentMainGenre && currentMainGenre !== 'overall' && (
+                  <ErrorBoundary level="component">
+                    <GenreCharts
+                      mainGenre={currentMainGenre}
+                      activePillar={activePillar}
+                      fanCharts={fanCharts || []}
+                      expertCharts={expertCharts || []}
+                      streamingCharts={streamingCharts || []}
+                      isLoading={isLoading}
+                      onTrackClick={handleTrackClick}
+                    />
+                  </ErrorBoundary>
+                )}
+
+                {currentView === 'home' && (
+                  <>
+                    {activePillar === 'overview' && (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                          <ErrorBoundary level="component">
+                            <ChartCategory title="Fan Charts Top 3" tracks={filteredFanCharts || []} isLoading={isLoading} onTrackClick={handleTrackClick} />
+                          </ErrorBoundary>
+                          <ErrorBoundary level="component">
+                            <ChartCategory title="Expert Charts Top 3" tracks={filteredExpertCharts || []} isLoading={isLoading} onTrackClick={handleTrackClick} />
                     </ErrorBoundary>
                     <ErrorBoundary level="component">
                       <ChartCategory title="Streaming Charts Top 3" tracks={filteredStreamingCharts || []} isLoading={isLoading} onTrackClick={handleTrackClick} />
@@ -790,44 +782,67 @@ function AppContent() {
                     </Card>
                   </ErrorBoundary>
                 </div>
-              )}
-            </>
-          )}
-        </main>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </main>
 
-        <footer className="border-t border-border py-8 px-4 md:px-8 mt-16 bg-secondary/50">
-          <div className="max-w-[1800px] mx-auto">
-            <div className="grid md:grid-cols-3 gap-6 mb-6">
-              <div>
-                <h3 className="display-font text-lg uppercase text-foreground mb-3 tracking-tight font-semibold">Dark Charts</h3>
-                <p className="font-ui text-xs text-muted-foreground leading-relaxed">
-                  {t?.('footer.tagline') || 'Independent music charts for the dark scene'}
-                </p>
-              </div>
-              <div>
-                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-3">{t?.('about.principles') || 'PRINCIPLES'}</h4>
-                <ul className="space-y-1 text-xs text-muted-foreground font-ui">
-                  <li>• {t?.('about.principle1') || 'Community-driven'}</li>
-                  <li>• {t?.('about.principle2') || 'Independent'}</li>
-                  <li>• {t?.('about.principle3') || 'Transparent'}</li>
-                  <li>• {t?.('about.principle4') || 'Authentic'}</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-3">{t?.('nav.about') || 'ABOUT'}</h4>
-                <p className="text-xs text-muted-foreground font-ui leading-relaxed">
-                  {t?.('about.builtFor') || 'Built for the dark music community'}
-                </p>
-              </div>
-            </div>
-            <div className="border-t border-border pt-4 text-center">
-              <p className="font-ui text-[10px] text-muted-foreground uppercase tracking-[0.3em]">
-                Dark Charts &copy; {new Date().getFullYear()} — {t?.('footer.underground') || 'UNDERGROUND'}
-              </p>
-            </div>
-          </div>
-        </footer>
-      </div>
+                      <footer className="w-full border-t border-border py-8 px-4 md:px-8 mt-16 bg-secondary/50">
+                        <div className="mx-auto max-w-7xl">
+                          <div className="grid md:grid-cols-3 gap-8 mb-8">
+                            <div>
+                              <h3 className="font-display text-lg uppercase text-foreground mb-4 tracking-tight font-semibold">Dark Charts</h3>
+                              <p className="font-ui text-xs text-muted-foreground leading-relaxed">
+                                {t?.('footer.tagline') || 'Independent music charts for the dark scene'}
+                              </p>
+                            </div>
+                            <div>
+                              <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-4">{t?.('about.principles') || 'PRINCIPLES'}</h4>
+                              <ul className="space-y-2 text-xs text-muted-foreground font-ui">
+                                <li>• {t?.('about.principle1') || 'Community-driven'}</li>
+                                <li>• {t?.('about.principle2') || 'Independent'}</li>
+                                <li>• {t?.('about.principle3') || 'Transparent'}</li>
+                                <li>• {t?.('about.principle4') || 'Authentic'}</li>
+                              </ul>
+                            </div>
+                            <div>
+                              <h4 className="font-ui text-[10px] font-bold uppercase tracking-[0.15em] text-accent mb-4">{t?.('nav.about') || 'ABOUT'}</h4>
+                              <p className="text-xs text-muted-foreground font-ui leading-relaxed">
+                                {t?.('about.builtFor') || 'Built for the dark music community'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="border-t border-border pt-4">
+                            <div className="flex flex-wrap justify-center gap-4 mb-4">
+                              <button
+                                onClick={() => setCurrentView('privacy')}
+                                className="font-ui text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
+                              >
+                                Datenschutz
+                              </button>
+                              <span className="text-muted-foreground">•</span>
+                              <button
+                                onClick={() => setCurrentView('terms')}
+                                className="font-ui text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
+                              >
+                                AGB
+                              </button>
+                              <span className="text-muted-foreground">•</span>
+                              <button
+                                onClick={() => setCurrentView('imprint')}
+                                className="font-ui text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
+                              >
+                                Impressum
+                              </button>
+                            </div>
+                            <p className="font-ui text-[10px] text-muted-foreground uppercase tracking-[0.3em] text-center">
+                              Dark Charts &copy; {new Date().getFullYear()} — {t?.('footer.underground') || 'UNDERGROUND'}
+                            </p>
+                          </div>
+                        </div>
+                      </footer>
+                    </div>
 
       <ErrorBoundary level="component">
         <MusicPlayer 
@@ -853,6 +868,8 @@ function AppContent() {
           onNavigateToChart={handleNavigateToChart}
         />
       </ErrorBoundary>
+
+      <CookieConsentBanner />
         </>
       )}
     </div>
