@@ -119,7 +119,7 @@ export interface Vote {
 export interface IDataService {
   getAllCharts(): Promise<ChartData>;
   getChartByType(type: 'fan' | 'expert' | 'streaming'): Promise<Track[]>;
-  calculateOverallChart(weights: ChartWeights): Track[];
+  calculateOverallChart(): Track[];
   vote(trackId: string, credits: number): Promise<void>;
   getVotes(trackId: string): Promise<number>;
   getUserVotesForTrack(trackId: string): Promise<number>;

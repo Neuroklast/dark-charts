@@ -3,11 +3,11 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
 import { Genre, MainGenre, Track, ChartWeights } from '@/types';
 import { Plus, FloppyDisk, Trash, Eye, EyeSlash, X, Funnel } from '@phosphor-icons/react';
 import { useKV } from '@github/spark/hooks';
 import { ChartEntry } from '@/components/ChartEntry';
+import { WeightingPanel } from '@/components/WeightingPanel';
 import { useDataService } from '@/contexts/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -89,35 +89,6 @@ export function CustomChartsView() {
     });
   }, []);
 
-  const handleWeightChange = useCallback((type: keyof ChartWeights, values: number[]) => {
-    const newValue = values[0];
-    setWeights(current => {
-      const other1 = Object.keys(current).filter(k => k !== type)[0] as keyof ChartWeights;
-      const other2 = Object.keys(current).filter(k => k !== type)[1] as keyof ChartWeights;
-      
-      const remaining = 100 - newValue;
-      const currentOther1 = current[other1];
-      const currentOther2 = current[other2];
-      const otherTotal = currentOther1 + currentOther2;
-      
-      if (otherTotal === 0) {
-        return {
-          ...current,
-          [type]: newValue,
-          [other1]: remaining / 2,
-          [other2]: remaining / 2
-        };
-      }
-      
-      return {
-        ...current,
-        [type]: newValue,
-        [other1]: Math.round((currentOther1 / otherTotal) * remaining),
-        [other2]: Math.round((currentOther2 / otherTotal) * remaining)
-      };
-    });
-  }, []);
-
   const saveChart = useCallback(() => {
     if (!chartName.trim() || selectedGenres.length === 0) {
       return;
@@ -180,7 +151,7 @@ export function CustomChartsView() {
   const filteredChart = useMemo(() => {
     if (!viewingChart) return [];
     
-    const overallChart = dataService.calculateOverallChart(viewingChart.weights);
+    const overallChart = dataService.calculateOverallChart();
     return overallChart.filter(track => 
       track.genres.some(genre => viewingChart.genres.includes(genre))
     );
@@ -409,66 +380,7 @@ export function CustomChartsView() {
                 </div>
               </div>
 
-              <div>
-                <label className="font-ui text-xs uppercase tracking-[0.15em] text-foreground font-semibold mb-4 block">
-                  Chart Weights
-                </label>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-ui text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                        Fan Charts
-                      </span>
-                      <span className="data-font text-sm font-bold text-primary">
-                        {weights.fan}%
-                      </span>
-                    </div>
-                    <Slider
-                      value={[weights.fan]}
-                      onValueChange={(values) => handleWeightChange('fan', values)}
-                      max={100}
-                      step={1}
-                      className="cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-ui text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                        Expert Charts
-                      </span>
-                      <span className="data-font text-sm font-bold text-accent">
-                        {weights.expert}%
-                      </span>
-                    </div>
-                    <Slider
-                      value={[weights.expert]}
-                      onValueChange={(values) => handleWeightChange('expert', values)}
-                      max={100}
-                      step={1}
-                      className="cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-ui text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                        Streaming Charts
-                      </span>
-                      <span className="data-font text-sm font-bold text-foreground">
-                        {weights.streaming}%
-                      </span>
-                    </div>
-                    <Slider
-                      value={[weights.streaming]}
-                      onValueChange={(values) => handleWeightChange('streaming', values)}
-                      max={100}
-                      step={1}
-                      className="cursor-pointer"
-                    />
-                  </div>
-                </div>
-              </div>
+              <WeightingPanel weights={weights} onChange={setWeights} />
 
               <div className="flex gap-3 pt-4 border-t border-border">
                 <Button
