@@ -115,10 +115,10 @@ export function TasteProfileRadar({ genreScores, size = 400 }: TasteProfileRadar
       ))}
 
       {labels.map((label, i) => {
-        const textAnchor =
+        const textAnchor = 
           Math.abs(label.x - centerX) < 5 ? 'middle' :
           label.x > centerX ? 'start' : 'end';
-
+        
         const dy = label.y < centerY ? -5 : label.y > centerY ? 15 : 5;
 
         return (

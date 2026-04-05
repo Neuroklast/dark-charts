@@ -13,16 +13,16 @@ interface TrackShareCardProps {
   };
 }
 
-export function TrackShareCard({
-  track,
-  chartType,
-  mainGenre,
-  subGenre,
-  artworkUrl,
-  position
+export function TrackShareCard({ 
+  track, 
+  chartType, 
+  mainGenre, 
+  subGenre, 
+  artworkUrl, 
+  position 
 }: TrackShareCardProps) {
   return (
-    <div
+    <div 
       className="relative w-[600px] h-[315px] bg-background border border-border p-8 flex flex-col justify-between overflow-hidden"
       style={{
         backgroundColor: '#0a0a0a'
@@ -32,10 +32,10 @@ export function TrackShareCard({
         <div className="flex gap-6 items-center">
           <div className="w-40 h-40 shadow-2xl border border-white/10 overflow-hidden bg-muted flex items-center justify-center">
             {artworkUrl ? (
-              <img
-                src={artworkUrl}
-                alt={track.title}
-                className="w-full h-full object-cover"
+              <img 
+                src={artworkUrl} 
+                alt={track.title} 
+                className="w-full h-full object-cover" 
               />
             ) : (
               <Skull size={80} className="text-muted-foreground/40" />
@@ -88,7 +88,7 @@ export function TrackShareCard({
             Dark Charts
           </span>
         </div>
-
+        
         <div className="flex flex-col items-end">
           <div className="font-ui text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
             Independent Music Federation

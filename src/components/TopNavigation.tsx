@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import {
-  ChartLine,
-  Info,
-  Sliders,
-  ChartBar,
-  ClockCounterClockwise,
-  Translate,
+import { 
+  ChartLine, 
+  Info, 
+  Sliders, 
+  ChartBar, 
+  ClockCounterClockwise, 
+  Translate, 
   Users,
   List,
   X,
@@ -112,8 +112,8 @@ export function TopNavigation({ currentView, onNavigate }: TopNavigationProps) {
                     key={item.view}
                     onClick={() => onNavigate(item.view)}
                     className={`flex items-center gap-2 px-3 py-2 font-ui text-[10px] lg:text-xs uppercase tracking-wider font-semibold transition-all border-b-2
-                      ${isActive
-                        ? 'text-primary border-primary'
+                      ${isActive 
+                        ? 'text-primary border-primary' 
                         : 'text-muted-foreground hover:text-foreground border-transparent hover:border-border'}`}
                     aria-current={isActive ? 'page' : undefined}
                   >

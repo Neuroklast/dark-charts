@@ -70,7 +70,7 @@ Successfully refactored Dark Charts from a left-aligned dashboard pattern to a m
 All spacing follows strict 8-point grid multiples:
 - `gap-2` = 8px
 - `gap-4` = 16px
-- `gap-8` = 32px
+- `gap-8` = 32px  
 - `px-4` = 16px
 - `py-8` = 32px
 - `mb-8` = 32px

@@ -13,7 +13,7 @@ export function TermsOfServiceView() {
           <section>
             <h2 className="font-display text-xl uppercase text-foreground mb-4">1. Geltungsbereich</h2>
             <p>
-              Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für die Nutzung der Plattform "Dark Charts"
+              Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für die Nutzung der Plattform "Dark Charts" 
               und aller damit verbundenen Services. Mit der Registrierung und Nutzung akzeptieren Sie diese Bedingungen.
             </p>
           </section>
@@ -23,7 +23,7 @@ export function TermsOfServiceView() {
           <section>
             <h2 className="font-display text-xl uppercase text-foreground mb-4">2. Registrierung und Account</h2>
             <p className="mb-4">
-              Die Nutzung der Voting-Funktionen erfordert eine Registrierung über OAuth (Spotify).
+              Die Nutzung der Voting-Funktionen erfordert eine Registrierung über OAuth (Spotify). 
               Bei der Registrierung verpflichten Sie sich:
             </p>
             <ul className="list-disc list-inside space-y-2 ml-4">
@@ -64,7 +64,7 @@ export function TermsOfServiceView() {
               <li><strong>Copyright-Verstöße:</strong> Hochladen von Inhalten, für die Sie keine Rechte besitzen</li>
             </ul>
             <p className="mt-4 text-accent">
-              Bei Verdacht auf Manipulation behalten wir uns vor, Accounts ohne Vorwarnung auf <strong>RESTRICTED</strong> zu setzen
+              Bei Verdacht auf Manipulation behalten wir uns vor, Accounts ohne Vorwarnung auf <strong>RESTRICTED</strong> zu setzen 
               oder vollständig zu löschen.
             </p>
           </section>
@@ -84,7 +84,7 @@ export function TermsOfServiceView() {
               <li>Votes sind endgültig und können nicht rückgängig gemacht werden</li>
             </ul>
             <p className="mt-4">
-              Wir überwachen das Voting-Verhalten algorithmisch. Auffällige Muster (z.B. koordiniertes Voting)
+              Wir überwachen das Voting-Verhalten algorithmisch. Auffällige Muster (z.B. koordiniertes Voting) 
               können zur Sperrung führen.
             </p>
           </section>
@@ -162,11 +162,11 @@ export function TermsOfServiceView() {
           <section>
             <h2 className="font-display text-xl uppercase text-foreground mb-4">8. Geistiges Eigentum</h2>
             <p className="mb-4">
-              Alle Inhalte auf dieser Plattform (Design, Code, Texte, Grafiken) sind urheberrechtlich geschützt.
+              Alle Inhalte auf dieser Plattform (Design, Code, Texte, Grafiken) sind urheberrechtlich geschützt. 
               Die Musikmetadaten und Artworks werden über Spotify und andere lizenzierte APIs bezogen.
             </p>
             <p className="mt-4">
-              Nutzer, die Inhalte hochladen (Profilbilder, Biografien), garantieren, dass sie die notwendigen Rechte besitzen
+              Nutzer, die Inhalte hochladen (Profilbilder, Biografien), garantieren, dass sie die notwendigen Rechte besitzen 
               und räumen uns ein nicht-exklusives Nutzungsrecht zur Darstellung auf der Plattform ein.
             </p>
           </section>
@@ -184,7 +184,7 @@ export function TermsOfServiceView() {
               <li>Fehlerfreiheit der Plattform</li>
             </ul>
             <p className="mt-4">
-              Die Haftung für leichte Fahrlässigkeit ist ausgeschlossen, soweit gesetzlich zulässig.
+              Die Haftung für leichte Fahrlässigkeit ist ausgeschlossen, soweit gesetzlich zulässig. 
               Die Haftung für Vorsatz und grobe Fahrlässigkeit bleibt unberührt.
             </p>
           </section>
@@ -194,7 +194,7 @@ export function TermsOfServiceView() {
           <section>
             <h2 className="font-display text-xl uppercase text-foreground mb-4">10. Änderungen der AGB</h2>
             <p>
-              Wir behalten uns vor, diese AGB jederzeit zu ändern. Nutzer werden bei wesentlichen Änderungen
+              Wir behalten uns vor, diese AGB jederzeit zu ändern. Nutzer werden bei wesentlichen Änderungen 
               per E-Mail informiert. Die Fortsetzung der Nutzung nach Änderung gilt als Zustimmung.
             </p>
           </section>
