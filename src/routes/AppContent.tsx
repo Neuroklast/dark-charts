@@ -40,7 +40,7 @@ import { mainGenreMap } from '@/lib/config/genres';
 function AppContent() {
   const dataService = useDataService();
   const { t } = useLanguage();
-  const [currentView, setCurrentView] = useState<ViewType>('home');
+  const [currentView, setCurrentView] = useState<ViewType>('admin');
   const [currentMainGenre, setCurrentMainGenre] = useState<MainGenre | 'overall'>('overall');
   const [currentSubGenre, setCurrentSubGenre] = useState<Genre | null>(null);
   const [activePillar, setActivePillar] = useState<ChartType | 'overview'>('overview');

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Trash, Pencil, ArrowsClockwise, MusicNote, SpotifyLogo, Check, X, Warning, MagnifyingGlass } from '@phosphor-icons/react';
+import { Plus, Trash, Pencil, ArrowsClockwise, MusicNote, SpotifyLogo, Check, X, Warning, MagnifyingGlass, UploadSimple, ListPlus } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,132 @@ export function AdminArtistManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedArtist, setSelectedArtist] = useState<Artist | null>(null);
   const [releases, setReleases] = useState<Release[]>([]);
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [playlistUrl, setPlaylistUrl] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importTotal, setImportTotal] = useState(0);
+
+  const handleCsvImport = async () => {
+    if (!csvFile) return;
+
+    setIsImporting(true);
+    setImportProgress(0);
+
+    try {
+      const text = await csvFile.text();
+      const lines = text.split('\n');
+      // Skip header, parse lines
+      const artistsToImport = lines
+        .slice(1)
+        .filter(line => line.trim())
+        .map(line => {
+          // Allow quoted CSV or simple comma split (assuming no commas in artist name for simplicity, or simple parsing)
+          // Since the example is "Artist,Spotify_ID", let's handle basic split
+          const lastCommaIndex = line.lastIndexOf(',');
+          if (lastCommaIndex === -1) return null;
+          const name = line.substring(0, lastCommaIndex).trim();
+          const spotifyId = line.substring(lastCommaIndex + 1).trim();
+          return { name, spotifyId };
+        })
+        .filter(Boolean) as { name: string, spotifyId: string }[];
+
+      setImportTotal(artistsToImport.length);
+
+      let importedCount = 0;
+      for (const artistData of artistsToImport) {
+        // Check if artist already exists by spotifyId
+        const exists = artists.some(a => a.spotifyId === artistData.spotifyId);
+        if (!exists) {
+          await artistManagementService.createArtist({
+            name: artistData.name,
+            spotifyId: artistData.spotifyId,
+            genres: [],
+          });
+        }
+        importedCount++;
+        setImportProgress(importedCount);
+      }
+
+      toast.success(`Successfully imported artists from CSV`);
+      loadArtists();
+      setIsBulkDialogOpen(false);
+      setCsvFile(null);
+    } catch (error) {
+      console.error('CSV import failed', error);
+      toast.error('Failed to import artists from CSV');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handlePlaylistImport = async () => {
+    if (!playlistUrl) return;
+
+    setIsImporting(true);
+    setImportProgress(0);
+
+    try {
+      // Extract playlist ID from URL
+      // Format: https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=...
+      const match = playlistUrl.match(/playlist\/([a-zA-Z0-9]+)/);
+      if (!match) {
+        toast.error('Invalid Spotify Playlist URL');
+        setIsImporting(false);
+        return;
+      }
+      const playlistId = match[1];
+
+      const playlistData = await spotifyService.getPlaylist(playlistId);
+      if (!playlistData || !playlistData.tracks || !playlistData.tracks.items) {
+        toast.error('Failed to fetch playlist data. Make sure you are authenticated with Spotify.');
+        setIsImporting(false);
+        return;
+      }
+
+      // Extract unique artists
+      const uniqueArtistsMap = new Map<string, { name: string, spotifyId: string }>();
+
+      playlistData.tracks.items.forEach((item: any) => {
+        if (item.track && item.track.artists) {
+          item.track.artists.forEach((artist: any) => {
+            if (artist.id && artist.name && !uniqueArtistsMap.has(artist.id)) {
+              uniqueArtistsMap.set(artist.id, { name: artist.name, spotifyId: artist.id });
+            }
+          });
+        }
+      });
+
+      const artistsToImport = Array.from(uniqueArtistsMap.values());
+      setImportTotal(artistsToImport.length);
+
+      let importedCount = 0;
+      for (const artistData of artistsToImport) {
+        // Check if artist already exists by spotifyId
+        const exists = artists.some(a => a.spotifyId === artistData.spotifyId);
+        if (!exists) {
+          await artistManagementService.createArtist({
+            name: artistData.name,
+            spotifyId: artistData.spotifyId,
+            genres: [],
+          });
+        }
+        importedCount++;
+        setImportProgress(importedCount);
+      }
+
+      toast.success(`Successfully imported artists from playlist`);
+      loadArtists();
+      setIsBulkDialogOpen(false);
+      setPlaylistUrl('');
+    } catch (error) {
+      console.error('Playlist import failed', error);
+      toast.error('Failed to import artists from playlist');
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   useEffect(() => {
     loadArtists();
@@ -223,12 +349,76 @@ export function AdminArtistManagement() {
                 {t('admin.syncAll')}
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setEditingArtist(null)} className="gap-2">
-                <Plus weight="bold" />
-                {t('admin.addArtist')}
-              </Button>
-            </DialogTrigger>
+            <div className="flex gap-2">
+              <DialogTrigger asChild>
+                <Button onClick={() => setEditingArtist(null)} className="gap-2">
+                  <Plus weight="bold" />
+                  {t('admin.addArtist')}
+                </Button>
+              </DialogTrigger>
+              <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <UploadSimple weight="bold" />
+                    Bulk Import
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="display-font text-xl uppercase">
+                      Bulk Import Artists
+                    </DialogTitle>
+                    <DialogDescription>
+                      Import artists from a CSV file or a Spotify Playlist.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Tabs defaultValue="csv" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="csv">CSV Upload</TabsTrigger>
+                      <TabsTrigger value="playlist">Spotify Playlist</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="csv" className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Upload CSV (Format: Artist,Spotify_ID)</Label>
+                        <Input
+                          type="file"
+                          accept=".csv"
+                          onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                          disabled={isImporting}
+                        />
+                      </div>
+                      <Button
+                        onClick={handleCsvImport}
+                        disabled={!csvFile || isImporting}
+                        className="w-full gap-2"
+                      >
+                        {isImporting ? <ArrowsClockwise className="animate-spin" /> : <UploadSimple />}
+                        {isImporting ? `Importing (${importProgress}/${importTotal})...` : 'Import CSV'}
+                      </Button>
+                    </TabsContent>
+                    <TabsContent value="playlist" className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Spotify Playlist URL</Label>
+                        <Input
+                          placeholder="https://open.spotify.com/playlist/..."
+                          value={playlistUrl}
+                          onChange={(e) => setPlaylistUrl(e.target.value)}
+                          disabled={isImporting}
+                        />
+                      </div>
+                      <Button
+                        onClick={handlePlaylistImport}
+                        disabled={!playlistUrl || isImporting}
+                        className="w-full gap-2"
+                      >
+                        {isImporting ? <ArrowsClockwise className="animate-spin" /> : <ListPlus />}
+                        {isImporting ? `Importing (${importProgress}/${importTotal})...` : 'Import Playlist'}
+                      </Button>
+                    </TabsContent>
+                  </Tabs>
+                </DialogContent>
+              </Dialog>
+            </div>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle className="display-font text-xl uppercase">
