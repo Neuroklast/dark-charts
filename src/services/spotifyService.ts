@@ -337,6 +337,16 @@ class SpotifyService {
     }
   }
 
+  async getPlaylist(playlistId: string): Promise<any> {
+    try {
+      const data = await this.spotifyFetch<any>(`/playlists/${playlistId}`);
+      return data;
+    } catch (error) {
+      console.error('Failed to get playlist:', error);
+      return null;
+    }
+  }
+
   async getTrackDetails(spotifyTrackId: string): Promise<{
     previewUrl?: string;
     albumArt?: string;
