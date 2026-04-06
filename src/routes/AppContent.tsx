@@ -38,8 +38,27 @@ import { TermsOfServiceView } from '@/components/TermsOfServiceView';
 import { ImprintView } from '@/components/ImprintView';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner';
 import { mainGenreMap } from '@/lib/config/genres';
+import { PromotionalSlot } from '@/components/PromotionalSlot';
 
 function AppContent() {
+  const [activePromotion, setActivePromotion] = useState<{ type?: string; name?: string; imageUrl?: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/promotions')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.promotions && data.promotions.length > 0) {
+          // just take the first active one for demo purposes
+          const promo = data.promotions[0];
+          setActivePromotion({
+            type: promo.label || promo.type,
+            name: promo.name,
+            imageUrl: promo.imageUrl
+          });
+        }
+      })
+      .catch(err => console.error('Failed to load promotions', err));
+  }, []);
   const dataService = useDataService();
   const { t } = useLanguage();
   const [currentView, setCurrentView] = useState<ViewType>('home');
@@ -614,6 +633,9 @@ function AppContent() {
 
                 {currentView === 'home' && (
                   <>
+                    {activePromotion && (
+                      <PromotionalSlot type={activePromotion.type} name={activePromotion.name} imageUrl={activePromotion.imageUrl} />
+                    )}
                     {activePillar === 'overview' && (
                       <div className="space-y-6">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

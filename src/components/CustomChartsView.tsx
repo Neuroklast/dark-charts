@@ -10,6 +10,7 @@ import { ChartEntry } from '@/components/ChartEntry';
 import { WeightingPanel } from '@/components/WeightingPanel';
 import { useDataService } from '@/contexts/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect } from 'react';
 
 interface CustomChart {
   id: string;
@@ -148,14 +149,47 @@ export function CustomChartsView() {
     setViewingChart(chart);
   }, []);
 
+  const [officialTracks, setOfficialTracks] = useState<Track[]>([]);
+  const [isLoadingTracks, setIsLoadingTracks] = useState(false);
+
+  useEffect(() => {
+    if (viewingChart) {
+      setIsLoadingTracks(true);
+      fetch('/api/charts?type=combined&completed=true&limit=100')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.entries) {
+            const mappedTracks: Track[] = data.entries.map((entry: any) => ({
+              id: entry.release?.id || entry.id,
+              title: entry.release?.title || 'Unknown Title',
+              artist: entry.release?.artist?.name || 'Unknown Artist',
+              albumArt: entry.release?.itunesArtworkUrl || entry.release?.artist?.imageUrl || '',
+              spotifyUri: entry.release?.spotifyId ? `spotify:track:${entry.release.spotifyId}` : '',
+              genres: entry.release?.artist?.genres || [],
+              rank: entry.placement,
+              movement: entry.movement,
+              trend_direction: entry.movement > 0 ? 'up' : entry.movement < 0 ? 'down' : 'stable',
+              community_power: entry.communityPower,
+              weeksInChart: 1, // Optional: might need to be computed or passed
+              votes: 0 // Fan scores are abstracted
+            }));
+            setOfficialTracks(mappedTracks);
+          }
+        })
+        .catch(err => console.error('Error fetching official charts:', err))
+        .finally(() => setIsLoadingTracks(false));
+    } else {
+      setOfficialTracks([]);
+    }
+  }, [viewingChart]);
+
   const filteredChart = useMemo(() => {
     if (!viewingChart) return [];
     
-    const overallChart = dataService.calculateOverallChart();
-    return overallChart.filter(track => 
+    return officialTracks.filter(track =>
       track.genres.some(genre => viewingChart.genres.includes(genre))
     );
-  }, [viewingChart, dataService]);
+  }, [viewingChart, officialTracks]);
 
   return (
     <div className="space-y-6">
@@ -250,7 +284,7 @@ export function CustomChartsView() {
             <Card className="bg-card border border-border">
               <div className="p-4 border-b border-border">
                 <h3 className="display-font text-xl uppercase text-foreground tracking-tight font-semibold">
-                  Chart Results ({filteredChart.length} tracks)
+                  Chart Results ({isLoadingTracks ? '...' : filteredChart.length} tracks)
                 </h3>
               </div>
               <motion.div layout>

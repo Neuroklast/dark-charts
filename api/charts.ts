@@ -4,8 +4,9 @@ import { z } from 'zod';
 import { logger } from '../src/lib/logger';
 
 const querySchema = z.object({
-  type: z.enum(['fan', 'expert', 'streaming']),
-  limit: z.string().optional().default('10').transform((val) => parseInt(val, 10)).pipe(z.number().min(1).max(100))
+  type: z.enum(['fan', 'expert', 'streaming', 'combined']),
+  limit: z.string().optional().default('10').transform((val) => parseInt(val, 10)).pipe(z.number().min(1).max(100)),
+  completed: z.string().optional().transform(val => val === 'true')
 });
 
 export default async function handler(
@@ -33,19 +34,31 @@ export default async function handler(
       return res.status(400).json({ error: 'Invalid parameters', details: parseResult.error.format() });
     }
 
-    const { type, limit: limitNum } = parseResult.data;
+    const { type, limit: limitNum, completed } = parseResult.data;
 
     const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
+    let targetWeekStart = new Date(now);
+    targetWeekStart.setDate(now.getDate() - now.getDay());
+    targetWeekStart.setHours(0, 0, 0, 0);
+
+    if (completed) {
+      // Find the most recent week start that has actual aggregated chart entries
+      const latestEntry = await prisma.chartEntry.findFirst({
+        where: { chartType: type as string },
+        orderBy: { weekStart: 'desc' },
+      });
+      if (latestEntry) {
+        targetWeekStart = latestEntry.weekStart;
+      } else {
+        // Fallback: previous week
+        targetWeekStart.setDate(targetWeekStart.getDate() - 7);
+      }
+    }
 
     const chartEntries = await prisma.chartEntry.findMany({
       where: {
         chartType: type as string,
-        weekStart: {
-          gte: startOfWeek,
-        },
+        weekStart: targetWeekStart,
       },
       include: {
         release: {
@@ -65,6 +78,7 @@ export default async function handler(
       placement: entry.placement,
       score: entry.score,
       communityPower: entry.communityPower,
+      movement: entry.movement,
       release: entry.release
         ? {
             id: entry.release.id,

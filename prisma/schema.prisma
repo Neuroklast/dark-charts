@@ -166,6 +166,7 @@ model ChartEntry {
   release        Release? @relation(fields: [releaseId], references: [id], onDelete: SetNull)
   chartType      String
   weekStart      DateTime
+  movement       Int      @default(0)
   createdAt      DateTime @default(now())
 
   @@index([placement])
