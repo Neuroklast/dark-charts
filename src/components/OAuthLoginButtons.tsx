@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { oauthService, OAuthUser } from '@/services/oauthService';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface OAuthLoginButtonsProps {
   onSuccess?: () => void;
@@ -9,9 +10,14 @@ interface OAuthLoginButtonsProps {
 
 export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
   const { t } = useLanguage();
-  const [isLoading, setIsLoading] = useState<'spotify' | 'google' | null>(null);
+  const { login: authContextLogin } = useAuth();
+  const [isLoading, setIsLoading] = useState<'spotify' | 'google' | 'email' | null>(null);
   const [spotifyUser, setSpotifyUser] = useState<OAuthUser | null>(null);
   const [googleUser, setGoogleUser] = useState<OAuthUser | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('FAN');
+  const [isRegistering, setIsRegistering] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -26,10 +32,47 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
     setGoogleUser(google);
   };
 
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsLoading('email');
+
+      if (isRegistering) {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, role }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Registration failed');
+        }
+        toast.success('Registrierung erfolgreich! Bitte einloggen.');
+        setIsRegistering(false);
+      } else {
+        await authContextLogin('mock', email, password); // provider mock triggers email login based on our AuthContext update
+        toast.success('Login erfolgreich');
+        if (onSuccess) onSuccess();
+      }
+    } catch (error) {
+      console.error('Email auth failed:', error);
+      toast.error('Anmeldung/Registrierung fehlgeschlagen');
+    } finally {
+      setIsLoading(null);
+    }
+  };
+
   const handleSpotifyLogin = async () => {
     try {
       setIsLoading('spotify');
-      await oauthService.initiateSpotifyAuth();
+      const isSpark = import.meta.env.VITE_IS_SPARK === 'true' || window.location.hostname.includes('spark');
+      if (isSpark) {
+        await authContextLogin('spotify');
+        toast.success('Spark Bypass Login erfolgreich');
+        if (onSuccess) onSuccess();
+      } else {
+        await oauthService.initiateSpotifyAuth();
+      }
     } catch (error) {
       console.error('Spotify login failed:', error);
       toast.error(t('oauth.loginFailed') || 'Anmeldung fehlgeschlagen');
@@ -72,9 +115,63 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
 
   return (
     <div className="space-y-4">
+      {/* Email / Password Login & Registration */}
+      <div className="space-y-2 bg-card p-4 border border-border">
+        <h3 className="display-font text-sm uppercase tracking-wider text-muted-foreground">
+          {isRegistering ? 'Neues Konto erstellen' : 'Mit E-Mail anmelden'}
+        </h3>
+        <form onSubmit={handleEmailAuth} className="space-y-3">
+          <input
+            type="email"
+            placeholder="E-Mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-3 py-2 bg-background border border-border text-sm"
+            required
+          />
+          <input
+            type="password"
+            placeholder="Passwort"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-3 py-2 bg-background border border-border text-sm"
+            required
+          />
+          {isRegistering && (
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full px-3 py-2 bg-background border border-border text-sm"
+            >
+              <option value="FAN">Fan</option>
+              <option value="DJ">DJ</option>
+              <option value="LABEL">Label</option>
+              <option value="BAND">Band</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+          )}
+          <button
+            type="submit"
+            disabled={isLoading === 'email'}
+            className="w-full py-2 bg-primary text-primary-foreground font-medium disabled:opacity-50"
+          >
+            {isLoading === 'email' ? 'Bitte warten...' : (isRegistering ? 'Registrieren' : 'Anmelden')}
+          </button>
+        </form>
+        <div className="text-center mt-2">
+          <button
+            type="button"
+            onClick={() => setIsRegistering(!isRegistering)}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            {isRegistering ? 'Bereits ein Konto? Anmelden' : 'Noch kein Konto? Registrieren'}
+          </button>
+        </div>
+      </div>
+
       <div className="space-y-2">
         <h3 className="display-font text-sm uppercase tracking-wider text-muted-foreground">
-          {t('oauth.connectServices') || 'Dienste verbinden'}
+          {t('oauth.connectServices') || 'Oder Dienste verbinden'}
         </h3>
         
         {!spotifyUser ? (

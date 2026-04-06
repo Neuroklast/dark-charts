@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../src/backend/lib/prisma';
 import { z } from 'zod';
+import { logger } from '../src/lib/logger';
 
 const querySchema = z.object({
   id: z.string().optional(),
@@ -12,6 +13,11 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  logger.info(`Incoming request: ${req.method} ${req.url}`, {
+    method: req.method,
+    path: req.url,
+  });
+
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
@@ -83,7 +89,27 @@ export default async function handler(
       },
     });
   } catch (error) {
-    console.error('Error fetching releases:', error);
+    // Attempt to extract userId from Auth headers or cookies if they existed
+    // For this mock, we try to grab it from a mock header, but in reality it'd come from session middleware
+    const authHeader = req.headers.authorization;
+    let userId = undefined;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        // Normally decode JWT to get userId. Let's just pass the token for debug, or assume userId is somehow available.
+        // As a placeholder, we can log that a token was present.
+        userId = 'extracted-from-token-placeholder';
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    logger.error('Error fetching releases', {
+      error,
+      method: req.method,
+      path: req.url,
+      query: req.query,
+      userId,
+    });
     return res.status(500).json({
       success: false,
       error: 'Internal server error',
