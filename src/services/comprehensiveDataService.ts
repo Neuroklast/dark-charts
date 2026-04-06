@@ -106,7 +106,7 @@ export class ComprehensiveDataService implements IDataService {
     }));
   }
 
-  async vote(trackId: string, direction: 'up' | 'down'): Promise<void> {
+  async vote(trackId: string, credits: number): Promise<void> {
     await this.simulateNetworkDelay(50);
     
     const voteData = await this.loadVoteData();
