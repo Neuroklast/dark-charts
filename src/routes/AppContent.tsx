@@ -11,6 +11,7 @@ import { ProfileView } from '@/components/ProfileView';
 import { AboutView } from '@/components/AboutView';
 import { CustomChartsView } from '@/components/CustomChartsView';
 import { VotingArea } from '@/components/VotingArea';
+import { ExpertVotingArea } from '@/components/ExpertVotingArea';
 import { VoteConfirmationView } from '@/components/VoteConfirmationView';
 import { ChartHistoryView } from '@/components/ChartHistoryView';
 import { PillarNavigation } from '@/components/PillarNavigation';
@@ -41,7 +42,7 @@ import { mainGenreMap } from '@/lib/config/genres';
 function AppContent() {
   const dataService = useDataService();
   const { t } = useLanguage();
-  const [currentView, setCurrentView] = useState<ViewType>('voting');
+  const [currentView, setCurrentView] = useState<ViewType>('home');
   const [currentMainGenre, setCurrentMainGenre] = useState<MainGenre | 'overall'>('overall');
   const [currentSubGenre, setCurrentSubGenre] = useState<Genre | null>(null);
   const [activePillar, setActivePillar] = useState<ChartType | 'overview'>('overview');
