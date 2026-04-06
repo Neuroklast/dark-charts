@@ -5,7 +5,7 @@ export type Genre =
   | 'Ethereal Wave' | 'Neoklassik' | 'Neue Deutsche Todeskunst' | 'Batcave' 
   | 'Neofolk' | 'Pagan Folk' | 'Nordic Folk' | 'Ritual Ambient'
   | 'Gothic Metal' | 'Dark Metal' | 'Symphonic Metal' | 'Doom Metal' 
-  | 'Symphonic Black Metal' | 'Atmospheric Black Metal' | 'Death Doom' | 'Pagan Metal'
+  | 'Symphonic Black Metal' | 'Atmospheric Black Metal' | 'Death Doom' | 'Pagan Metal' | 'Melodic Death Metal'
   | 'Electronic Body Music' | 'Dark Electro' | 'Electro Industrial' | 'Aggrotech' 
   | 'Future Pop' | 'Industrial' | 'Rhythmic Noise' | 'Dark Synthpop' | 'Harsh EBM'
   | 'Industrial Metal' | 'Neue Deutsche Härte' | 'Mittelalter Rock' | 'Darksynth' 

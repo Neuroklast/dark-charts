@@ -50,14 +50,15 @@ model User {
 }
 
 model FanProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nickname  String
-  avatarUrl String?
-  credits   Int      @default(150)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nickname         String
+  avatarUrl        String?
+  credits          Int      @default(150)
+  remainingCredits Int      @default(150)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   votes Vote[]
 
@@ -158,6 +159,8 @@ model ChartEntry {
   id             String   @id @default(cuid())
   placement      Int
   score          Float
+  fanScore       Float    @default(0.0)
+  expertScore    Float    @default(0.0)
   communityPower Float    @default(0.0)
   releaseId      String?
   release        Release? @relation(fields: [releaseId], references: [id], onDelete: SetNull)
@@ -173,14 +176,16 @@ model ChartEntry {
 }
 
 model Vote {
-  id        String     @id @default(cuid())
-  fanId     String
-  fan       FanProfile @relation(fields: [fanId], references: [id], onDelete: Cascade)
-  releaseId String
-  release   Release    @relation(fields: [releaseId], references: [id], onDelete: Cascade)
-  credits   Int
-  votes     Int
-  createdAt DateTime   @default(now())
+  id             String     @id @default(cuid())
+  fanId          String
+  fan            FanProfile @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  releaseId      String
+  release        Release    @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  credits        Int
+  votes          Int
+  allocatedVotes Int        @default(0)
+  cost           Int        @default(0)
+  createdAt      DateTime   @default(now())
 
   @@unique([fanId, releaseId])
   @@index([fanId])
@@ -234,6 +239,7 @@ model ExpertVote {
   releaseId String
   release   Release   @relation(fields: [releaseId], references: [id], onDelete: Cascade)
   rating    Float
+  rank      Int       @default(0)
   createdAt DateTime  @default(now())
 
   @@unique([djId, releaseId])
