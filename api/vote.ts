@@ -163,22 +163,6 @@ export default async function handler(
          return res.status(400).json({ error: 'Single FAN vote is deprecated. Use bulk type.' });
       }
     } else if (role === 'DJ') {
-      if (!releaseId) {
-         return res.status(400).json({ error: 'releaseId is required for DJ role' });
-      }
-
-      const release = await prisma.release.findUnique({
-        where: { id: releaseId },
-      });
-
-      if (!release) {
-        return res.status(404).json({ error: 'Release not found' });
-      }
-
-      if (rank === undefined) {
-        return res.status(400).json({ error: 'rank is required for DJ role' });
-      }
-
       const djProfile = await prisma.dJProfile.findUnique({
         where: { userId },
       });
@@ -187,49 +171,112 @@ export default async function handler(
         return res.status(404).json({ error: 'DJ profile not found' });
       }
 
-      const now = new Date();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
+      if (type === 'bulk' && votes) {
+        const entries = Object.entries(votes);
+        if (entries.length !== 10) {
+          return res.status(400).json({ error: 'DJs must submit exactly 10 votes' });
+        }
 
-      const existingExpertVoteWithRank = await prisma.expertVote.findFirst({
-        where: {
-          djId: djProfile.id,
-          rank: rank,
-          createdAt: {
-            gte: startOfWeek,
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const result = await prisma.$transaction(async (tx) => {
+          // Clear any existing votes from this week for this DJ (optional, depends on exact rule,
+          // but we can just upsert. If we upsert, we need to handle old votes, so let's delete them).
+          await tx.expertVote.deleteMany({
+            where: {
+              djId: djProfile.id,
+              createdAt: {
+                gte: startOfWeek,
+              },
+            },
+          });
+
+          const createdVotes = [];
+          for (const [rId, voteRank] of entries) {
+             const createdVote = await tx.expertVote.create({
+                data: {
+                  djId: djProfile.id,
+                  releaseId: rId,
+                  rank: voteRank,
+                  rating: voteRank, // fallback
+                  createdAt: new Date(),
+                },
+             });
+             createdVotes.push(createdVote);
+          }
+          return createdVotes;
+        });
+
+        return res.status(200).json({
+          success: true,
+          votes: result,
+        });
+
+      } else {
+        // Fallback for single DJ vote (backward compatibility)
+        if (!releaseId) {
+           return res.status(400).json({ error: 'releaseId is required for DJ role' });
+        }
+
+        const release = await prisma.release.findUnique({
+          where: { id: releaseId },
+        });
+
+        if (!release) {
+          return res.status(404).json({ error: 'Release not found' });
+        }
+
+        if (rank === undefined) {
+          return res.status(400).json({ error: 'rank is required for DJ role' });
+        }
+
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const existingExpertVoteWithRank = await prisma.expertVote.findFirst({
+          where: {
+            djId: djProfile.id,
+            rank: rank,
+            createdAt: {
+              gte: startOfWeek,
+            },
           },
-        },
-      });
+        });
 
-      if (existingExpertVoteWithRank && existingExpertVoteWithRank.releaseId !== releaseId) {
-        return res.status(400).json({ error: 'You have already assigned this rank to another release this week' });
-      }
+        if (existingExpertVoteWithRank && existingExpertVoteWithRank.releaseId !== releaseId) {
+          return res.status(400).json({ error: 'You have already assigned this rank to another release this week' });
+        }
 
-      const updatedExpertVote = await prisma.expertVote.upsert({
-        where: {
-          djId_releaseId: {
+        const updatedExpertVote = await prisma.expertVote.upsert({
+          where: {
+            djId_releaseId: {
+              djId: djProfile.id,
+              releaseId,
+            },
+          },
+          update: {
+            rank: rank,
+            rating: rank, // dummy value to satisfy existing non-null schema if it exists? Rating is actually a float.
+            createdAt: new Date(), // update date so it counts for this week
+          },
+          create: {
             djId: djProfile.id,
             releaseId,
+            rank: rank,
+            rating: rank, // fallback
           },
-        },
-        update: {
-          rank: rank,
-          rating: rank, // dummy value to satisfy existing non-null schema if it exists? Rating is actually a float.
-          createdAt: new Date(), // update date so it counts for this week
-        },
-        create: {
-          djId: djProfile.id,
-          releaseId,
-          rank: rank,
-          rating: rank, // fallback
-        },
-      });
+        });
 
-      return res.status(200).json({
-        success: true,
-        vote: updatedExpertVote,
-      });
+        return res.status(200).json({
+          success: true,
+          vote: updatedExpertVote,
+        });
+      }
     }
 
   } catch (error: any) {
