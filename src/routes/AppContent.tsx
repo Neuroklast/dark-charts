@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Track, ChartWeights, ChartType, Genre, ViewType, MainGenre } from '@/types';
+import { Track, ChartType, Genre, ViewType, MainGenre } from '@/types';
 import { ChartCategory } from '@/components/ChartCategory';
 import { ChartEntry } from '@/components/ChartEntry';
 import { Card } from '@/components/ui/card';
@@ -17,7 +17,6 @@ import { MainGenreNavigation } from '@/components/MainGenreNavigation';
 import { SubGenreNavigation } from '@/components/SubGenreNavigation';
 import { TrackDetailModal } from '@/components/TrackDetailModal';
 import { OAuthCallback } from '@/components/OAuthCallback';
-import { useKV } from '@github/spark/hooks';
 import { DataProvider, useDataService } from '@/contexts/DataContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
@@ -29,13 +28,14 @@ import { trackEnrichmentService } from '@/services/trackEnrichmentService';
 import { nightlySyncService } from '@/services/nightlySyncService';
 import { useUpcomingTrackPreloader, useVisibleTracksPreloader } from '@/hooks/use-artwork-cache';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { safeFilter, safeSlice, safeFindIndex, isNullOrUndefined } from '@/lib/safe-utils';
+import { safeFilter, safeSlice, safeFindIndex } from '@/lib/safe-utils';
 import { ChartEntrySkeleton } from '@/components/skeletons';
 import { ProfilesDemo } from '@/components/ProfilesDemo';
 import { PrivacyPolicyView } from '@/components/PrivacyPolicyView';
 import { TermsOfServiceView } from '@/components/TermsOfServiceView';
 import { ImprintView } from '@/components/ImprintView';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner';
+import { mainGenreMap } from '@/lib/config/genres';
 
 function AppContent() {
   const dataService = useDataService();
@@ -53,12 +53,6 @@ function AppContent() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTrackForModal, setSelectedTrackForModal] = useState<Track | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [weights, setWeights] = useKV<ChartWeights>('chart-weights', {
-    fan: 33,
-    expert: 33,
-    streaming: 34
-  });
 
   useEffect(() => {
     try {
@@ -244,8 +238,7 @@ function AppContent() {
     try {
       if (!Array.isArray(fanCharts) || fanCharts.length === 0 ||
           !Array.isArray(expertCharts) || expertCharts.length === 0 ||
-          !Array.isArray(streamingCharts) || streamingCharts.length === 0 ||
-          !weights) {
+          !Array.isArray(streamingCharts) || streamingCharts.length === 0) {
         return [];
       }
 
@@ -253,13 +246,13 @@ function AppContent() {
         return [];
       }
 
-      const chart = dataService.calculateOverallChart(weights);
+      const chart = dataService.calculateOverallChart();
       return safeSlice(filterByGenre(chart), 0, 10, []);
     } catch (error) {
       console.error('Error calculating overall chart:', error);
       return [];
     }
-  }, [weights, fanCharts, expertCharts, streamingCharts, dataService, filterByGenre]);
+  }, [fanCharts, expertCharts, streamingCharts, dataService, filterByGenre]);
 
   const currentVisibleTracks = useMemo(() => {
     try {
@@ -305,18 +298,6 @@ function AppContent() {
 
   useUpcomingTrackPreloader(currentTrack, allTracksForPlayer, 5);
   useVisibleTracksPreloader(currentVisibleTracks, 10);
-
-  const handleWeightsChange = useCallback((newWeights: ChartWeights) => {
-    try {
-      if (!newWeights || typeof newWeights !== 'object') {
-        console.error('Invalid weights object');
-        return;
-      }
-      setWeights(newWeights);
-    } catch (error) {
-      console.error('Error updating weights:', error);
-    }
-  }, [setWeights]);
 
   const handleTrackClick = useCallback(async (track: Track) => {
     try {
@@ -404,27 +385,6 @@ function AppContent() {
       if (overallIndex !== -1) {
         positions.push({ chartName: 'Overall Charts', position: overallIndex + 1 });
       }
-
-      const mainGenreMap: Record<MainGenre, Genre[]> = {
-        'Gothic': [
-          'Gothic Rock', 'Dark Wave', 'Post Punk', 'Deathrock', 'Cold Wave',
-          'Ethereal Wave', 'Neoklassik', 'Neue Deutsche Todeskunst', 'Batcave',
-          'Neofolk', 'Pagan Folk', 'Nordic Folk', 'Ritual Ambient'
-        ],
-        'Metal': [
-          'Gothic Metal', 'Dark Metal', 'Symphonic Metal', 'Doom Metal',
-          'Symphonic Black Metal', 'Atmospheric Black Metal', 'Death Doom', 'Pagan Metal'
-        ],
-        'Dark Electro': [
-          'Electronic Body Music', 'Dark Electro', 'Electro Industrial', 'Aggrotech',
-          'Future Pop', 'Industrial', 'Rhythmic Noise', 'Dark Synthpop', 'Harsh EBM'
-        ],
-        'Crossover': [
-          'Industrial Metal', 'Neue Deutsche Härte', 'Mittelalter Rock', 'Darksynth',
-          'Cybergoth', 'Death Industrial', 'Folk Metal', 'Dark Techno',
-          'Industrial Techno', 'Darkstep', 'Crossbreed', 'Techstep', 'Neurofunk'
-        ]
-      };
 
       try {
         Object.entries(mainGenreMap).forEach(([mainGenre, subGenres]) => {

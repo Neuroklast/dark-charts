@@ -1,6 +1,6 @@
 import { IDataService, Track, ChartData, ChartWeights } from '@/types';
 import { mockFanCharts, mockExpertCharts, mockStreamingCharts } from './mockData';
-import { useKV } from '@github/spark/hooks';
+import { rankToPoints, calculateConsensusBonus, calculateTotalScore } from '@/lib/math/borda';
 
 export class MockDataService implements IDataService {
   private voteStore = new Map<string, number>();
@@ -28,41 +28,58 @@ export class MockDataService implements IDataService {
     return this.injectVotes(data[type]);
   }
 
-  calculateOverallChart(weights: ChartWeights): Track[] {
-    const normalizedWeights = this.normalizeWeights(weights);
-    
-    const allTracks = new Map<string, Track>();
-    
-    [...mockFanCharts, ...mockExpertCharts, ...mockStreamingCharts].forEach(track => {
+  calculateOverallChart(): Track[] {
+    const FIXED_WEIGHTS: ChartWeights = { fan: 50, expert: 35, streaming: 15 };
+
+    const allTracks = new Map<string, {
+      track: Track;
+      fanRank?: number;
+      expertRank?: number;
+      streamingRank?: number;
+    }>();
+
+    mockFanCharts.forEach((track, index) => {
       const key = `${track.artist}-${track.title}`;
-      
       if (!allTracks.has(key)) {
-        allTracks.set(key, {
-          ...track,
-          chartType: 'overall'
-        });
+        allTracks.set(key, { track: { ...track, chartType: 'overall' }, fanRank: index + 1 });
+      } else {
+        allTracks.get(key)!.fanRank = index + 1;
       }
     });
 
-    const tracksWithScores = Array.from(allTracks.values()).map(track => {
-      const fanScore = track.fanScore || 0;
-      const expertScore = track.expertScore || 0;
-      const streamingScore = track.streamingScore || 0;
-      
-      const overallScore = 
-        (fanScore * normalizedWeights.fan) +
-        (expertScore * normalizedWeights.expert) +
-        (streamingScore * normalizedWeights.streaming);
-      
-      return {
-        ...track,
-        overallScore,
-        movement: 0
-      };
+    mockExpertCharts.forEach((track, index) => {
+      const key = `${track.artist}-${track.title}`;
+      if (!allTracks.has(key)) {
+        allTracks.set(key, { track: { ...track, chartType: 'overall' }, expertRank: index + 1 });
+      } else {
+        allTracks.get(key)!.expertRank = index + 1;
+      }
+    });
+
+    mockStreamingCharts.forEach((track, index) => {
+      const key = `${track.artist}-${track.title}`;
+      if (!allTracks.has(key)) {
+        allTracks.set(key, { track: { ...track, chartType: 'overall' }, streamingRank: index + 1 });
+      } else {
+        allTracks.get(key)!.streamingRank = index + 1;
+      }
+    });
+
+    const tracksWithScores = Array.from(allTracks.values()).map(({ track, fanRank, expertRank, streamingRank }) => {
+      const poolsPresent = [fanRank, expertRank, streamingRank].filter(r => r !== undefined).length;
+      const bonus = calculateConsensusBonus(poolsPresent);
+
+      const fanPoints = fanRank !== undefined ? rankToPoints(fanRank, mockFanCharts.length) : 0;
+      const expertPoints = expertRank !== undefined ? rankToPoints(expertRank, mockExpertCharts.length) : 0;
+      const streamingPoints = streamingRank !== undefined ? rankToPoints(streamingRank, mockStreamingCharts.length) : 0;
+
+      const overallScore = calculateTotalScore(fanPoints, expertPoints, streamingPoints, FIXED_WEIGHTS) * bonus;
+
+      return { ...track, overallScore, movement: 0 };
     });
 
     const sorted = tracksWithScores.sort((a, b) => b.overallScore - a.overallScore);
-    
+
     return sorted.map((track, index) => ({
       ...track,
       rank: index + 1,
@@ -98,20 +115,6 @@ export class MockDataService implements IDataService {
 
   async hasUserVoted(trackId: string): Promise<boolean> {
     return this.userVotes.has(trackId);
-  }
-
-  private normalizeWeights(weights: ChartWeights): ChartWeights {
-    const total = weights.fan + weights.expert + weights.streaming;
-    
-    if (total === 0) {
-      return { fan: 0.33, expert: 0.33, streaming: 0.34 };
-    }
-    
-    return {
-      fan: weights.fan / total,
-      expert: weights.expert / total,
-      streaming: weights.streaming / total
-    };
   }
 
   private async injectVotes(tracks: Track[]): Promise<Track[]> {
