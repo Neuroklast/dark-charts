@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../src/backend/lib/prisma';
 import { z } from 'zod';
+import { logger } from '../src/lib/logger';
 
 const querySchema = z.object({
   type: z.enum(['fan', 'expert', 'streaming']),
@@ -11,6 +12,11 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  logger.info(`Incoming request: ${req.method} ${req.url}`, {
+    method: req.method,
+    path: req.url,
+  });
+
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -92,7 +98,23 @@ export default async function handler(
       count: formattedEntries.length,
     });
   } catch (error) {
-    console.error('Error fetching charts:', error);
+    const authHeader = req.headers.authorization;
+    let userId = undefined;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        userId = 'extracted-from-token-placeholder';
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    logger.error('Error fetching charts', {
+      error,
+      method: req.method,
+      path: req.url,
+      query: req.query,
+      userId,
+    });
     return res.status(500).json({
       success: false,
       error: 'Internal server error',

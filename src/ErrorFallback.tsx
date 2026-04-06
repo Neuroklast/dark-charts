@@ -2,6 +2,7 @@ import { Alert, AlertTitle, AlertDescription } from "./components/ui/alert";
 import { Button } from "./components/ui/button";
 
 import { AlertTriangleIcon, RefreshCwIcon } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface ErrorFallbackProps {
   error: Error;
@@ -9,7 +10,11 @@ interface ErrorFallbackProps {
 }
 
 export const ErrorFallback = ({ error, resetErrorBoundary }: ErrorFallbackProps) => {
-  if (import.meta.env.DEV) throw error;
+  if (import.meta.env.DEV) {
+    throw error;
+  } else {
+    logger.error('Uncaught error in ErrorFallback', { error });
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">

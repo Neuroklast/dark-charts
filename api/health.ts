@@ -1,10 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../src/backend/lib/prisma';
+import { logger } from '../src/lib/logger';
 
 export default async function handler(
   request: VercelRequest,
   response: VercelResponse,
 ) {
+  logger.info(`Incoming request: ${request.method} ${request.url}`, {
+    method: request.method,
+    path: request.url,
+  });
+
   if (request.method === 'GET') {
     try {
       // Test database connectivity
@@ -16,7 +22,12 @@ export default async function handler(
         dbStatus: `Connected. Users in database: ${userCount}`,
       });
     } catch (error) {
-      console.error('Database connection error:', error);
+      logger.error('Database connection error', {
+        error,
+        method: request.method,
+        path: request.url,
+        query: request.query,
+      });
       return response.status(500).json({
         status: 'error',
         message: 'Internal Server Error',

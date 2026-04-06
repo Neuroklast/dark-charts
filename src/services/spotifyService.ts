@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { Release, ReleaseTrack, Artist } from '@/types';
 
 interface SpotifyAuthTokens {
@@ -78,7 +79,7 @@ class SpotifyService {
       
       return true;
     } catch (error) {
-      console.error('Spotify callback error:', error);
+      logger.error('Spotify callback error:', error);
       return false;
     }
   }
@@ -255,7 +256,7 @@ class SpotifyService {
       );
       return data.artists.items;
     } catch (error) {
-      console.error('Failed to search artist:', error);
+      logger.error('Failed to search artist:', error);
       return [];
     }
   }
@@ -264,7 +265,7 @@ class SpotifyService {
     try {
       return await this.spotifyFetch<SpotifyArtist>(`/artists/${spotifyId}`);
     } catch (error) {
-      console.error('Failed to get artist:', error);
+      logger.error('Failed to get artist:', error);
       return null;
     }
   }
@@ -276,7 +277,7 @@ class SpotifyService {
       );
       return data.items;
     } catch (error) {
-      console.error('Failed to get artist albums:', error);
+      logger.error('Failed to get artist albums:', error);
       return [];
     }
   }
@@ -285,7 +286,7 @@ class SpotifyService {
     try {
       return await this.spotifyFetch<SpotifyAlbum>(`/albums/${albumId}`);
     } catch (error) {
-      console.error('Failed to get album details:', error);
+      logger.error('Failed to get album details:', error);
       return null;
     }
   }
@@ -332,7 +333,7 @@ class SpotifyService {
 
       return releases;
     } catch (error) {
-      console.error('Failed to sync artist releases:', error);
+      logger.error('Failed to sync artist releases:', error);
       throw error;
     }
   }
@@ -342,7 +343,7 @@ class SpotifyService {
       const data = await this.spotifyFetch<any>(`/playlists/${playlistId}`);
       return data;
     } catch (error) {
-      console.error('Failed to get playlist:', error);
+      logger.error('Failed to get playlist:', error);
       return null;
     }
   }
@@ -365,7 +366,7 @@ class SpotifyService {
         isrc: data.external_ids.isrc,
       };
     } catch (error) {
-      console.error('Failed to get track details:', error);
+      logger.error('Failed to get track details:', error);
       return null;
     }
   }

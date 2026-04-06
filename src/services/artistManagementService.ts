@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { Artist, Release, ReleaseTrack, ArtistCacheStatus } from '@/types';
 import { spotifyService } from './spotifyService';
 
@@ -22,7 +23,7 @@ class ArtistManagementService {
 
       return artists.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
-      console.error('Failed to load artists:', error);
+      logger.error('Failed to load artists:', error);
       return [];
     }
   }
@@ -31,7 +32,7 @@ class ArtistManagementService {
     try {
       return await spark.kv.get<Artist>(`artist:${artistId}`);
     } catch (error) {
-      console.error('Failed to load artist:', error);
+      logger.error('Failed to load artist:', error);
       return null;
     }
   }
@@ -91,7 +92,7 @@ class ArtistManagementService {
 
       return releases.sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime());
     } catch (error) {
-      console.error('Failed to load releases:', error);
+      logger.error('Failed to load releases:', error);
       return [];
     }
   }
@@ -117,7 +118,7 @@ class ArtistManagementService {
 
       await this.updateCacheStatus(artistId, 'success');
     } catch (error) {
-      console.error(`Failed to sync releases for artist ${artistId}:`, error);
+      logger.error(`Failed to sync releases for artist ${artistId}:`, error);
       await this.updateCacheStatus(artistId, 'error', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       this.syncInProgress.delete(artistId);
@@ -129,7 +130,7 @@ class ArtistManagementService {
       const isAuthenticated = await spotifyService.isAuthenticated();
       
       if (!isAuthenticated) {
-        console.warn('Spotify not authenticated, using mock data');
+        logger.warn('Spotify not authenticated, using mock data');
         await this.syncMockReleases(artistId, spotifyId, artistName);
         return;
       }
@@ -140,9 +141,9 @@ class ArtistManagementService {
       }
 
       const releases = await spotifyService.syncArtistReleases(artist);
-      console.log(`Synced ${releases.length} releases for ${artistName}`);
+      logger.info(`Synced ${releases.length} releases for ${artistName}`);
     } catch (error) {
-      console.error('Failed to sync Spotify releases, falling back to mock:', error);
+      logger.error('Failed to sync Spotify releases, falling back to mock:', error);
       await this.syncMockReleases(artistId, spotifyId, artistName);
     }
   }
@@ -202,7 +203,7 @@ class ArtistManagementService {
     try {
       return await spark.kv.get<ArtistCacheStatus>(`artist-cache-status:${artistId}`);
     } catch (error) {
-      console.error('Failed to load cache status:', error);
+      logger.error('Failed to load cache status:', error);
       return null;
     }
   }
@@ -222,7 +223,7 @@ class ArtistManagementService {
 
       return statuses;
     } catch (error) {
-      console.error('Failed to load cache statuses:', error);
+      logger.error('Failed to load cache statuses:', error);
       return [];
     }
   }

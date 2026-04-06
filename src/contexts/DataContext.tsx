@@ -1,7 +1,14 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { IDataService, IAuthService } from '@/types';
 import { ComprehensiveDataService } from '@/services/comprehensiveDataService';
-import { MockAuthService } from '@/services/mockAuthService';
+
+// Fallback stub for authService if providedAuthService isn't passed
+const dummyAuthService: IAuthService = {
+  getCurrentUser: async () => null,
+  login: async () => { throw new Error("Real auth is in AuthContext"); },
+  logout: async () => {},
+  updateProfile: async () => { throw new Error("Real auth is in AuthContext"); }
+};
 
 interface DataContextType {
   dataService: IDataService;
@@ -33,10 +40,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({
 
   const [authService] = useState<IAuthService>(() => {
     try {
-      return providedAuthService || new MockAuthService();
+      return providedAuthService || dummyAuthService;
     } catch (error) {
       console.error('Failed to initialize AuthService:', error);
-      return new MockAuthService();
+      return dummyAuthService;
     }
   });
 

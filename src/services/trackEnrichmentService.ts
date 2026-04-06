@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { Track, OdesliData, CachedTrackData } from '@/types';
 
 const ODESLI_API_BASE = 'https://api.song.link/v1-alpha.1/links';
@@ -102,7 +103,7 @@ class TrackEnrichmentService {
       const obj = Object.fromEntries(cache);
       await window.spark.kv.set(this.cacheKey, obj);
     } catch (error) {
-      console.error('Failed to save cache:', error);
+      logger.error('Failed to save cache:', error);
     }
   }
 
@@ -120,7 +121,7 @@ class TrackEnrichmentService {
       const obj = Object.fromEntries(failed);
       await window.spark.kv.set(this.failedLookupsKey, obj);
     } catch (error) {
-      console.error('Failed to save failed lookups:', error);
+      logger.error('Failed to save failed lookups:', error);
     }
   }
 
@@ -203,7 +204,7 @@ class TrackEnrichmentService {
             const existing = failed.get(`odesli-${trackId}`);
             await this.markLookupAsFailed(`odesli-${trackId}`, `HTTP ${response.status}: ${errorText}`, (existing?.retryCount || 0) + 1);
           }
-          console.warn('Odesli API request failed:', response.status, errorText);
+          logger.warn('Odesli API request failed:', response.status, errorText);
           return null;
         }
 
@@ -223,7 +224,7 @@ class TrackEnrichmentService {
           const existing = failed.get(`odesli-${trackId}`);
           await this.markLookupAsFailed(`odesli-${trackId}`, errorMessage, (existing?.retryCount || 0) + 1);
         }
-        console.error('Error fetching Odesli data:', error);
+        logger.error('Error fetching Odesli data:', error);
         return null;
       }
     });
@@ -289,7 +290,7 @@ class TrackEnrichmentService {
           const existing = failed.get(`itunes-${trackId}`);
           await this.markLookupAsFailed(`itunes-${trackId}`, errorMessage, (existing?.retryCount || 0) + 1);
         }
-        console.error('Error fetching iTunes artwork:', error);
+        logger.error('Error fetching iTunes artwork:', error);
         return {};
       }
     });
@@ -382,7 +383,7 @@ class TrackEnrichmentService {
       try {
         await this.syncAllTracks(tracks);
       } catch (error) {
-        console.error('Background sync failed:', error);
+        logger.error('Background sync failed:', error);
       }
     }, 1000);
   }

@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../src/backend/lib/prisma';
 import { z } from 'zod';
+import { logger } from '../src/lib/logger';
 
 const bodySchema = z.object({
   fanId: z.string().min(1, "fanId is required"),
@@ -13,6 +14,11 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  logger.info(`Incoming request: ${req.method} ${req.url}`, {
+    method: req.method,
+    path: req.url,
+  });
+
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
@@ -123,7 +129,13 @@ export default async function handler(
       remainingCredits: updatedFan.credits,
     });
   } catch (error) {
-    console.error('Error processing vote:', error);
+    logger.error('Error processing vote', {
+      error,
+      method: req.method,
+      path: req.url,
+      body: req.body,
+      userId: req.body?.fanId, // Injecting user ID from body on failure as per requirements
+    });
     return res.status(500).json({
       success: false,
       error: 'Internal server error',
