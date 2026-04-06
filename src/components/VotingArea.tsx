@@ -42,34 +42,70 @@ function calculateQuadraticCost(credits: number): number {
   return credits * credits;
 }
 
-export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
-  const { user } = useAuth();
+export function VotingArea({ allTracks, onTrackClick, onVoteComplete }: VotingAreaProps & { onVoteComplete?: () => void }) {
+  const { user, getAuthToken } = useAuth();
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
-  const [userVotes, setUserVotes] = useKV<Record<string, number>>('user-votes', {});
-  const [creditsRemaining, setCreditsRemaining] = useKV<number>('voting-credits', MAX_CREDITS);
-  const [tempVoteValues, setTempVoteValues] = useState<Record<string, number>>({});
+
+  const [allocatedVotes, setAllocatedVotes] = useState<Record<string, number>>({});
   const [nextPublishDate] = useState<Date>(getNextMonday());
   const [isLoading, setIsLoading] = useState(true);
 
+  const calculateTotalCost = useCallback((votes: Record<string, number>) => {
+    return Object.values(votes).reduce((sum, v) => sum + calculateQuadraticCost(v), 0);
+  }, []);
+
+  const totalCost = calculateTotalCost(allocatedVotes);
+  const remainingCredits = MAX_CREDITS - totalCost;
+
+  useEffect(() => {
+    const checkVoteStatus = async () => {
+      try {
+        const token = await getAuthToken();
+        if (!token) return;
+
+        const res = await fetch('/api/vote/status', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+        if (data.hasVoted && onVoteComplete) {
+          onVoteComplete();
+        }
+      } catch (err) {
+        console.error('Failed to check vote status', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkVoteStatus();
+  }, [getAuthToken, onVoteComplete]);
+
+  const [shuffledTracks, setShuffledTracks] = useState<Track[]>([]);
+
+  useEffect(() => {
+    if (allTracks.length > 0 && shuffledTracks.length === 0) {
+      const array = [...allTracks];
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      setShuffledTracks(array);
+    }
+  }, [allTracks, shuffledTracks.length]);
+
   const allGenres = useMemo(() => {
     const genreSet = new Set<Genre>();
-    allTracks.forEach(track => {
+    shuffledTracks.forEach(track => {
       track.genres.forEach(genre => genreSet.add(genre));
     });
     return Array.from(genreSet).sort();
-  }, [allTracks]);
-
-  const totalCreditsSpent = useMemo(() => {
-    if (!userVotes) return 0;
-    return Object.values(userVotes).reduce((sum, credits) => {
-      return sum + calculateQuadraticCost(credits);
-    }, 0);
-  }, [userVotes]);
+  }, [shuffledTracks]);
 
   const filteredTracks = useMemo(() => {
-    let filtered = allTracks;
+    let filtered = shuffledTracks;
 
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
@@ -86,19 +122,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
     }
 
     return filtered;
-  }, [allTracks, searchTerm, selectedGenres]);
-
-  const tracksWithSimulatedVotes = useMemo(() => {
-    return filteredTracks.map(track => {
-      const userCredit = (userVotes && userVotes[track.id]) || 0;
-      const baseVotes = track.votes || 0;
-      return {
-        ...track,
-        simulatedVotes: baseVotes + userCredit,
-        userCredits: userCredit
-      };
-    }).sort((a, b) => b.simulatedVotes - a.simulatedVotes);
-  }, [filteredTracks, userVotes]);
+  }, [shuffledTracks, searchTerm, selectedGenres]);
 
   const daysUntilPublish = useMemo(() => {
     const now = new Date();
@@ -114,62 +138,6 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
     );
   }, []);
 
-  const handleVoteChange = useCallback((trackId: string, newCredits: number) => {
-    const currentCredits = (userVotes && userVotes[trackId]) || 0;
-    const currentCost = calculateQuadraticCost(currentCredits);
-    const newCost = calculateQuadraticCost(newCredits);
-    const costDifference = newCost - currentCost;
-    const remainingCredits = creditsRemaining || MAX_CREDITS;
-
-    if (costDifference > remainingCredits) {
-      const msg = (t?.('voting.notEnoughCredits') || 'Not enough credits! You need {needed} but only have {remaining} remaining.')
-        .replace('{needed}', costDifference.toString())
-        .replace('{remaining}', remainingCredits.toString());
-      toast.error(msg);
-      return;
-    }
-
-    setUserVotes((current) => {
-      const updated = { ...(current || {}) };
-      if (newCredits === 0) {
-        delete updated[trackId];
-      } else {
-        updated[trackId] = newCredits;
-      }
-      return updated;
-    });
-
-    setTempVoteValues(current => {
-      const updated = { ...current };
-      delete updated[trackId];
-      return updated;
-    });
-
-    const msg = (t?.('voting.successAllocated') || 'Allocated {credits} credits (cost: {cost})')
-      .replace('{credits}', newCredits.toString())
-      .replace('{cost}', newCost.toString());
-    toast.success(msg, {
-      duration: 2000
-    });
-  }, [user, userVotes, creditsRemaining, setUserVotes, t]);
-
-  const handleSliderChange = useCallback((trackId: string, value: number[]) => {
-    setTempVoteValues(current => ({
-      ...current,
-      [trackId]: value[0]
-    }));
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    setCreditsRemaining(MAX_CREDITS - totalCreditsSpent);
-  }, [totalCreditsSpent, setCreditsRemaining]);
 
   if (isLoading) {
     return <VotingAreaSkeleton />;
@@ -212,7 +180,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
               </div>
               <div>
                 <div className="font-display text-2xl text-foreground data-font">
-                  {creditsRemaining}
+                  {remainingCredits}
                 </div>
                 <div className="font-ui text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                   {t?.('voting.creditsRemaining') || 'Credits Remaining'}
@@ -226,7 +194,7 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
               </div>
               <div>
                 <div className="font-display text-2xl text-foreground data-font">
-                  {totalCreditsSpent}
+                  {totalCost}
                 </div>
                 <div className="font-ui text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                   {t?.('voting.totalCostSpent') || 'Total Cost Spent'}
@@ -298,14 +266,12 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
         )}
       </Card>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-4 mb-24">
         <AnimatePresence mode="popLayout">
-          {tracksWithSimulatedVotes.slice(0, 50).map((track, simulatedIndex) => {
-            const userCredits = (userVotes && userVotes[track.id]) || 0;
-            const tempValue = tempVoteValues[track.id];
-            const sliderValue = tempValue !== undefined ? tempValue : userCredits;
-            const remainingCredits = creditsRemaining || MAX_CREDITS;
-            const maxAffordable = Math.floor(Math.sqrt(Math.max(0, remainingCredits + calculateQuadraticCost(userCredits))));
+          {filteredTracks.map((track) => {
+            const currentVotes = allocatedVotes[track.id] || 0;
+            const costForNext = calculateQuadraticCost(currentVotes + 1) - calculateQuadraticCost(currentVotes);
+            const canAffordNext = remainingCredits >= costForNext;
 
             return (
               <motion.div
@@ -318,20 +284,18 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
               >
                 <Card className="bg-card border border-border transition-all hover:border-primary/50">
                   <div className="p-4">
-                    <div className="flex items-start gap-4">
-                      <div className="flex flex-col items-center gap-1 min-w-[60px]">
-                        <div className="text-xs font-ui uppercase tracking-[0.15em] text-muted-foreground">
-                          {t?.('voting.rank') || 'Rank'}
-                        </div>
-                        <div className="text-2xl font-display text-primary data-font">
-                          #{simulatedIndex + 1}
-                        </div>
-                      </div>
+                    <div className="flex flex-col md:flex-row items-center md:items-start gap-4">
 
                       <div 
-                        className="shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                        className="shrink-0 cursor-pointer hover:opacity-80 transition-opacity relative group"
                         onClick={() => onTrackClick(track)}
                       >
+                        {/* Play overlay for audio focus */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-md z-10">
+                           <div className="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center">
+                             <div className="w-0 h-0 border-t-8 border-t-transparent border-l-[12px] border-l-black border-b-8 border-b-transparent ml-1" />
+                           </div>
+                        </div>
                         <AlbumArtwork
                           src={track.albumArt}
                           alt={`${track.artist} - ${track.title}`}
@@ -366,66 +330,58 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex-1">
-                              <Slider
-                                value={[sliderValue]}
-                                onValueChange={(value) => handleSliderChange(track.id, value)}
-                                onValueCommit={(value) => handleVoteChange(track.id, value[0])}
-                                max={Math.max(maxAffordable, userCredits)}
-                                step={1}
-                                className="w-full"
-                              />
+                        <div className="mt-4 flex flex-col items-center justify-center space-y-1">
+                          <div className="flex items-center gap-3">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-10 w-10 shrink-0 rounded-none border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-colors"
+                              disabled={currentVotes <= 0}
+                              onClick={() => {
+                                setAllocatedVotes(prev => ({
+                                  ...prev,
+                                  [track.id]: Math.max(0, currentVotes - 1)
+                                }));
+                              }}
+                            >
+                              <span className="text-xl font-bold font-ui">-</span>
+                            </Button>
+
+                            <div className="w-16 h-10 border border-border bg-background flex items-center justify-center data-font text-xl font-bold">
+                              {currentVotes}
                             </div>
-                            <div className="flex items-center gap-2 min-w-[120px]">
-                              <div className="text-center">
-                                <div className="data-font text-lg font-bold text-foreground">
-                                  {sliderValue}
-                                </div>
-                                <div className="text-[9px] font-ui uppercase tracking-wider text-muted-foreground">
-                                  {t?.('voting.credits') || 'Credits'}
-                                </div>
-                              </div>
-                              <div className="text-muted-foreground font-ui text-xs">=</div>
-                              <div className="text-center">
-                                <div className="data-font text-lg font-bold text-accent">
-                                  {calculateQuadraticCost(sliderValue)}
-                                </div>
-                                <div className="text-[9px] font-ui uppercase tracking-wider text-muted-foreground">
-                                  {t?.('voting.cost') || 'Cost'}
-                                </div>
-                              </div>
-                            </div>
+
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className={cn(
+                                "h-10 w-10 shrink-0 rounded-none border-border transition-all",
+                                !canAffordNext ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/10 hover:text-primary hover:border-primary"
+                              )}
+                              disabled={!canAffordNext}
+                              onClick={() => {
+                                if (canAffordNext) {
+                                  setAllocatedVotes(prev => ({
+                                    ...prev,
+                                    [track.id]: currentVotes + 1
+                                  }));
+                                } else {
+                                  // Brutalismus visual feedback could go here via a toast or wiggle animation state
+                                  toast.error("Nicht genug Credits für diese Stimme");
+                                }
+                              }}
+                            >
+                              <span className="text-xl font-bold font-ui">+</span>
+                            </Button>
                           </div>
                           
-                          {userCredits > 0 && (
-                            <div className="flex items-center gap-2 px-3 py-2 bg-accent/10 border border-accent/30">
-                              <Lightning size={14} weight="fill" className="text-accent" />
-                              <span className="font-ui text-[10px] uppercase tracking-wider text-accent">
-                                {(t?.('voting.allocated') || 'You allocated {credits} credits to this track').replace('{credits}', userCredits.toString())}
+                          <div className="h-4">
+                            {currentVotes > 0 && (
+                              <span className="font-ui text-[10px] text-muted-foreground uppercase tracking-widest">
+                                Kostet <span className="text-accent font-bold data-font">{calculateQuadraticCost(currentVotes)}</span> Credits
                               </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-center gap-1 min-w-[80px]">
-                        <Lightning 
-                          size={20} 
-                          weight="fill" 
-                          className="text-accent" 
-                        />
-                        <motion.div
-                          key={track.simulatedVotes}
-                          initial={{ scale: 1.3, opacity: 0.5 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          className="data-font text-2xl font-bold text-foreground"
-                        >
-                          {track.simulatedVotes}
-                        </motion.div>
-                        <div className="text-[9px] font-ui uppercase tracking-wider text-muted-foreground text-center">
-                          {t?.('voting.totalVotes') || 'Total Votes'}
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -444,6 +400,86 @@ export function VotingArea({ allTracks, onTrackClick }: VotingAreaProps) {
           </p>
         </Card>
       )}
+
+      {/* Sticky Budget Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col">
+              <span className="font-ui text-xs text-muted-foreground uppercase tracking-wider">Verfügbare Credits</span>
+              <span className={cn(
+                "data-font text-3xl font-bold transition-colors",
+                remainingCredits === 0 ? "text-destructive" : "text-primary"
+              )}>
+                {remainingCredits} <span className="text-sm text-muted-foreground">/ 150</span>
+              </span>
+            </div>
+            <div className="h-10 w-px bg-border hidden md:block" />
+            <div className="flex flex-col">
+              <span className="font-ui text-xs text-muted-foreground uppercase tracking-wider">Verbraucht</span>
+              <span className="data-font text-xl text-accent">
+                {totalCost}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <Button
+              variant="outline"
+              className="flex-1 md:flex-none font-ui uppercase tracking-wider"
+              onClick={() => setAllocatedVotes({})}
+              disabled={totalCost === 0}
+            >
+              Alle verwerfen
+            </Button>
+            <Button
+              variant="default"
+              className="flex-1 md:flex-none font-ui uppercase tracking-wider bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={totalCost === 0 || remainingCredits < 0}
+              onClick={async () => {
+                if (totalCost === 0 || remainingCredits < 0) return;
+
+                try {
+                  const token = await getAuthToken();
+                  if (!token) {
+                    toast.error("Please login to submit votes");
+                    return;
+                  }
+
+                  // Filter out 0 votes
+                  const validVotes = Object.entries(allocatedVotes).reduce((acc, [releaseId, votes]) => {
+                    if (votes > 0) acc[releaseId] = votes;
+                    return acc;
+                  }, {} as Record<string, number>);
+
+                  // Submit all votes as a bulk transaction
+                  const res = await fetch('/api/vote', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ type: 'bulk', votes: validVotes })
+                  });
+
+                  if (!res.ok) {
+                    throw new Error('Failed to submit votes');
+                  }
+
+                  toast.success("Abstimmung erfolgreich eingereicht");
+                  if (onVoteComplete) {
+                    onVoteComplete();
+                  }
+                } catch (error) {
+                  console.error('Error submitting votes:', error);
+                  toast.error("Fehler beim Senden der Abstimmung");
+                }
+              }}
+            >
+              Abstimmung verbindlich einreichen
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
