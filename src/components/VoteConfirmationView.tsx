@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AlbumArtwork } from './AlbumArtwork';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PromotionalSlot } from '@/components/PromotionalSlot';
 
 interface VoteReceipt {
   id: string;
@@ -31,6 +32,23 @@ export function VoteConfirmationView({ onNavigate }: { onNavigate?: (view: any) 
   const [remainingCredits, setRemainingCredits] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activePromotion, setActivePromotion] = useState<{ type?: string; name?: string; imageUrl?: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/promotions')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.promotions && data.promotions.length > 0) {
+          const promo = data.promotions[0];
+          setActivePromotion({
+            type: promo.label || promo.type,
+            name: promo.name,
+            imageUrl: promo.imageUrl
+          });
+        }
+      })
+      .catch(err => console.error('Failed to load promotions', err));
+  }, []);
 
   useEffect(() => {
     const fetchReceipt = async () => {
@@ -95,6 +113,10 @@ export function VoteConfirmationView({ onNavigate }: { onNavigate?: (view: any) 
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+      {activePromotion && (
+        <PromotionalSlot type={activePromotion.type} name={activePromotion.name} imageUrl={activePromotion.imageUrl} />
+      )}
 
       <div className="text-center space-y-4 pt-8">
         <div className="mx-auto w-16 h-16 bg-primary/20 flex items-center justify-center rounded-full mb-6">

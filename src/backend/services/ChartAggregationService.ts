@@ -29,6 +29,24 @@ export class ChartAggregationService {
       },
     });
 
+    // Fetch last week's chart to calculate movement
+    const lastWeekStart = new Date(weekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+    const lastWeekEntries = await prisma.chartEntry.findMany({
+      where: {
+        weekStart: lastWeekStart,
+        chartType: 'combined',
+      },
+    });
+
+    const lastWeekPlacements = new Map<string, number>();
+    for (const entry of lastWeekEntries) {
+      if (entry.releaseId) {
+        lastWeekPlacements.set(entry.releaseId, entry.placement);
+      }
+    }
+
     // Aggregate metrics per release
     const releaseMetrics = new Map<string, { fanScore: number; expertScore: number }>();
 
@@ -45,37 +63,46 @@ export class ChartAggregationService {
       releaseMetrics.set(expertVote.releaseId, current);
     }
 
-    // Sort to determine placements (based on a combined logic, or just saving the raw scores.
-    // The prompt says "Er aggregiert die Metriken in das Modell 'ChartEntry' mit separaten Feldern für 'fanScore' und 'expertScore', um die spätere prozentuale Gewichtung im Frontend zu ermöglichen.")
-    // Let's create or update ChartEntry for each release in 'combined' chartType as an example,
-    // or maybe 'fan' and 'expert' separately? The prompt says "isolierten Voting-Engine für Fan- und Experten-Charts",
-    // "aggregiert die Metriken in das Modell 'ChartEntry' mit separaten Feldern". I will write a generic combined entry.
+    const entries = Array.from(releaseMetrics.entries()).map(([releaseId, metrics]) => {
+      // Weighting: 50% Fans, 35% Experts
+      const weightedScore = (metrics.fanScore * 0.5) + (metrics.expertScore * 0.35);
 
-    const entries = Array.from(releaseMetrics.entries()).map(([releaseId, metrics]) => ({
-      releaseId,
-      fanScore: metrics.fanScore,
-      expertScore: metrics.expertScore,
-      // For placement, we could sort by a simple sum for now, since frontend will do the weighting,
-      // or we can sort by fanScore for 'fan' chart, expertScore for 'expert' chart.
-      // I'll create one generic 'combined' chart entry for simplicity as the prompt implies a single entry with both scores.
-      score: metrics.fanScore + metrics.expertScore,
-    }));
+      return {
+        releaseId,
+        fanScore: metrics.fanScore,
+        expertScore: metrics.expertScore,
+        score: weightedScore,
+      };
+    });
 
-    // Sort to assign placement
+    // Sort to assign placement based on weighted score
     entries.sort((a, b) => b.score - a.score);
 
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
+      const currentPlacement = i + 1;
+
+      let movement = 0;
+      const lastPlacement = lastWeekPlacements.get(entry.releaseId);
+      if (lastPlacement !== undefined) {
+        movement = lastPlacement - currentPlacement; // Positive means moved up
+      } else {
+        // If it wasn't in the chart last week, it's new. Movement could be considered 0 or positive.
+        // The prompt says "Speichere den Trend als Integer im Feld movement ab. Positiv für Aufsteiger und negativ für Absteiger."
+        movement = 0;
+      }
+
       await prisma.chartEntry.create({
         data: {
           releaseId: entry.releaseId,
           chartType: 'combined',
           weekStart: weekStart,
-          placement: i + 1,
+          placement: currentPlacement,
           score: entry.score,
           fanScore: entry.fanScore,
           expertScore: entry.expertScore,
           communityPower: 0,
+          movement: movement,
         },
       });
     }
