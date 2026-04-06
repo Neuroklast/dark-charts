@@ -6,8 +6,10 @@ import { authService } from '../src/backend/services/AuthService';
 import { calculateVoteCost } from '../src/lib/math/quadratic';
 
 const bodySchema = z.object({
-  releaseId: z.string().min(1, "releaseId is required"),
-  votes: z.number().int().min(1).optional(),
+  type: z.literal("bulk").optional(),
+  votes: z.record(z.string(), z.number().int().min(1)).optional(),
+  // Single vote fallback / DJ support:
+  releaseId: z.string().optional(),
   rank: z.number().int().min(1).max(10).optional(),
 });
 
@@ -59,108 +61,120 @@ export default async function handler(
       return res.status(400).json({ error: 'Invalid body parameters', details: parseResult.error.format() });
     }
 
-    const { releaseId, votes, rank } = parseResult.data;
-
-    const release = await prisma.release.findUnique({
-      where: { id: releaseId },
-    });
-
-    if (!release) {
-      return res.status(404).json({ error: 'Release not found' });
-    }
+    const { type, votes, releaseId, rank } = parseResult.data;
 
     if (role === 'FAN') {
-      if (votes === undefined) {
-        return res.status(400).json({ error: 'votes is required for FAN role' });
-      }
-
-      const cost = calculateVoteCost(votes);
-
-      const fanProfile = await prisma.fanProfile.findUnique({
-        where: { userId },
-      });
-
-      if (!fanProfile) {
-        return res.status(404).json({ error: 'Fan profile not found' });
-      }
-
-      if (fanProfile.remainingCredits < cost) {
-        return res.status(400).json({ error: 'Insufficient credits' });
-      }
-
-      const result = await prisma.$transaction(async (tx) => {
-        // Decrease remaining credits first
-        const updatedFan = await tx.fanProfile.update({
-          where: { id: fanProfile.id },
-          data: {
-            remainingCredits: {
-              decrement: cost,
-            },
-          },
-        });
-
-        // Ensure no negative credits due to race condition
-        if (updatedFan.remainingCredits < 0) {
-          throw new Error('Insufficient credits during transaction');
+      if (type === 'bulk' && votes) {
+        // Bulk insert logic for FANs
+        const entries = Object.entries(votes);
+        if (entries.length === 0) {
+          return res.status(400).json({ error: 'No votes provided' });
         }
 
-        const existingVote = await tx.vote.findUnique({
-          where: {
-            fanId_releaseId: {
-              fanId: fanProfile.id,
-              releaseId,
-            },
-          },
-        });
-
-        let updatedVote;
-        if (existingVote) {
-          updatedVote = await tx.vote.update({
-            where: {
-              fanId_releaseId: {
-                fanId: fanProfile.id,
-                releaseId,
-              },
-            },
-            data: {
-              allocatedVotes: {
-                increment: votes,
-              },
-              cost: {
-                increment: cost,
-              },
-              // maintaining backwards compat fields if needed, but not required by prompt
-              votes: {
-                increment: votes,
-              },
-              credits: {
-                increment: cost,
-              }
-            },
-          });
-        } else {
-          updatedVote = await tx.vote.create({
-            data: {
-              fanId: fanProfile.id,
-              releaseId,
-              allocatedVotes: votes,
-              cost: cost,
-              votes: votes,
-              credits: cost,
-            },
-          });
+        let totalCost = 0;
+        for (const [, v] of entries) {
+          totalCost += calculateVoteCost(v);
         }
 
-        return { updatedVote, remainingCredits: updatedFan.remainingCredits };
-      });
+        if (totalCost > 150) {
+          return res.status(400).json({ error: 'Budget exceeded' });
+        }
 
-      return res.status(200).json({
-        success: true,
-        vote: result.updatedVote,
-        remainingCredits: result.remainingCredits,
-      });
+        const fanProfile = await prisma.fanProfile.findUnique({
+          where: { userId },
+        });
 
+        if (!fanProfile) {
+          return res.status(404).json({ error: 'Fan profile not found' });
+        }
+
+        if (fanProfile.remainingCredits < totalCost) {
+          return res.status(400).json({ error: 'Insufficient credits' });
+        }
+
+        const result = await prisma.$transaction(async (tx) => {
+          // Decrease remaining credits for the whole bulk operation
+          const updatedFan = await tx.fanProfile.update({
+            where: { id: fanProfile.id },
+            data: {
+              remainingCredits: {
+                decrement: totalCost,
+              },
+            },
+          });
+
+          if (updatedFan.remainingCredits < 0) {
+            throw new Error('Insufficient credits during transaction');
+          }
+
+          const createdVotes = [];
+          for (const [rId, v] of entries) {
+            const cost = calculateVoteCost(v);
+
+            // We assume a fresh state for the week based on UI, but upsert for safety
+            const existingVote = await tx.vote.findUnique({
+              where: {
+                fanId_releaseId: {
+                  fanId: fanProfile.id,
+                  releaseId: rId,
+                },
+              },
+            });
+
+            if (existingVote) {
+               const updatedVote = await tx.vote.update({
+                  where: {
+                    fanId_releaseId: { fanId: fanProfile.id, releaseId: rId },
+                  },
+                  data: {
+                    allocatedVotes: { increment: v },
+                    cost: { increment: cost },
+                    votes: { increment: v },
+                    credits: { increment: cost },
+                  },
+               });
+               createdVotes.push(updatedVote);
+            } else {
+               const createdVote = await tx.vote.create({
+                  data: {
+                    fanId: fanProfile.id,
+                    releaseId: rId,
+                    allocatedVotes: v,
+                    cost: cost,
+                    votes: v,
+                    credits: cost,
+                  },
+               });
+               createdVotes.push(createdVote);
+            }
+          }
+
+          return { createdVotes, remainingCredits: updatedFan.remainingCredits };
+        });
+
+        return res.status(200).json({
+          success: true,
+          votes: result.createdVotes,
+          remainingCredits: result.remainingCredits,
+        });
+
+      } else {
+         // Single vote fallback (not standard in new UI, but keeping for backward compatibility)
+         return res.status(400).json({ error: 'Single FAN vote is deprecated. Use bulk type.' });
+      }
     } else if (role === 'DJ') {
+      if (!releaseId) {
+         return res.status(400).json({ error: 'releaseId is required for DJ role' });
+      }
+
+      const release = await prisma.release.findUnique({
+        where: { id: releaseId },
+      });
+
+      if (!release) {
+        return res.status(404).json({ error: 'Release not found' });
+      }
+
       if (rank === undefined) {
         return res.status(400).json({ error: 'rank is required for DJ role' });
       }

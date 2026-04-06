@@ -11,6 +11,7 @@ import { ProfileView } from '@/components/ProfileView';
 import { AboutView } from '@/components/AboutView';
 import { CustomChartsView } from '@/components/CustomChartsView';
 import { VotingArea } from '@/components/VotingArea';
+import { VoteConfirmationView } from '@/components/VoteConfirmationView';
 import { ChartHistoryView } from '@/components/ChartHistoryView';
 import { PillarNavigation } from '@/components/PillarNavigation';
 import { MainGenreNavigation } from '@/components/MainGenreNavigation';
@@ -40,7 +41,7 @@ import { mainGenreMap } from '@/lib/config/genres';
 function AppContent() {
   const dataService = useDataService();
   const { t } = useLanguage();
-  const [currentView, setCurrentView] = useState<ViewType>('admin');
+  const [currentView, setCurrentView] = useState<ViewType>('voting');
   const [currentMainGenre, setCurrentMainGenre] = useState<MainGenre | 'overall'>('overall');
   const [currentSubGenre, setCurrentSubGenre] = useState<Genre | null>(null);
   const [activePillar, setActivePillar] = useState<ChartType | 'overview'>('overview');
@@ -587,7 +588,11 @@ function AppContent() {
                     <VotingArea
                       allTracks={[...(fanCharts || []), ...(expertCharts || []), ...(streamingCharts || [])]}
                       onTrackClick={handleTrackClick}
+                      onVoteComplete={() => setCurrentView('voting-confirmation')}
                     />
+                  )}
+                  {currentView === 'voting-confirmation' && (
+                    <VoteConfirmationView onNavigate={setCurrentView} />
                   )}
                   {currentView === 'history' && <ChartHistoryView />}
                 </ErrorBoundary>
