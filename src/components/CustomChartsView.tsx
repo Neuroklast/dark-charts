@@ -155,7 +155,7 @@ export function CustomChartsView() {
   useEffect(() => {
     if (viewingChart) {
       setIsLoadingTracks(true);
-      fetch('/api/charts?type=combined&completed=true&limit=100')
+      fetch('/api/charts/current')
         .then(res => res.json())
         .then(data => {
           if (data.success && data.entries) {
