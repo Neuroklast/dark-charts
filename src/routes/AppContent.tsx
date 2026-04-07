@@ -40,6 +40,13 @@ import { CookieConsentBanner } from '@/components/CookieConsentBanner';
 import { mainGenreMap } from '@/lib/config/genres';
 import { PromotionalSlot } from '@/components/PromotionalSlot';
 import { useChartData } from '@/hooks/useChartData';
+import { AdminLayout } from '@/components/admin/AdminLayout';
+import { DashboardMetricsContainer } from '@/components/admin/DashboardMetricsContainer';
+import { UserManagementContainer } from '@/components/admin/UserManagementContainer';
+import { ArtistBlacklistContainer } from '@/components/admin/ArtistBlacklistContainer';
+import { ChartControlContainer } from '@/components/admin/ChartControlContainer';
+import { PromotionApprovalContainer } from '@/components/admin/PromotionApprovalContainer';
+import { SystemSettingsContainer } from '@/components/admin/SystemSettingsContainer';
 
 function AppContent() {
   const [activePromotion, setActivePromotion] = useState<{ type?: string; name?: string; imageUrl?: string } | null>(null);
@@ -420,11 +427,21 @@ function AppContent() {
                   {currentView === 'privacy' && <PrivacyPolicyView />}
                   {currentView === 'terms' && <TermsOfServiceView />}
                   {currentView === 'imprint' && <ImprintView />}
-                  {currentView === 'admin' && (
-                    <div className="space-y-6">
-                      <AdminArtistManagement />
-                      <ArtistDatabaseManager />
-                    </div>
+                  {currentView.startsWith('admin') && (
+                    <AdminLayout currentView={currentView} onNavigate={setCurrentView}>
+                      {currentView === 'admin' && (
+                        <div className="space-y-6">
+                          <AdminArtistManagement />
+                          <ArtistDatabaseManager />
+                        </div>
+                      )}
+                      {currentView === 'admin-metrics' && <DashboardMetricsContainer />}
+                      {currentView === 'admin-users' && <UserManagementContainer />}
+                      {currentView === 'admin-artists' && <ArtistBlacklistContainer />}
+                      {currentView === 'admin-charts' && <ChartControlContainer />}
+                      {currentView === 'admin-promotions' && <PromotionApprovalContainer />}
+                      {currentView === 'admin-settings' && <SystemSettingsContainer />}
+                    </AdminLayout>
                   )}
                   {currentView === 'profiles-demo' && <ProfilesDemo />}
                   {currentView === 'voting' && (
