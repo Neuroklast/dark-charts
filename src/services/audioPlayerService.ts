@@ -2,6 +2,7 @@ class AudioPlayerService {
   private currentAudio: HTMLAudioElement | null = null;
   private currentIframe: HTMLIFrameElement | null = null;
   private listeners: Set<(isPlaying: boolean) => void> = new Set();
+  private audioListeners: Map<HTMLAudioElement, { play: () => void, pause: () => void, ended: () => void }> = new Map();
 
   addListener(callback: (isPlaying: boolean) => void): () => void {
     this.listeners.add(callback);
@@ -16,6 +17,7 @@ class AudioPlayerService {
     if (this.currentAudio) {
       this.currentAudio.pause();
       this.currentAudio.currentTime = 0;
+      this.cleanupAudioListeners(this.currentAudio);
       this.currentAudio = null;
     }
 
@@ -29,8 +31,22 @@ class AudioPlayerService {
     this.notifyListeners(false);
   }
 
+  private cleanupAudioListeners(audio: HTMLAudioElement): void {
+    const listeners = this.audioListeners.get(audio);
+    if (listeners) {
+      audio.removeEventListener('play', listeners.play);
+      audio.removeEventListener('pause', listeners.pause);
+      audio.removeEventListener('ended', listeners.ended);
+      this.audioListeners.delete(audio);
+    }
+  }
+
   registerAudioElement(audio: HTMLAudioElement): void {
-    audio.addEventListener('play', () => {
+    if (this.audioListeners.has(audio)) {
+      return;
+    }
+
+    const playHandler = () => {
       if (this.currentAudio && this.currentAudio !== audio) {
         this.currentAudio.pause();
         this.currentAudio.currentTime = 0;
@@ -43,20 +59,31 @@ class AudioPlayerService {
       }
       this.currentAudio = audio;
       this.notifyListeners(true);
-    });
+    };
 
-    audio.addEventListener('pause', () => {
+    const pauseHandler = () => {
       if (this.currentAudio === audio) {
         this.notifyListeners(false);
       }
-    });
+    };
 
-    audio.addEventListener('ended', () => {
+    const endedHandler = () => {
       if (this.currentAudio === audio) {
+        this.cleanupAudioListeners(audio);
         this.currentAudio = null;
         this.notifyListeners(false);
       }
+    };
+
+    this.audioListeners.set(audio, {
+      play: playHandler,
+      pause: pauseHandler,
+      ended: endedHandler
     });
+
+    audio.addEventListener('play', playHandler);
+    audio.addEventListener('pause', pauseHandler);
+    audio.addEventListener('ended', endedHandler);
   }
 
   registerIframe(iframe: HTMLIFrameElement): void {

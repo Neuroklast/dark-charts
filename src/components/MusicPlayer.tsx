@@ -77,28 +77,31 @@ export function MusicPlayer({ currentTrack, onNext, onPrevious }: MusicPlayerPro
             <button
               onClick={onPrevious}
               disabled={!onPrevious}
+              aria-label="Previous Track"
               className="w-8 h-8 flex items-center justify-center border border-border text-foreground hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed snap-transition"
             >
-              <SkipBack weight="fill" className="w-4 h-4" />
+              <SkipBack weight="fill" className="w-4 h-4" aria-hidden="true" />
             </button>
 
             <button
               onClick={handlePlayPause}
+              aria-label={isPlaying ? "Pause Track" : "Play Track"}
               className="w-10 h-10 flex items-center justify-center border border-border bg-primary text-primary-foreground hover:glow-primary snap-transition"
             >
               {isPlaying ? (
-                <Pause weight="fill" className="w-5 h-5" />
+                <Pause weight="fill" className="w-5 h-5" aria-hidden="true" />
               ) : (
-                <Play weight="fill" className="w-5 h-5" />
+                <Play weight="fill" className="w-5 h-5" aria-hidden="true" />
               )}
             </button>
 
             <button
               onClick={onNext}
               disabled={!onNext}
+              aria-label="Next Track"
               className="w-8 h-8 flex items-center justify-center border border-border text-foreground hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed snap-transition"
             >
-              <SkipForward weight="fill" className="w-4 h-4" />
+              <SkipForward weight="fill" className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
 

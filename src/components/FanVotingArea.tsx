@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Track, Genre } from '@/types';
 import { Card } from '@/components/ui/card';
@@ -75,7 +76,7 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
           onVoteComplete();
         }
       } catch (err) {
-        console.error('Failed to check vote status', err);
+        logger.error('Failed to check vote status', err);
       } finally {
         setIsLoading(false);
       }
@@ -451,6 +452,12 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                     return acc;
                   }, {} as Record<string, number>);
 
+                  // Optimistic UI update
+                  if (onVoteComplete) {
+                    onVoteComplete();
+                  }
+                  toast.success("Abstimmung erfolgreich eingereicht");
+
                   // Submit all votes as a bulk transaction
                   const res = await fetch('/api/vote', {
                     method: 'POST',
@@ -465,13 +472,10 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                     throw new Error('Failed to submit votes');
                   }
 
-                  toast.success("Abstimmung erfolgreich eingereicht");
-                  if (onVoteComplete) {
-                    onVoteComplete();
-                  }
                 } catch (error) {
-                  console.error('Error submitting votes:', error);
-                  toast.error("Fehler beim Senden der Abstimmung");
+                  logger.error('Error submitting votes:', error);
+                  toast.error("Fehler beim Senden der Abstimmung. Seite wird neu geladen.");
+                  setTimeout(() => window.location.reload(), 2000); // Revert optimistic UI by reloading
                 }
               }}
             >
