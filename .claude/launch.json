@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Vite Dev Server",
+      "runtimeExecutable": "start-dev.cmd",
+      "runtimeArgs": [],
+      "port": 5001
+    },
+    {
+      "name": "Vite Preview",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+      "runtimeArgs": ["run", "preview"],
+      "port": 4173
+    }
+  ]
+}
