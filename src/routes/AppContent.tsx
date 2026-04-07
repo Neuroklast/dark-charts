@@ -39,6 +39,7 @@ import { ImprintView } from '@/components/ImprintView';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner';
 import { mainGenreMap } from '@/lib/config/genres';
 import { PromotionalSlot } from '@/components/PromotionalSlot';
+import { useChartData } from '@/hooks/useChartData';
 
 function AppContent() {
   const [activePromotion, setActivePromotion] = useState<{ type?: string; name?: string; imageUrl?: string } | null>(null);
@@ -57,23 +58,34 @@ function AppContent() {
           });
         }
       })
-      .catch(err => console.error('Failed to load promotions', err));
+      .catch(err => logger.error('Failed to load promotions', err));
   }, []);
-  const dataService = useDataService();
   const { t } = useLanguage();
   const [currentView, setCurrentView] = useState<ViewType>('home');
   const [currentMainGenre, setCurrentMainGenre] = useState<MainGenre | 'overall'>('overall');
   const [currentSubGenre, setCurrentSubGenre] = useState<Genre | null>(null);
   const [activePillar, setActivePillar] = useState<ChartType | 'overview'>('overview');
-  const [fanCharts, setFanCharts] = useState<Track[]>([]);
-  const [expertCharts, setExpertCharts] = useState<Track[]>([]);
-  const [streamingCharts, setStreamingCharts] = useState<Track[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
-  const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTrackForModal, setSelectedTrackForModal] = useState<Track | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const {
+    fanCharts,
+    expertCharts,
+    streamingCharts,
+    isLoading,
+    currentTrack,
+    setCurrentTrack,
+    selectedGenres,
+    setSelectedGenres,
+    allGenres,
+    filterByGenre,
+    filteredFanCharts,
+    filteredExpertCharts,
+    filteredStreamingCharts,
+    overallChart,
+    dataService,
+  } = useChartData();
 
   useEffect(() => {
     try {
@@ -82,198 +94,9 @@ function AppContent() {
         setCurrentView('oauth-callback');
       }
     } catch (error) {
-      console.error('Error checking URL parameters:', error);
+      logger.error('Error checking URL parameters:', { error });
     }
   }, []);
-
-  useEffect(() => {
-    const loadCharts = async () => {
-      setIsLoading(true);
-      try {
-        if (!dataService) {
-          throw new Error('DataService not available');
-        }
-
-        const data = await dataService.getAllCharts();
-
-        if (!data || typeof data !== 'object') {
-          throw new Error('Invalid data received from service');
-        }
-
-        const allTracks = [
-          ...(Array.isArray(data.fanCharts) ? data.fanCharts : []),
-          ...(Array.isArray(data.expertCharts) ? data.expertCharts : []),
-          ...(Array.isArray(data.streamingCharts) ? data.streamingCharts : [])
-        ];
-
-        if (trackEnrichmentService && allTracks.length > 0) {
-          try {
-            const enrichedTracks = await trackEnrichmentService.enrichTracks(allTracks);
-            const enrichedMap = new Map(enrichedTracks.map(t => [t.id, t]));
-
-            const enrichedFanCharts = (data.fanCharts || []).map(t => enrichedMap.get(t.id) || t);
-            const enrichedExpertCharts = (data.expertCharts || []).map(t => enrichedMap.get(t.id) || t);
-            const enrichedStreamingCharts = (data.streamingCharts || []).map(t => enrichedMap.get(t.id) || t);
-
-            setFanCharts(enrichedFanCharts);
-            setExpertCharts(enrichedExpertCharts);
-            setStreamingCharts(enrichedStreamingCharts);
-
-            if (enrichedFanCharts.length > 0) {
-              setCurrentTrack(enrichedFanCharts[0]);
-            }
-
-            trackEnrichmentService.startBackgroundSync(allTracks);
-          } catch (enrichmentError) {
-            console.error('Failed to enrich tracks:', enrichmentError);
-            setFanCharts(Array.isArray(data.fanCharts) ? data.fanCharts : []);
-            setExpertCharts(Array.isArray(data.expertCharts) ? data.expertCharts : []);
-            setStreamingCharts(Array.isArray(data.streamingCharts) ? data.streamingCharts : []);
-
-            if (Array.isArray(data.fanCharts) && data.fanCharts.length > 0) {
-              setCurrentTrack(data.fanCharts[0]);
-            }
-          }
-        } else {
-          setFanCharts(Array.isArray(data.fanCharts) ? data.fanCharts : []);
-          setExpertCharts(Array.isArray(data.expertCharts) ? data.expertCharts : []);
-          setStreamingCharts(Array.isArray(data.streamingCharts) ? data.streamingCharts : []);
-
-          if (Array.isArray(data.fanCharts) && data.fanCharts.length > 0) {
-            setCurrentTrack(data.fanCharts[0]);
-          }
-        }
-
-        if (nightlySyncService) {
-          try {
-            nightlySyncService.initialize();
-          } catch (syncError) {
-            console.error('Failed to initialize nightly sync:', syncError);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load charts:', error);
-        setFanCharts([]);
-        setExpertCharts([]);
-        setStreamingCharts([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadCharts();
-  }, [dataService]);
-
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const allTracks = [...fanCharts, ...expertCharts, ...streamingCharts];
-        if (allTracks.length > 0 && trackEnrichmentService) {
-          const enrichedTracks = await trackEnrichmentService.enrichTracks(allTracks);
-          const enrichedMap = new Map(enrichedTracks.map(t => [t.id, t]));
-
-          setFanCharts(current => current.map(t => enrichedMap.get(t.id) || t));
-          setExpertCharts(current => current.map(t => enrichedMap.get(t.id) || t));
-          setStreamingCharts(current => current.map(t => enrichedMap.get(t.id) || t));
-        }
-      } catch (error) {
-        console.error('Failed to sync tracks:', error);
-      }
-    }, 24 * 60 * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [fanCharts, expertCharts, streamingCharts]);
-
-  const allGenres: Genre[] = useMemo(() => {
-    try {
-      const genreSet = new Set<Genre>();
-      const allTracks = [...fanCharts, ...expertCharts, ...streamingCharts];
-
-      allTracks.forEach(track => {
-        if (track && Array.isArray(track.genres)) {
-          track.genres.forEach(genre => {
-            if (genre) {
-              genreSet.add(genre);
-            }
-          });
-        }
-      });
-
-      return Array.from(genreSet).sort();
-    } catch (error) {
-      console.error('Error computing all genres:', error);
-      return [];
-    }
-  }, [fanCharts, expertCharts, streamingCharts]);
-
-  const filterByGenre = useCallback((tracks: Track[]): Track[] => {
-    try {
-      if (!Array.isArray(tracks)) {
-        return [];
-      }
-
-      if (!Array.isArray(selectedGenres) || selectedGenres.length === 0) {
-        return tracks;
-      }
-
-      return safeFilter(tracks, (track) => {
-        if (!track || !Array.isArray(track.genres)) {
-          return false;
-        }
-        return track.genres.some(genre => selectedGenres.includes(genre));
-      });
-    } catch (error) {
-      console.error('Error filtering by genre:', error);
-      return tracks;
-    }
-  }, [selectedGenres]);
-
-  const filteredFanCharts = useMemo(() => {
-    try {
-      return safeSlice(filterByGenre(fanCharts), 0, 10, []);
-    } catch (error) {
-      console.error('Error filtering fan charts:', error);
-      return [];
-    }
-  }, [fanCharts, filterByGenre]);
-
-  const filteredExpertCharts = useMemo(() => {
-    try {
-      return safeSlice(filterByGenre(expertCharts), 0, 10, []);
-    } catch (error) {
-      console.error('Error filtering expert charts:', error);
-      return [];
-    }
-  }, [expertCharts, filterByGenre]);
-
-  const filteredStreamingCharts = useMemo(() => {
-    try {
-      return safeSlice(filterByGenre(streamingCharts), 0, 10, []);
-    } catch (error) {
-      console.error('Error filtering streaming charts:', error);
-      return [];
-    }
-  }, [streamingCharts, filterByGenre]);
-
-  const overallChart = useMemo(() => {
-    try {
-      if (!Array.isArray(fanCharts) || fanCharts.length === 0 ||
-          !Array.isArray(expertCharts) || expertCharts.length === 0 ||
-          !Array.isArray(streamingCharts) || streamingCharts.length === 0) {
-        return [];
-      }
-
-      if (!dataService || typeof dataService.calculateOverallChart !== 'function') {
-        return [];
-      }
-
-      const chart = dataService.calculateOverallChart();
-      return safeSlice(filterByGenre(chart), 0, 10, []);
-    } catch (error) {
-      console.error('Error calculating overall chart:', error);
-      return [];
-    }
-  }, [fanCharts, expertCharts, streamingCharts, dataService, filterByGenre]);
 
   const currentVisibleTracks = useMemo(() => {
     try {
@@ -294,7 +117,7 @@ function AppContent() {
       }
       return [];
     } catch (error) {
-      console.error('Error computing visible tracks:', error);
+      logger.error('Error computing visible tracks:', { error });
       return [];
     }
   }, [currentView, activePillar, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts]);
@@ -312,7 +135,7 @@ function AppContent() {
       }
       return [...fanCharts, ...expertCharts, ...streamingCharts];
     } catch (error) {
-      console.error('Error computing player tracks:', error);
+      logger.error('Error computing player tracks:', { error });
       return [];
     }
   }, [activePillar, overallChart, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, fanCharts, expertCharts, streamingCharts]);
@@ -323,7 +146,7 @@ function AppContent() {
   const handleTrackClick = useCallback(async (track: Track) => {
     try {
       if (!track) {
-        console.warn('Invalid track object');
+        logger.warn('Invalid track object');
         return;
       }
 
@@ -332,7 +155,7 @@ function AppContent() {
         try {
           enrichedTrack = await trackEnrichmentService.enrichTrack(track);
         } catch (enrichmentError) {
-          console.error('Failed to enrich track:', enrichmentError);
+          logger.error('Failed to enrich track:', { error: enrichmentError });
         }
       }
 
@@ -340,14 +163,14 @@ function AppContent() {
       setIsModalOpen(true);
       setCurrentTrack(enrichedTrack);
     } catch (error) {
-      console.error('Error handling track click:', error);
+      logger.error('Error handling track click:', { error });
     }
   }, []);
 
   const handleToggleGenre = useCallback((genre: Genre) => {
     try {
       if (!genre) {
-        console.warn('Invalid genre');
+        logger.warn('Invalid genre');
         return;
       }
 
@@ -362,12 +185,12 @@ function AppContent() {
           }
           return [...current, genre];
         } catch (error) {
-          console.error('Error toggling genre:', error);
+          logger.error('Error toggling genre:', { error });
           return current;
         }
       });
     } catch (error) {
-      console.error('Error in handleToggleGenre:', error);
+      logger.error('Error in handleToggleGenre:', { error });
     }
   }, []);
 
@@ -375,7 +198,7 @@ function AppContent() {
     try {
       setSelectedGenres([]);
     } catch (error) {
-      console.error('Error clearing filters:', error);
+      logger.error('Error clearing filters:', { error });
     }
   }, []);
 
@@ -441,12 +264,12 @@ function AppContent() {
           }
         });
       } catch (error) {
-        console.error('Error computing genre chart positions:', error);
+        logger.error('Error computing genre chart positions:', { error });
       }
 
       return positions;
     } catch (error) {
-      console.error('Error getting all chart positions:', error);
+      logger.error('Error getting all chart positions:', { error });
       return [];
     }
   }, [fanCharts, expertCharts, streamingCharts, overallChart]);
@@ -468,7 +291,7 @@ function AppContent() {
         setActivePillar(chartType === 'overall' ? 'overview' : chartType);
       }
     } catch (error) {
-      console.error('Error navigating to chart:', error);
+      logger.error('Error navigating to chart:', { error });
     }
   }, []);
 
@@ -488,7 +311,7 @@ function AppContent() {
         setCurrentTrack(allTracks[currentIndex + 1]);
       }
     } catch (error) {
-      console.error('Error navigating to next track:', error);
+      logger.error('Error navigating to next track:', error);
     }
   }, [currentTrack, activePillar, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, overallChart]);
 
@@ -508,7 +331,7 @@ function AppContent() {
         setCurrentTrack(allTracks[currentIndex - 1]);
       }
     } catch (error) {
-      console.error('Error navigating to previous track:', error);
+      logger.error('Error navigating to previous track:', error);
     }
   }, [currentTrack, activePillar, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts, overallChart]);
 
@@ -549,7 +372,7 @@ function AppContent() {
                     setCurrentSubGenre(null);
                   }
                 } catch (error) {
-                  console.error('Error navigating:', error);
+                  logger.error('Error navigating:', error);
                 }
               }}
             />
@@ -579,7 +402,7 @@ function AppContent() {
                           setCurrentView('home');
                         }
                       } catch (error) {
-                        console.error('Error changing genre:', error);
+                        logger.error('Error changing genre:', error);
                       }
                     }}
                     className="mb-0"
@@ -849,7 +672,7 @@ function AppContent() {
             try {
               setIsModalOpen(false);
             } catch (error) {
-              console.error('Error closing modal:', error);
+              logger.error('Error closing modal:', error);
             }
           }}
           allChartPositions={selectedTrackForModal ? getAllChartPositions(selectedTrackForModal) : []}
