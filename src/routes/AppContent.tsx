@@ -14,6 +14,7 @@ import { VotingArea } from '@/components/VotingArea';
 import { ExpertVotingArea } from '@/components/ExpertVotingArea';
 import { VoteConfirmationView } from '@/components/VoteConfirmationView';
 import { ChartHistoryView } from '@/components/ChartHistoryView';
+import { ChartArchiveView } from '@/components/ChartArchiveView';
 import { PillarNavigation } from '@/components/PillarNavigation';
 import { MainGenreNavigation } from '@/components/MainGenreNavigation';
 import { SubGenreNavigation } from '@/components/SubGenreNavigation';
@@ -99,6 +100,8 @@ function AppContent() {
       const params = new URLSearchParams(window.location.search);
       if (window.location.pathname === '/oauth/callback') {
         setCurrentView('oauth-callback');
+      } else if (window.location.pathname === '/charts/archive') {
+        setCurrentView('archive');
       }
     } catch (error) {
       logger.error('Error checking URL parameters:', { error });
@@ -455,6 +458,7 @@ function AppContent() {
                     <VoteConfirmationView onNavigate={setCurrentView} />
                   )}
                   {currentView === 'history' && <ChartHistoryView />}
+                  {currentView === 'archive' && <ChartArchiveView />}
                 </ErrorBoundary>
 
                 {currentView === 'main-genre' && currentMainGenre && currentMainGenre !== 'overall' && (
