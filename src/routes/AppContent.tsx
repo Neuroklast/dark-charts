@@ -51,6 +51,8 @@ import { SystemSettingsContainer } from '@/components/admin/SystemSettingsContai
 
 function AppContent() {
   const [activePromotion, setActivePromotion] = useState<{ type?: string; name?: string; imageUrl?: string } | null>(null);
+  const [hasVoted, setHasVoted] = useState<boolean>(false);
+  const { user, getAuthToken } = useAuth();
 
   useEffect(() => {
     fetch('/api/promotions')
@@ -68,6 +70,27 @@ function AppContent() {
       })
       .catch(err => logger.error('Failed to load promotions', err));
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const checkVoteStatus = async () => {
+      try {
+        const token = await getAuthToken();
+        const res = await fetch('/api/vote/status', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+        if (data.hasVoted) {
+          setHasVoted(true);
+        }
+      } catch (err) {
+        logger.error('Failed to check vote status in AppContent', err);
+      }
+    };
+    checkVoteStatus();
+  }, [user, getAuthToken]);
   const { t } = useLanguage();
   const [currentView, setCurrentView] = useState<ViewType>('home');
   const [currentMainGenre, setCurrentMainGenre] = useState<MainGenre | 'overall'>('overall');
@@ -451,14 +474,28 @@ function AppContent() {
                     <VotingArea
                       allTracks={[...(fanCharts || []), ...(expertCharts || []), ...(streamingCharts || [])]}
                       onTrackClick={handleTrackClick}
-                      onVoteComplete={() => setCurrentView('voting-confirmation')}
+                      onVoteComplete={() => {
+                        setHasVoted(true);
+                        setCurrentView('voting-confirmation');
+                      }}
                     />
                   )}
                   {currentView === 'voting-confirmation' && (
                     <VoteConfirmationView onNavigate={setCurrentView} />
                   )}
                   {currentView === 'history' && <ChartHistoryView />}
-                  {currentView === 'archive' && <ChartArchiveView />}
+                {currentView === 'archive' && (
+                  <div className="space-y-8">
+                    {activePromotion && hasVoted && (
+                      <PromotionalSlot
+                        type={activePromotion.type}
+                        name={activePromotion.name}
+                        imageUrl={activePromotion.imageUrl}
+                      />
+                    )}
+                    <ChartArchiveView />
+                  </div>
+                )}
                 </ErrorBoundary>
 
                 {currentView === 'main-genre' && currentMainGenre && currentMainGenre !== 'overall' && (
@@ -477,7 +514,7 @@ function AppContent() {
 
                 {currentView === 'home' && (
                   <>
-                    {activePromotion && (
+                    {activePromotion && hasVoted && (
                       <PromotionalSlot type={activePromotion.type} name={activePromotion.name} imageUrl={activePromotion.imageUrl} />
                     )}
                     {activePillar === 'overview' && (

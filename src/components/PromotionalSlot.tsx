@@ -1,13 +1,14 @@
 import { motion } from 'framer-motion';
-import { Megaphone } from '@phosphor-icons/react';
+import { Megaphone, Link as LinkIcon } from '@phosphor-icons/react';
 
 interface PromotionalSlotProps {
   type?: 'Band of the Day' | 'DJ of the Day' | string;
   name?: string;
   imageUrl?: string;
+  link?: string;
 }
 
-export function PromotionalSlot({ type = 'Band of the Day', name = 'Promoted Artist', imageUrl }: PromotionalSlotProps) {
+export function PromotionalSlot({ type = 'Band of the Day', name = 'Promoted Artist', imageUrl, link }: PromotionalSlotProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -23,8 +24,8 @@ export function PromotionalSlot({ type = 'Band of the Day', name = 'Promoted Art
 
       <div className="flex items-center gap-6">
         {imageUrl ? (
-          <div className="w-24 h-24 rounded-none border-2 border-accent relative overflow-hidden flex-shrink-0">
-            <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
+          <div className="w-24 h-24 rounded-none border-2 border-accent relative overflow-hidden flex-shrink-0 bg-background/50">
+            <img src={imageUrl} alt={name} className="w-full h-full object-cover" width={96} height={96} loading="lazy" />
             <div className="absolute inset-0 bg-accent/20 group-hover:bg-transparent transition-colors duration-500" />
           </div>
         ) : (
@@ -35,10 +36,21 @@ export function PromotionalSlot({ type = 'Band of the Day', name = 'Promoted Art
 
         <div>
           <h3 className="font-ui text-xs uppercase tracking-[0.2em] text-accent mb-1">{type}</h3>
-          <h2 className="display-font text-3xl font-bold text-foreground mb-2">{name}</h2>
-          <p className="font-ui text-sm text-muted-foreground max-w-md">
+          <h2 className="display-font text-3xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">{name}</h2>
+          <p className="font-ui text-sm text-muted-foreground max-w-md mb-2">
             Discover the sound of today's featured artist. Support the underground.
           </p>
+          {link && (
+            <a
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-ui text-xs uppercase tracking-wider text-accent hover:text-accent/80 transition-colors"
+            >
+              <LinkIcon weight="bold" className="w-3 h-3" />
+              Visit Profile
+            </a>
+          )}
         </div>
       </div>
 

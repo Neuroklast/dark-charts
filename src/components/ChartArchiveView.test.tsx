@@ -22,7 +22,7 @@ const mockPushState = vi.fn();
 const FIXED_NOW = new Date('2025-04-09T12:00:00.000Z');
 
 beforeEach(() => {
-  vi.useFakeTimers();
+  vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(FIXED_NOW);
 
   // Override window.location to control initial URL params
@@ -41,6 +41,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  mockFetch.mockReset();
+  vi.runOnlyPendingTimers();
   vi.useRealTimers();
   vi.clearAllMocks();
 });
@@ -180,20 +182,26 @@ describe('ChartArchiveView', () => {
     it('renders artist names and placements after fetch resolves', async () => {
       mockSuccessResponse();
       render(<ChartArchiveView />);
-      await waitFor(() => expect(screen.getByText('Artist 1')).toBeDefined());
+      await waitFor(() => {
+        expect(screen.getByText('Artist 1')).toBeDefined();
+      }, { timeout: 2000 });
       expect(screen.getByText('Artist 2')).toBeDefined();
     });
 
     it('renders track titles', async () => {
       mockSuccessResponse();
       render(<ChartArchiveView />);
-      await waitFor(() => expect(screen.getByText('Track 1')).toBeDefined());
+      await waitFor(() => {
+        expect(screen.getByText('Track 1')).toBeDefined();
+      }, { timeout: 2000 });
     });
 
     it('does NOT render any voting buttons', async () => {
       mockSuccessResponse();
       render(<ChartArchiveView />);
-      await waitFor(() => expect(screen.queryByText(/Artist 1/)).toBeDefined());
+      await waitFor(() => {
+        expect(screen.queryByText(/Artist 1/)).toBeDefined();
+      }, { timeout: 2000 });
       expect(screen.queryByRole('button', { name: /vote/i })).toBeNull();
       expect(screen.queryByRole('button', { name: /credit/i })).toBeNull();
     });

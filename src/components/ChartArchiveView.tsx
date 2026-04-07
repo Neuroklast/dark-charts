@@ -68,7 +68,11 @@ export function getAdjacentWeek(
   if (direction === 'next') {
     const candidateWeek = week + 1;
     const candidateDate = isoWeekToMondayClient(year, candidateWeek);
-    if (candidateDate.getUTCFullYear() !== year) {
+    // Determine the year of the Thursday of the candidate week
+    const thursdayDate = new Date(candidateDate);
+    thursdayDate.setUTCDate(candidateDate.getUTCDate() + 3);
+
+    if (thursdayDate.getUTCFullYear() !== year) {
       return { year: year + 1, week: 1 };
     }
     return { year, week: candidateWeek };
