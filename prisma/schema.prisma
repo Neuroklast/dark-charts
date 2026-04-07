@@ -43,6 +43,7 @@ model User {
 
   bookings   Booking[]
   userBadges UserBadge[]
+  auditLogs  AuditLog[]
 
   @@index([email])
   @@index([role])
@@ -191,6 +192,19 @@ model Vote {
   @@unique([fanId, releaseId])
   @@index([fanId])
   @@index([releaseId])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  admin     User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
   @@index([createdAt])
 }
 
