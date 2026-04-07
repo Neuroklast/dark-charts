@@ -42,4 +42,4 @@ A brutally dark music charting platform for the Heavy Metal, Gothic, Dark Wave, 
 
 ## License
 
-The Spark Template files and resources from GitHub are licensed under the terms of the MIT license, Copyright GitHub, Inc.
+This software is proprietary and confidential. All rights reserved. © 2024 Neuroklast. Unauthorized copying, distribution, or modification is strictly prohibited.
