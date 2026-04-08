@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Track, Genre } from '@/types';
+import { Track, Genre, ChartType } from '@/types';
 import { ChartEntry } from '@/components/ChartEntry';
 import { ChartEntrySkeleton } from '@/components/skeletons';
 import { Card } from '@/components/ui/card';
@@ -153,6 +153,7 @@ function transformEntry(entry: ArchiveEntry): Track {
       ? `spotify:track:${entry.release.spotifyId}`
       : undefined,
     community_power: entry.communityPower,
+    chartType: 'overall' as ChartType,
   };
 }
 

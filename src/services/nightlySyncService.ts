@@ -234,28 +234,24 @@ class NightlySyncService {
     console.log('Nightly sync started');
   }
 
-  formatNextRunTime(): string {
-    return new Promise(async (resolve) => {
-      const status = await this.getStatus();
-      if (status.nextRun === 0) {
-        resolve('Nicht geplant / Not scheduled');
-        return;
-      }
-      
-      const nextRun = new Date(status.nextRun);
-      const now = new Date();
-      const diff = nextRun.getTime() - now.getTime();
-      
-      if (diff <= 0) {
-        resolve('Überfällig / Overdue');
-        return;
-      }
-      
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      
-      resolve(`In ${hours}h ${minutes}m`);
-    });
+  async formatNextRunTime(): Promise<string> {
+    const status = await this.getStatus();
+    if (status.nextRun === 0) {
+      return 'Nicht geplant / Not scheduled';
+    }
+    
+    const nextRun = new Date(status.nextRun);
+    const now = new Date();
+    const diff = nextRun.getTime() - now.getTime();
+    
+    if (diff <= 0) {
+      return 'Überfällig / Overdue';
+    }
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return `In ${hours}h ${minutes}m`;
   }
 
   async getSyncHistory(): Promise<{

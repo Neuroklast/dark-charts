@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Track, ChartType, Genre, ViewType, MainGenre } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/lib/logger';
 import { ChartCategory } from '@/components/ChartCategory';
 import { ChartEntry } from '@/components/ChartEntry';
 import { Card } from '@/components/ui/card';
@@ -454,7 +456,7 @@ function AppContent() {
                   {currentView === 'terms' && <TermsOfServiceView />}
                   {currentView === 'imprint' && <ImprintView />}
                   {currentView.startsWith('admin') && (
-                    <AdminLayout currentView={currentView} onNavigate={setCurrentView}>
+                    <AdminLayout currentView={currentView} onNavigate={(view) => setCurrentView(view as ViewType)}>
                       {currentView === 'admin' && (
                         <div className="space-y-6">
                           <AdminArtistManagement />

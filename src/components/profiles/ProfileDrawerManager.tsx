@@ -40,7 +40,7 @@ export function ProfileDrawerManager({ profile, isOpen, onClose }: ProfileDrawer
     case 'label':
       return (
         <ArtistProfileDrawer
-          profile={profile as BandProfile}
+          profile={profile as unknown as BandProfile}
           isOpen={isOpen}
           onClose={onClose}
         />

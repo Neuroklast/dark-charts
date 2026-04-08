@@ -1,6 +1,6 @@
 import { IReleasePrismaRepository } from './IReleasePrismaRepository'
-import { Release } from '../models/Release'
-import prisma from '../lib/prisma'
+import { Release } from '../../models/Release'
+import prisma from '../../lib/prisma'
 
 export class ReleasePrismaRepository implements IReleasePrismaRepository {
   async getAll(): Promise<Release[]> {
@@ -48,10 +48,10 @@ export class ReleasePrismaRepository implements IReleasePrismaRepository {
     const release = await prisma.release.create({
       data: {
         title: releaseData.title,
-        releaseType: releaseData.releaseType,
+        releaseType: releaseData.releaseType || 'single',
         releaseDate: new Date(releaseData.releaseDate),
         spotifyId: releaseData.spotifyId,
-        odesliLinks: releaseData.odesliLinks || {},
+        odesliLinks: (releaseData.odesliLinks || {}) as any,
         itunesArtworkUrl: releaseData.itunesArtworkUrl,
         vercelBlobUrl: vercelBlobUrl,
         artistId: releaseData.artistId
@@ -70,10 +70,10 @@ export class ReleasePrismaRepository implements IReleasePrismaRepository {
         ...(releaseData.releaseType && { releaseType: releaseData.releaseType }),
         ...(releaseData.releaseDate && { releaseDate: new Date(releaseData.releaseDate) }),
         ...(releaseData.spotifyId && { spotifyId: releaseData.spotifyId }),
-        ...(releaseData.odesliLinks && { odesliLinks: releaseData.odesliLinks }),
+        ...(releaseData.odesliLinks && { odesliLinks: releaseData.odesliLinks as any }),
         ...(releaseData.itunesArtworkUrl && { itunesArtworkUrl: releaseData.itunesArtworkUrl }),
         ...(releaseData.vercelBlobUrl && { vercelBlobUrl: releaseData.vercelBlobUrl }),
-        ...(releaseData.artistId && { artistId: releaseData.artistId })
+        ...(releaseData.artistId && { artist: { connect: { id: releaseData.artistId } } })
       },
       include: { artist: true }
     })
@@ -104,6 +104,7 @@ export class ReleasePrismaRepository implements IReleasePrismaRepository {
     
     try {
       if (typeof window === 'undefined' && process.env.BLOB_READ_WRITE_TOKEN) {
+        // @ts-ignore - optional server dependency
         const { put } = await import('@vercel/blob')
         
         const imageResponse = await fetch(itunesArtworkUrl)
@@ -128,16 +129,19 @@ export class ReleasePrismaRepository implements IReleasePrismaRepository {
     return {
       id: prismaRelease.id,
       title: prismaRelease.title,
-      artist: prismaRelease.artist.name,
+      artistName: prismaRelease.artist?.name || prismaRelease.artistId,
       artistId: prismaRelease.artistId,
-      album: prismaRelease.title,
       releaseType: prismaRelease.releaseType,
-      releaseDate: prismaRelease.releaseDate.toISOString(),
+      releaseDate: prismaRelease.releaseDate instanceof Date ? prismaRelease.releaseDate : new Date(prismaRelease.releaseDate),
+      albumType: 'single',
+      totalTracks: 1,
       spotifyId: prismaRelease.spotifyId || undefined,
       odesliLinks: prismaRelease.odesliLinks || undefined,
       itunesArtworkUrl: prismaRelease.itunesArtworkUrl || undefined,
       vercelBlobUrl: prismaRelease.vercelBlobUrl || undefined,
-      genres: prismaRelease.artist.genres || []
+      genres: prismaRelease.artist?.genres || [],
+      createdAt: prismaRelease.createdAt instanceof Date ? prismaRelease.createdAt : new Date(prismaRelease.createdAt || Date.now()),
+      updatedAt: prismaRelease.updatedAt instanceof Date ? prismaRelease.updatedAt : new Date(prismaRelease.updatedAt || Date.now()),
     }
   }
 }

@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   globalRecoveryManager,
-  RetryableError,
   NonRetryableError,
   type RetryOptions,
   type CircuitBreakerOptions
@@ -283,4 +282,4 @@ export function useAutoRecovery<T>(
   };
 }
 
-export { RetryableError, NonRetryableError };
+export { NonRetryableError };

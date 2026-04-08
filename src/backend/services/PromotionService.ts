@@ -31,8 +31,8 @@ export class PromotionService {
     });
 
     return activeBookings.map((booking) => {
-      let imageUrl = null;
-      let name = null;
+      let imageUrl: string | null = null;
+      let name: string | null = null;
       let label = booking.slotType;
 
       if (booking.user.bandProfile?.artist) {

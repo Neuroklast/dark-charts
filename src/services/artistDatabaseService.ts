@@ -141,6 +141,22 @@ class ArtistDatabaseService {
   getArtists() {
     return this.artists;
   }
+
+  async loadFromCSV(csvText: string): Promise<void> {
+    this.artists = await parseCSV(csvText);
+  }
+
+  async verifyAndCorrect(): Promise<{ artistName: string; oldId: string; newId: string }[]> {
+    return [];
+  }
+
+  async enrichWithReleases(): Promise<void> {
+    // Stub - enrichment via Spotify API would go here
+  }
+
+  getCorrectedCSV(): string {
+    return generateCSV(this.artists);
+  }
 }
 
 export const artistDatabaseService = new ArtistDatabaseService();

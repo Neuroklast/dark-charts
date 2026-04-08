@@ -7,6 +7,8 @@ export interface Artist {
   imageUrl?: string;
   genres: string[];
   verified: boolean;
+  spotifyId?: string;
+  profileLink?: string;
   socialLinks?: {
     spotify?: string;
     bandcamp?: string;

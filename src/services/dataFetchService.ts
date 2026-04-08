@@ -82,8 +82,8 @@ class DataFetchService {
         return track.artworkHighRes;
       }
 
-      if (track.artwork) {
-        return track.artwork;
+      if (track.albumArt) {
+        return track.albumArt;
       }
 
       return undefined;

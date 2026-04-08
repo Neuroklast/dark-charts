@@ -33,13 +33,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    logger.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error('ErrorBoundary caught an error', { error, errorInfo });
     
     if (this.props.onError) {
       try {
         this.props.onError(error, errorInfo);
       } catch (callbackError) {
-        logger.error('Error in onError callback:', callbackError);
+        logger.error('Error in onError callback', { error: callbackError });
       }
     }
   }
@@ -58,7 +58,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         try {
           return this.props.fallback(this.state.error!, this.resetError);
         } catch (fallbackError) {
-          logger.error('Error in fallback render:', fallbackError);
+          logger.error('Error in fallback render', { error: fallbackError });
         }
       }
 

@@ -56,7 +56,7 @@ export function TrackDetailModal({
     artworkUrl
   } = useTrackData(isOpen ? track : null);
   
-  const spotifyId = enrichedTrack?.spotifyId || track?.spotifyId || null;
+  const spotifyId = enrichedTrack?.spotifyUri || track?.spotifyUri || null;
 
   // Artwork loading logic with CORS support
   useEffect(() => {

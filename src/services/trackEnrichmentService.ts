@@ -204,7 +204,7 @@ class TrackEnrichmentService {
             const existing = failed.get(`odesli-${trackId}`);
             await this.markLookupAsFailed(`odesli-${trackId}`, `HTTP ${response.status}: ${errorText}`, (existing?.retryCount || 0) + 1);
           }
-          logger.warn('Odesli API request failed:', response.status, errorText);
+          logger.warn('Odesli API request failed', { status: response.status, errorText });
           return null;
         }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { FanProfile, Badge } from '@/types';
+import { FanProfile, Badge, Genre } from '@/types';
 import {
   Sheet,
   SheetContent,
@@ -141,7 +141,7 @@ export function FanProfileDrawer({ profile, isOpen, onClose, onUpdateProfile }: 
   const totalVotes = profile.votingHistory?.length || 0;
   const displayedBadges = profile.allBadges?.filter(b => profile.displayedBadges?.includes(b.id)) || [];
 
-  const tasteProfileData = profile.tasteProfile?.genreScores || profile.engagementStats?.genreAffinity || {};
+  const tasteProfileData = (profile.tasteProfile?.genreScores || profile.engagementStats?.genreAffinity || {}) as Record<Genre, number>;
   const roadToSuperfan = profile.roadToSuperfan || [];
   const personalCharts = profile.personalCharts || [];
 

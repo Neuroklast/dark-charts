@@ -88,7 +88,7 @@ export class MockDataService implements IDataService {
     }));
   }
 
-  async vote(trackId: string, credits: number): Promise<void> {
+  async vote(trackId: string, direction: 'up' | 'down'): Promise<void> {
     await this.simulateNetworkDelay(50);
     
     const currentVote = this.userVotes.get(trackId);
@@ -111,6 +111,18 @@ export class MockDataService implements IDataService {
       .find(t => t.id === trackId);
     
     return this.voteStore.get(trackId) || track?.votes || 0;
+  }
+
+  async getUserVotesForTrack(trackId: string): Promise<number> {
+    return this.voteStore.get(trackId) || 0;
+  }
+
+  getNextChartPublicationDate(): Date {
+    const now = new Date();
+    const nextMonday = new Date(now);
+    nextMonday.setDate(now.getDate() + ((1 + 7 - now.getDay()) % 7 || 7));
+    nextMonday.setHours(0, 0, 0, 0);
+    return nextMonday;
   }
 
   async hasUserVoted(trackId: string): Promise<boolean> {

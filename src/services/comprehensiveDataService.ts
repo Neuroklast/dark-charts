@@ -106,7 +106,7 @@ export class ComprehensiveDataService implements IDataService {
     }));
   }
 
-  async vote(trackId: string, credits: number): Promise<void> {
+  async vote(trackId: string, direction: 'up' | 'down'): Promise<void> {
     await this.simulateNetworkDelay(50);
     
     const voteData = await this.loadVoteData();
@@ -136,6 +136,19 @@ export class ComprehensiveDataService implements IDataService {
       .find(t => t.id === trackId);
     
     return voteData.voteStore[trackId] || track?.votes || 0;
+  }
+
+  async getUserVotesForTrack(trackId: string): Promise<number> {
+    const voteData = await this.loadVoteData();
+    return voteData.voteStore[trackId] || 0;
+  }
+
+  getNextChartPublicationDate(): Date {
+    const now = new Date();
+    const nextMonday = new Date(now);
+    nextMonday.setDate(now.getDate() + ((1 + 7 - now.getDay()) % 7 || 7));
+    nextMonday.setHours(0, 0, 0, 0);
+    return nextMonday;
   }
 
   async hasUserVoted(trackId: string): Promise<boolean> {

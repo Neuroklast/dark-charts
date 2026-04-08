@@ -50,7 +50,7 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
         toast.success('Registrierung erfolgreich! Bitte einloggen.');
         setIsRegistering(false);
       } else {
-        await authContextLogin('mock', email, password); // provider mock triggers email login based on our AuthContext update
+        await authContextLogin('mock'); // provider mock triggers email login based on our AuthContext update
         toast.success('Login erfolgreich');
         if (onSuccess) onSuccess();
       }
