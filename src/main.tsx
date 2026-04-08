@@ -1,6 +1,5 @@
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from "react-error-boundary";
-import "@github/spark/spark"
 
 import App from './App.tsx'
 import { ErrorFallback } from './ErrorFallback.tsx'
@@ -9,20 +8,48 @@ import "./main.css"
 import "./styles/theme.css"
 import "./index.css"
 
-// Polyfill window.spark.kv for Vercel deployments
+// Set up Spark KV polyfill for non-Spark environments.
+// On GitHub Spark, window.spark is provided by the Spark runtime before React boots.
+// Here we only set the polyfill if window.spark has not already been initialised.
 if (typeof window !== 'undefined' && !window.spark) {
   window.spark = {
     kv: {
       get: async (key: string) => {
-        const val = localStorage.getItem(key);
-        return val ? JSON.parse(val) : null;
+        try {
+          const val = localStorage.getItem(key);
+          return val ? JSON.parse(val) : null;
+        } catch {
+          return null;
+        }
       },
       set: async (key: string, value: any) => {
-        localStorage.setItem(key, JSON.stringify(value));
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch {
+          // Ignore storage errors (e.g. private browsing, storage quota exceeded)
+        }
       },
       delete: async (key: string) => {
-        localStorage.removeItem(key);
-      }
+        try {
+          localStorage.removeItem(key);
+        } catch {
+          // Ignore
+        }
+      },
+      keys: async (prefix?: string) => {
+        try {
+          const allKeys: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && (!prefix || k.startsWith(prefix))) {
+              allKeys.push(k);
+            }
+          }
+          return allKeys;
+        } catch {
+          return [];
+        }
+      },
     }
   } as any;
 }

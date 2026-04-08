@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
-  User, SignIn, SignOut, SpotifyLogo, AppleLogo, 
+  User, SignOut,
   PencilSimple, FloppyDisk, X, Trophy, Link as LinkIcon,
   MusicNotes, Users, Microphone, Buildings 
 } from '@phosphor-icons/react';
@@ -18,21 +18,7 @@ import { OAuthLoginButtons } from '@/components/OAuthLoginButtons';
 import { ProfileStatsSkeleton, ProfileActivitySkeleton } from '@/components/skeletons';
 
 function LoginView() {
-  const { login } = useAuth();
   const { t } = useLanguage();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleLogin = async (provider: 'spotify' | 'apple' | 'mock') => {
-    setIsLoading(true);
-    try {
-      await login(provider);
-      toast.success(t('oauth.loggedOut') || 'Successfully logged in!');
-    } catch (error) {
-      toast.error(t('oauth.loginFailed') || 'Login failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <Card className="bg-card border border-accent p-12 text-center relative overflow-hidden">
@@ -49,47 +35,8 @@ function LoginView() {
         <p className="font-ui text-muted-foreground uppercase tracking-[0.2em] text-xs mb-8">
           {t('profile.signInDescription')}
         </p>
-        
-        <div className="flex flex-col gap-4 max-w-md mx-auto mb-8">
-          <Button
-            onClick={() => handleLogin('spotify')}
-            disabled={isLoading}
-            className="flex items-center justify-center gap-3 bg-[#1DB954] hover:bg-[#1DB954]/80 text-white snap-transition font-ui text-sm uppercase tracking-[0.12em] font-semibold h-12"
-          >
-            <SpotifyLogo weight="fill" className="w-5 h-5" />
-            {t('profile.continueSpotify')}
-          </Button>
-          
-          <Button
-            onClick={() => handleLogin('apple')}
-            disabled={isLoading}
-            className="flex items-center justify-center gap-3 bg-foreground hover:bg-foreground/80 text-background snap-transition font-ui text-sm uppercase tracking-[0.12em] font-semibold h-12"
-          >
-            <AppleLogo weight="fill" className="w-5 h-5" />
-            {t('profile.continueApple')}
-          </Button>
-          
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-4 text-muted-foreground font-ui tracking-[0.2em]">{t('profile.or')}</span>
-            </div>
-          </div>
-          
-          <Button
-            onClick={() => handleLogin('mock')}
-            disabled={isLoading}
-            variant="outline"
-            className="flex items-center justify-center gap-3 snap-transition font-ui text-sm uppercase tracking-[0.12em] font-semibold h-12"
-          >
-            <SignIn weight="bold" className="w-5 h-5" />
-            {t('profile.demoAccount')}
-          </Button>
-        </div>
 
-        <div className="border-t border-border pt-8 max-w-md mx-auto">
+        <div className="max-w-md mx-auto">
           <OAuthLoginButtons />
         </div>
       </div>

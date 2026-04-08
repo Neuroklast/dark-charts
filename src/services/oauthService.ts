@@ -1,4 +1,9 @@
-import { useKV } from '@github/spark/hooks';
+// Use window.spark.kv (set up in main.tsx as a localStorage polyfill when not on Spark)
+const kv = {
+  get: <T>(key: string): Promise<T | null> => window.spark.kv.get<T>(key),
+  set: (key: string, value: unknown): Promise<void> => window.spark.kv.set(key, value),
+  delete: (key: string): Promise<void> => window.spark.kv.delete(key),
+};
 
 export interface OAuthTokens {
   accessToken: string;
@@ -43,7 +48,7 @@ class OAuthService {
     const codeVerifier = this.generateRandomString(128);
     const codeChallenge = await this.generateCodeChallenge(codeVerifier);
 
-    await spark.kv.set('oauth-state', { state, codeVerifier, provider: 'spotify' });
+    await kv.set('oauth-state', { state, codeVerifier, provider: 'spotify' });
 
     const params = new URLSearchParams({
       client_id: this.SPOTIFY_CLIENT_ID,
@@ -62,7 +67,7 @@ class OAuthService {
     const state = this.generateRandomString(16);
     const nonce = this.generateRandomString(16);
 
-    await spark.kv.set('oauth-state', { state, nonce, provider: 'google' });
+    await kv.set('oauth-state', { state, nonce, provider: 'google' });
 
     const params = new URLSearchParams({
       client_id: this.GOOGLE_CLIENT_ID,
@@ -80,7 +85,7 @@ class OAuthService {
 
   async handleCallback(code: string, state: string, provider: 'spotify' | 'google'): Promise<boolean> {
     try {
-      const savedState = await spark.kv.get<{ state: string; codeVerifier?: string; nonce?: string; provider: string }>('oauth-state');
+      const savedState = await kv.get<{ state: string; codeVerifier?: string; nonce?: string; provider: string }>('oauth-state');
       
       if (!savedState || state !== savedState.state || provider !== savedState.provider) {
         throw new Error('State mismatch or invalid provider');
@@ -99,7 +104,7 @@ class OAuthService {
 
       await this.saveTokens(provider, tokens);
       await this.saveUser(user);
-      await spark.kv.delete('oauth-state');
+      await kv.delete('oauth-state');
       
       return true;
     } catch (error) {
@@ -293,19 +298,19 @@ class OAuthService {
   }
 
   private async saveTokens(provider: 'spotify' | 'google', tokens: OAuthTokens): Promise<void> {
-    await spark.kv.set(`oauth-tokens-${provider}`, tokens);
+    await kv.set(`oauth-tokens-${provider}`, tokens);
   }
 
   async getTokens(provider: 'spotify' | 'google'): Promise<OAuthTokens | null> {
-    return await spark.kv.get<OAuthTokens>(`oauth-tokens-${provider}`);
+    return await kv.get<OAuthTokens>(`oauth-tokens-${provider}`);
   }
 
   private async saveUser(user: OAuthUser): Promise<void> {
-    await spark.kv.set(`oauth-user-${user.provider}`, user);
+    await kv.set(`oauth-user-${user.provider}`, user);
   }
 
   async getUser(provider: 'spotify' | 'google'): Promise<OAuthUser | null> {
-    return await spark.kv.get<OAuthUser>(`oauth-user-${provider}`);
+    return await kv.get<OAuthUser>(`oauth-user-${provider}`);
   }
 
   async isAuthenticated(provider: 'spotify' | 'google'): Promise<boolean> {
@@ -314,8 +319,8 @@ class OAuthService {
   }
 
   async logout(provider: 'spotify' | 'google'): Promise<void> {
-    await spark.kv.delete(`oauth-tokens-${provider}`);
-    await spark.kv.delete(`oauth-user-${provider}`);
+    await kv.delete(`oauth-tokens-${provider}`);
+    await kv.delete(`oauth-user-${provider}`);
   }
 
   async logoutAll(): Promise<void> {

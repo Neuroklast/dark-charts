@@ -10,14 +10,15 @@ interface OAuthLoginButtonsProps {
 
 export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
   const { t } = useLanguage();
-  const { login: authContextLogin } = useAuth();
-  const [isLoading, setIsLoading] = useState<'spotify' | 'google' | 'email' | null>(null);
+  const { login: authContextLogin, loginDemo } = useAuth();
+  const [isLoading, setIsLoading] = useState<'spotify' | 'google' | 'email' | `demo-${'FAN' | 'DJ' | 'BAND' | 'LABEL'}` | null>(null);
   const [spotifyUser, setSpotifyUser] = useState<OAuthUser | null>(null);
   const [googleUser, setGoogleUser] = useState<OAuthUser | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('FAN');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showDemoPanel, setShowDemoPanel] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -44,19 +45,35 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
           body: JSON.stringify({ email, password, role }),
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-          throw new Error('Registration failed');
+          throw new Error(data.error || 'Registrierung fehlgeschlagen');
         }
         toast.success('Registrierung erfolgreich! Bitte einloggen.');
         setIsRegistering(false);
       } else {
-        await authContextLogin('mock'); // provider mock triggers email login based on our AuthContext update
+        await authContextLogin('email', { email, password });
         toast.success('Login erfolgreich');
         if (onSuccess) onSuccess();
       }
     } catch (error) {
       console.error('Email auth failed:', error);
-      toast.error('Anmeldung/Registrierung fehlgeschlagen');
+      toast.error(error instanceof Error ? error.message : 'Anmeldung/Registrierung fehlgeschlagen');
+    } finally {
+      setIsLoading(null);
+    }
+  };
+
+  const handleDemoLogin = async (demoRole: 'FAN' | 'DJ' | 'BAND' | 'LABEL') => {
+    try {
+      setIsLoading(`demo-${demoRole}`);
+      await loginDemo(demoRole);
+      toast.success(`Demo-Anmeldung als ${demoRole} erfolgreich`);
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      console.error('Demo login failed:', error);
+      toast.error('Demo-Anmeldung fehlgeschlagen');
     } finally {
       setIsLoading(null);
     }
@@ -65,14 +82,7 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
   const handleSpotifyLogin = async () => {
     try {
       setIsLoading('spotify');
-      const isSpark = import.meta.env.VITE_IS_SPARK === 'true' || window.location.hostname.includes('spark');
-      if (isSpark) {
-        await authContextLogin('spotify');
-        toast.success('Spark Bypass Login erfolgreich');
-        if (onSuccess) onSuccess();
-      } else {
-        await oauthService.initiateSpotifyAuth();
-      }
+      await oauthService.initiateSpotifyAuth();
     } catch (error) {
       console.error('Spotify login failed:', error);
       toast.error(t('oauth.loginFailed') || 'Anmeldung fehlgeschlagen');
@@ -113,6 +123,13 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
     }
   };
 
+  const demoRoles = [
+    { role: 'FAN' as const, label: 'Fan', description: 'Abstimmen & Charts entdecken' },
+    { role: 'DJ' as const, label: 'DJ', description: 'Experten-Rankings vergeben' },
+    { role: 'BAND' as const, label: 'Band', description: 'Artist-Profil verwalten' },
+    { role: 'LABEL' as const, label: 'Label', description: 'Label-Dashboard nutzen' },
+  ];
+
   return (
     <div className="space-y-4">
       {/* Email / Password Login & Registration */}
@@ -147,7 +164,6 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
               <option value="DJ">DJ</option>
               <option value="LABEL">Label</option>
               <option value="BAND">Band</option>
-              <option value="ADMIN">Admin</option>
             </select>
           )}
           <button
@@ -169,9 +185,45 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
         </div>
       </div>
 
+      {/* Demo Login */}
+      <div className="space-y-2 bg-card p-4 border border-dashed border-muted">
+        <button
+          type="button"
+          onClick={() => setShowDemoPanel(!showDemoPanel)}
+          className="w-full flex items-center justify-between text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <span className="display-font uppercase tracking-wider text-xs">Demo-Anmeldung</span>
+          <span className="text-xs">{showDemoPanel ? '▲' : '▼'}</span>
+        </button>
+        {showDemoPanel && (
+          <div className="space-y-2 pt-2">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Teste alle Funktionen ohne echten Account. Demo-Daten werden nicht dauerhaft gespeichert.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {demoRoles.map(({ role: demoRole, label, description }) => (
+                <button
+                  key={demoRole}
+                  type="button"
+                  onClick={() => handleDemoLogin(demoRole)}
+                  disabled={!!isLoading}
+                  className="flex flex-col items-start p-3 bg-background border border-border hover:border-primary transition-colors text-left disabled:opacity-50"
+                >
+                  <span className="font-medium text-sm">{label}</span>
+                  <span className="text-xs text-muted-foreground mt-1 leading-tight">{description}</span>
+                  {isLoading === `demo-${demoRole}` && (
+                    <span className="text-xs text-primary mt-1">Anmelden...</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="space-y-2">
         <h3 className="display-font text-sm uppercase tracking-wider text-muted-foreground">
-          {t('oauth.connectServices') || 'Oder Dienste verbinden'}
+          {t('oauth.connectServices') || 'Oder OAuth nutzen'}
         </h3>
         
         {!spotifyUser ? (
@@ -276,3 +328,4 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
     </div>
   );
 }
+

@@ -39,6 +39,11 @@ export interface AuthResult {
 
 export class AuthService {
   async register(userData: RegisterUserData): Promise<AuthResult> {
+    // Admins must only be created via the init-admin endpoint using environment variables.
+    if (userData.role === 'ADMIN') {
+      throw new Error('Admin registration is not allowed')
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email: userData.email }
     })
@@ -101,12 +106,13 @@ export class AuthService {
     }
   }
 
-  async verifyToken(token: string): Promise<{ userId: string; email: string; role: string } | null> {
+  async verifyToken(token: string): Promise<{ userId: string; email: string; role: string; isDemo?: boolean } | null> {
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as {
         userId: string
         email: string
         role: string
+        isDemo?: boolean
       }
       
       return decoded
@@ -115,9 +121,28 @@ export class AuthService {
     }
   }
 
-  private generateToken(userId: string, email: string, role: string): string {
+  /**
+   * Create the initial admin user from environment variables.
+   * This bypasses the normal registration flow and is only called from init-admin endpoint.
+   */
+  async registerAdmin(email: string, password: string): Promise<AuthResult> {
+    const existingUser = await prisma.user.findUnique({ where: { email } })
+    if (existingUser) {
+      throw new Error('User with this email already exists')
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10)
+    const user = await prisma.user.create({
+      data: { email, passwordHash, role: 'ADMIN' }
+    })
+
+    const token = this.generateToken(user.id, user.email, user.role)
+    return { token, user: { id: user.id, email: user.email, role: user.role } }
+  }
+
+  private generateToken(userId: string, email: string, role: string, isDemo?: boolean): string {
     return jwt.sign(
-      { userId, email, role },
+      { userId, email, role, ...(isDemo ? { isDemo: true } : {}) },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     )

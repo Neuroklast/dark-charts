@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Genre, MainGenre, Track, ChartWeights } from '@/types';
 import { Plus, FloppyDisk, Trash, Eye, EyeSlash, X, Funnel } from '@phosphor-icons/react';
-import { useKV } from '@github/spark/hooks';
+import { useKV } from '@/hooks/useKV';
 import { ChartEntry } from '@/components/ChartEntry';
 import { WeightingPanel } from '@/components/WeightingPanel';
 import { useDataService } from '@/contexts/DataContext';

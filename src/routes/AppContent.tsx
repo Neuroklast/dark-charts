@@ -36,9 +36,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { safeFilter, safeSlice, safeFindIndex } from '@/lib/safe-utils';
 import { ChartEntrySkeleton } from '@/components/skeletons';
 import { ProfilesDemo } from '@/components/ProfilesDemo';
-import { PrivacyPolicyView } from '@/components/PrivacyPolicyView';
-import { TermsOfServiceView } from '@/components/TermsOfServiceView';
-import { ImprintView } from '@/components/ImprintView';
+import { LegalModal } from '@/components/LegalModal';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner';
 import { mainGenreMap } from '@/lib/config/genres';
 import { PromotionalSlot } from '@/components/PromotionalSlot';
@@ -53,6 +51,7 @@ import { SystemSettingsContainer } from '@/components/admin/SystemSettingsContai
 
 function AppContent() {
   const [activePromotion, setActivePromotion] = useState<{ type?: string; name?: string; imageUrl?: string } | null>(null);
+  const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | 'imprint' | null>(null);
   const [hasVoted, setHasVoted] = useState<boolean>(false);
   const { user, getAuthToken } = useAuth();
 
@@ -452,9 +451,6 @@ function AppContent() {
                   {currentView === 'profile' && <ProfileView />}
                   {currentView === 'about' && <AboutView />}
                   {currentView === 'custom-charts' && <CustomChartsView />}
-                  {currentView === 'privacy' && <PrivacyPolicyView />}
-                  {currentView === 'terms' && <TermsOfServiceView />}
-                  {currentView === 'imprint' && <ImprintView />}
                   {currentView.startsWith('admin') && (
                     <AdminLayout currentView={currentView} onNavigate={(view) => setCurrentView(view as ViewType)}>
                       {currentView === 'admin' && (
@@ -687,21 +683,21 @@ function AppContent() {
                           <div className="border-t border-border pt-4">
                             <div className="flex flex-wrap justify-center gap-4 mb-4">
                               <button
-                                onClick={() => setCurrentView('privacy')}
+                                onClick={() => setLegalModal('privacy')}
                                 className="font-ui text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
                               >
                                 Datenschutz
                               </button>
                               <span className="text-muted-foreground">•</span>
                               <button
-                                onClick={() => setCurrentView('terms')}
+                                onClick={() => setLegalModal('terms')}
                                 className="font-ui text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
                               >
                                 AGB
                               </button>
                               <span className="text-muted-foreground">•</span>
                               <button
-                                onClick={() => setCurrentView('imprint')}
+                                onClick={() => setLegalModal('imprint')}
                                 className="font-ui text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
                               >
                                 Impressum
@@ -740,7 +736,8 @@ function AppContent() {
         />
       </ErrorBoundary>
 
-      <CookieConsentBanner onNavigateToPrivacy={() => setCurrentView('privacy')} />
+      <CookieConsentBanner onNavigateToPrivacy={() => setLegalModal('privacy')} />
+      <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />
         </>
       )}
     </div>
