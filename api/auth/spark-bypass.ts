@@ -15,6 +15,12 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Block in production entirely
+  if (process.env.NODE_ENV === 'production') {
+    logger.warn('Spark bypass attempted in production', { host: req.headers.host });
+    return res.status(403).json({ error: 'Forbidden: Not available in production' });
+  }
+
   // Double check environment on server side too
   const isSpark = process.env.VITE_IS_SPARK === 'true' || req.headers.host?.includes('spark');
   if (!isSpark) {

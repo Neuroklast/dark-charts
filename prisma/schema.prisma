@@ -123,14 +123,30 @@ model Artist {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  releases    Release[]
-  bandProfile BandProfile?
-  labelId     String?
-  label       LabelProfile? @relation(fields: [labelId], references: [id])
+  releases           Release[]
+  bandProfile        BandProfile?
+  streamingSnapshots StreamingSnapshot[]
+  labelId            String?
+  label              LabelProfile? @relation(fields: [labelId], references: [id])
 
   @@index([spotifyId])
   @@index([name])
   @@index([labelId])
+}
+
+model StreamingSnapshot {
+  id                 String   @id @default(cuid())
+  artistId           String
+  artist             Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  spotifyPopularity  Int      @default(0)
+  followerCount      Int      @default(0)
+  topTrackPopularity Int      @default(0)
+  weekStart          DateTime
+  createdAt          DateTime @default(now())
+
+  @@unique([artistId, weekStart])
+  @@index([artistId])
+  @@index([weekStart])
 }
 
 model Release {

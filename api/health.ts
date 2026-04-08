@@ -1,11 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../src/backend/lib/prisma';
 import { logger } from '../src/lib/logger';
+import { handleCors } from './_lib/cors';
+import { applyRateLimit } from './_lib/rate-limit';
 
 export default async function handler(
   request: VercelRequest,
   response: VercelResponse,
 ) {
+  if (handleCors(request, response, 'GET,OPTIONS')) return;
+  if (!applyRateLimit(request, response, { maxRequests: 30 })) return;
+
   logger.info(`Incoming request: ${request.method} ${request.url}`, {
     method: request.method,
     path: request.url,

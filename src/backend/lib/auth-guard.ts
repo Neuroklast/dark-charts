@@ -3,7 +3,10 @@ import { verify } from 'jsonwebtoken';
 import { prisma } from './prisma';
 import logger from '../../lib/logger';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable must be set');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 interface JwtPayload {
   userId: string;
