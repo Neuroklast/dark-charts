@@ -130,7 +130,7 @@ export class ReleasePrismaRepository implements IReleasePrismaRepository {
     return {
       id: prismaRelease.id,
       title: prismaRelease.title,
-      artistName: prismaRelease.artist?.name || prismaRelease.artistId,
+      artistName: prismaRelease.artist?.name ?? `[Unknown Artist]`,
       artistId: prismaRelease.artistId,
       releaseType: prismaRelease.releaseType,
       releaseDate: prismaRelease.releaseDate instanceof Date ? prismaRelease.releaseDate : new Date(prismaRelease.releaseDate),

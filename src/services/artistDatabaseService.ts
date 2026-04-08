@@ -148,11 +148,12 @@ class ArtistDatabaseService {
 
   async verifyAndCorrect(): Promise<{ artistName: string; oldId: string; newId: string }[]> {
     // TODO: Implement Spotify ID verification logic
-    return [];
+    throw new Error('verifyAndCorrect() is not yet implemented');
   }
 
   async enrichWithReleases(): Promise<void> {
     // TODO: Implement release enrichment via Spotify API
+    throw new Error('enrichWithReleases() is not yet implemented');
   }
 
   getCorrectedCSV(): string {

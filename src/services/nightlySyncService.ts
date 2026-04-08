@@ -234,6 +234,14 @@ class NightlySyncService {
     console.log('Nightly sync started');
   }
 
+  /**
+   * Formats the time until the next scheduled sync run in a human-readable form.
+   *
+   * Returns:
+   * - 'Nicht geplant / Not scheduled' when no run is scheduled (nextRun === 0)
+   * - 'Überfällig / Overdue' when the scheduled time has already passed
+   * - 'In Xh Ym' for upcoming runs, showing hours and minutes until execution
+   */
   async formatNextRunTime(): Promise<string> {
     const status = await this.getStatus();
     if (status.nextRun === 0) {
