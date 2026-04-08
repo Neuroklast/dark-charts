@@ -2,11 +2,17 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { AuthUser, UserProfile } from '@/types';
 import { logger } from '@/lib/logger';
 
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   error: Error | null;
-  login: (provider: 'spotify' | 'apple' | 'mock') => Promise<void>;
+  login: (provider: 'spotify' | 'apple' | 'email', credentials?: LoginCredentials) => Promise<void>;
+  loginDemo: (role: 'FAN' | 'DJ' | 'BAND' | 'LABEL') => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -16,6 +22,36 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/** Map a raw server user response to the AuthUser shape the UI expects. */
+function buildAuthUser(data: any, provider: AuthUser['provider'] = 'email'): AuthUser {
+  return {
+    id: data.user?.id ?? data.id,
+    email: data.user?.email ?? data.email,
+    provider,
+    isAuthenticated: true,
+    isDemo: data.user?.isDemo ?? data.isDemo ?? false,
+    role: data.user?.role ?? data.role,
+    profile: data.user?.fanProfile
+      ? {
+          userType: 'fan',
+          id: data.user.fanProfile.id,
+          username: data.user.fanProfile.nickname,
+          biography: '',
+          externalLinks: [],
+          displayedBadges: [],
+          allBadges: [],
+          isPublicProfile: false,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          votingCredits: data.user.fanProfile.remainingCredits ?? 150,
+          votingHistory: [],
+          favoritesList: [],
+          personalCharts: [],
+        } as any
+      : undefined,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,27 +59,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const token = await window.spark.kv.get('auth-token');
+      const token = await window.spark.kv.get<string>('auth-token');
       if (!token) {
         setUser(null);
         return;
       }
 
-      // Fetch user data from backend
-      // Replace with actual API call
-      // const response = await fetch('/api/auth/me', {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
-      // const userData = await response.json();
+      // Validate the token server-side and fetch fresh user data
+      const response = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      const storedUser = await window.spark.kv.get<AuthUser>('auth-user');
-      setUser(storedUser || null);
+      if (!response.ok) {
+        // Token is invalid or expired – clear stored credentials
+        await window.spark.kv.delete('auth-token');
+        await window.spark.kv.delete('auth-user');
+        setUser(null);
+        return;
+      }
+
+      const data = await response.json();
+      const authUser = buildAuthUser(data);
+      await window.spark.kv.set('auth-user', authUser);
+      setUser(authUser);
       setError(null);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to refresh user');
       logger.error('Failed to refresh user', { error });
-      setUser(null);
       setError(error);
+      // Do not clear user on network errors – keep last known state
     }
   };
 
@@ -51,45 +95,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUser().finally(() => setIsLoading(false));
   }, []);
 
-  const login = async (provider: 'spotify' | 'apple' | 'mock') => {
+  const login = async (
+    provider: 'spotify' | 'apple' | 'email',
+    credentials?: LoginCredentials
+  ) => {
     setIsLoading(true);
     setError(null);
     try {
-      // In a real implementation this would redirect to an OAuth flow
-      // or call an API that handles the authentication and returns a token
+      if (provider === 'email') {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Email and password are required');
+        }
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(credentials),
+        });
 
-      // For Spark Bypass we call a specific route if in spark mode
-      let endpoint = '/api/auth/login';
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || 'Authentication failed');
+        }
 
-      const isSpark = import.meta.env.VITE_IS_SPARK === 'true' || window.location.hostname.includes('spark');
-      if (isSpark && provider === 'spotify') {
-        endpoint = '/api/auth/spark-bypass';
+        const data = await response.json();
+        if (data.token) {
+          await window.spark.kv.set('auth-token', data.token);
+        }
+        const authUser = buildAuthUser(data);
+        await window.spark.kv.set('auth-user', authUser);
+        setUser(authUser);
+        return;
       }
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Authentication failed');
+      // OAuth providers (Spotify / Apple) – redirect handled externally
+      if (provider === 'spotify' || provider === 'apple') {
+        throw new Error(`OAuth for ${provider} is initiated via the OAuth buttons`);
       }
-
-      const data = await response.json();
-
-      if (data.token) {
-        await window.spark.kv.set('auth-token', data.token);
-      }
-
-      if (data.user) {
-        await window.spark.kv.set('auth-user', data.user);
-        setUser(data.user);
-      }
-
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Login failed');
       logger.error('Login failed', { error });
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginDemo = async (role: 'FAN' | 'DJ' | 'BAND' | 'LABEL') => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/auth/demo-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Demo login failed');
+      }
+
+      const data = await response.json();
+      if (data.token) {
+        await window.spark.kv.set('auth-token', data.token);
+      }
+      const authUser = buildAuthUser(data, 'demo');
+      await window.spark.kv.set('auth-user', authUser);
+      setUser(authUser);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Demo login failed');
+      logger.error('Demo login failed', { error });
       setError(error);
       throw error;
     } finally {
@@ -120,9 +195,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Replace with actual API call to update profile
-      // const response = await fetch('/api/user/profile', { ... })
-
       const updatedProfile = { ...user.profile, ...updates } as UserProfile;
       const updatedUser = { ...user, profile: updatedProfile };
 
@@ -144,7 +216,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const getToken = getAuthToken;
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, error, login, logout, updateProfile, refreshUser, getAuthToken, getToken }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, error, login, loginDemo, logout, updateProfile, refreshUser, getAuthToken, getToken }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -157,3 +231,4 @@ export function useAuth() {
   }
   return context;
 }
+

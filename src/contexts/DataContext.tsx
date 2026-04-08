@@ -6,6 +6,7 @@ import { ComprehensiveDataService } from '@/services/comprehensiveDataService';
 const dummyAuthService: IAuthService = {
   getCurrentUser: async () => null,
   login: async () => { throw new Error("Real auth is in AuthContext"); },
+  loginDemo: async () => { throw new Error("Real auth is in AuthContext"); },
   logout: async () => {},
   updateProfile: async () => { throw new Error("Real auth is in AuthContext"); }
 };

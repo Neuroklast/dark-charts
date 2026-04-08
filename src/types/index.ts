@@ -322,14 +322,17 @@ export type UserProfile = FanProfile | BandProfile | DJProfile | LabelProfile;
 export interface AuthUser {
   id: string;
   email?: string;
-  provider?: 'spotify' | 'apple' | 'mock';
+  provider?: 'spotify' | 'apple' | 'email' | 'demo';
   isAuthenticated: boolean;
+  isDemo?: boolean;
+  role?: string;
   profile?: UserProfile;
 }
 
 export interface IAuthService {
   getCurrentUser(): Promise<AuthUser | null>;
-  login(provider: 'spotify' | 'apple' | 'mock'): Promise<AuthUser>;
+  login(provider: 'spotify' | 'apple' | 'email' | 'demo', credentials?: { email: string; password: string }): Promise<AuthUser>;
+  loginDemo(role: 'FAN' | 'DJ' | 'BAND' | 'LABEL'): Promise<AuthUser>;
   logout(): Promise<void>;
   updateProfile(profile: Partial<UserProfile>): Promise<UserProfile>;
 }

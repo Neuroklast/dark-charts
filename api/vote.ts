@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { Vote, ExpertVote } from '@prisma/client';
 import { prisma } from '../src/backend/lib/prisma';
 import { z } from 'zod';
 import { logger } from '../src/lib/logger';
@@ -44,7 +45,7 @@ export default async function handler(
       return res.status(401).json({ error: 'Unauthorized: Invalid token' });
     }
 
-    const { userId, role } = decodedToken;
+    const { userId, role, isDemo } = decodedToken;
 
     if (role !== 'FAN' && role !== 'DJ') {
       return res.status(403).json({ error: 'Forbidden: Role not authorized to vote' });
@@ -57,6 +58,12 @@ export default async function handler(
     }
 
     const { type, votes, releaseId, rank } = parseResult.data;
+
+    // Demo accounts: validate input but do not persist
+    if (isDemo) {
+      logger.info('Demo vote received – skipping persistence', { userId, role });
+      return res.status(200).json({ success: true, votes: [], remainingCredits: 150, isDemo: true });
+    }
 
     if (role === 'FAN') {
       if (type === 'bulk' && votes) {
@@ -102,7 +109,7 @@ export default async function handler(
             throw new Error('Insufficient credits during transaction');
           }
 
-          const createdVotes = [];
+          const createdVotes: Vote[] = [];
           for (const [rId, v] of entries) {
             const cost = calculateVoteCost(v);
 
@@ -189,7 +196,7 @@ export default async function handler(
             },
           });
 
-          const createdVotes = [];
+          const createdVotes: ExpertVote[] = [];
           for (const [rId, voteRank] of entries) {
              const createdVote = await tx.expertVote.create({
                 data: {
