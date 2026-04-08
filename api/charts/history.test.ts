@@ -55,7 +55,7 @@ function makeRes() {
   return res as unknown as VercelResponse & { _statusCode: number; _body: unknown };
 }
 
-const mockPrisma = prisma as { chartEntry: { findMany: ReturnType<typeof vi.fn> } };
+const mockPrisma = prisma as unknown as { chartEntry: { findMany: ReturnType<typeof vi.fn> } };
 
 // Wednesday 2025-04-09 — current ISO week = 15, current Monday = 2025-04-07
 const FIXED_NOW = new Date('2025-04-09T12:00:00.000Z');

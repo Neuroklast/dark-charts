@@ -1,4 +1,4 @@
-import { Release } from '../models/Release'
+import { Release } from '../../models/Release'
 
 export interface IReleasePrismaRepository {
   getAll(): Promise<Release[]>

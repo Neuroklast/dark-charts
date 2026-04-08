@@ -14,7 +14,7 @@ export type Genre =
 
 export type ChartType = 'fan' | 'expert' | 'streaming' | 'overall';
 
-export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'voting-confirmation' | 'history' | 'admin' | 'oauth-callback' | 'profiles-demo' | 'privacy' | 'terms' | 'imprint' | 'archive';
+export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'voting-confirmation' | 'history' | 'admin' | 'admin-metrics' | 'admin-users' | 'admin-artists' | 'admin-charts' | 'admin-promotions' | 'admin-settings' | 'oauth-callback' | 'profiles-demo' | 'privacy' | 'terms' | 'imprint' | 'archive';
 
 export interface Track {
   id: string;
@@ -120,7 +120,7 @@ export interface IDataService {
   getAllCharts(): Promise<ChartData>;
   getChartByType(type: 'fan' | 'expert' | 'streaming'): Promise<Track[]>;
   calculateOverallChart(): Track[];
-  vote(trackId: string, credits: number): Promise<void>;
+  vote(trackId: string, direction: 'up' | 'down'): Promise<void>;
   getVotes(trackId: string): Promise<number>;
   getUserVotesForTrack(trackId: string): Promise<number>;
   getNextChartPublicationDate(): Date;

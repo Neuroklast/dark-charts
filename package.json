@@ -10,7 +10,10 @@
         "lint": "eslint .",
         "optimize": "vite optimize",
         "preview": "vite preview",
-        "postinstall": "prisma generate"
+        "postinstall": "prisma generate",
+        "test": "vitest run",
+        "precheck": "vitest run",
+        "ci": "vitest run && tsc --noEmit && vite build"
     },
     "dependencies": {
         "@github/spark": ">=0.43.1 <1",

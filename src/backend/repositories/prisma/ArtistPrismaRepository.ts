@@ -1,6 +1,6 @@
 import { IArtistRepository } from './IArtistPrismaRepository'
-import { Artist } from '../models/Artist'
-import prisma from '../lib/prisma'
+import { Artist } from '../../models/Artist'
+import prisma from '../../lib/prisma'
 
 export class ArtistPrismaRepository implements IArtistRepository {
   async getAll(): Promise<Artist[]> {
@@ -86,7 +86,10 @@ export class ArtistPrismaRepository implements IArtistRepository {
       genres: prismaArtist.genres || [],
       bio: prismaArtist.bio || undefined,
       profileLink: prismaArtist.profileLink || undefined,
-      imageUrl: prismaArtist.imageUrl || undefined
+      imageUrl: prismaArtist.imageUrl || undefined,
+      verified: prismaArtist.verified || false,
+      createdAt: prismaArtist.createdAt instanceof Date ? prismaArtist.createdAt : new Date(prismaArtist.createdAt || Date.now()),
+      updatedAt: prismaArtist.updatedAt instanceof Date ? prismaArtist.updatedAt : new Date(prismaArtist.updatedAt || Date.now()),
     }
   }
 }

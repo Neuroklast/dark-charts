@@ -1,4 +1,4 @@
-import { Artist } from '../models/Artist'
+import { Artist } from '../../models/Artist'
 
 export interface IArtistRepository {
   getAll(): Promise<Artist[]>

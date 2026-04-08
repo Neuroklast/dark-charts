@@ -17,12 +17,16 @@ export interface Release {
   artistName: string;
   title: string;
   releaseDate: Date;
+  releaseType?: string;
   albumType: 'album' | 'single' | 'ep' | 'compilation';
   totalTracks: number;
   spotifyId?: string;
   spotifyUrl?: string;
   artworkUrl?: string;
   highResArtworkUrl?: string;
+  itunesArtworkUrl?: string;
+  vercelBlobUrl?: string;
+  odesliLinks?: Record<string, unknown>;
   platformLinks?: PlatformLinks;
   genres: string[];
   isrc?: string;

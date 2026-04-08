@@ -1,4 +1,5 @@
 import prisma from '../lib/prisma'
+// @ts-ignore - optional server dependency
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 

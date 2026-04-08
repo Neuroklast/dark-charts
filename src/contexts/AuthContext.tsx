@@ -10,6 +10,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUser: () => Promise<void>;
+  getAuthToken: () => Promise<string | null>;
+  getToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -135,8 +137,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const getAuthToken = async (): Promise<string | null> => {
+    return window.spark.kv.get<string>('auth-token');
+  };
+
+  const getToken = getAuthToken;
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, error, login, logout, updateProfile, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, error, login, logout, updateProfile, refreshUser, getAuthToken, getToken }}>
       {children}
     </AuthContext.Provider>
   );

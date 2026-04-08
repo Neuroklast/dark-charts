@@ -32,6 +32,10 @@ const mockFanProfile: FanProfile = {
   })),
   favoritesList: ['track-001', 'track-002', 'track-003'],
   personalCharts: ['my-favorites', 'dark-wave-essentials'],
+  curatedCharts: [],
+  followingIds: [],
+  followerIds: [],
+  isPublicProfile: true,
 };
 
 const mockBandProfile: BandProfile = {
@@ -58,6 +62,8 @@ const mockBandProfile: BandProfile = {
     { title: 'Dark Horizons', releaseDate: Date.now() - 365 * 24 * 60 * 60 * 1000, spotifyUri: 'spotify:track:125' },
   ],
   isPremium: true,
+  followerIds: [],
+  isPublicProfile: true,
   analytics: {
     totalVotes: 2847,
     chartPositions: [
@@ -66,6 +72,8 @@ const mockBandProfile: BandProfile = {
       { chartType: 'streaming', position: 12 },
     ],
     demographics: {},
+    weeksInChart: 0,
+    peakPosition: 0,
   },
 };
 
@@ -92,6 +100,11 @@ const mockDJProfile: DJProfile = {
   ],
   supportedTracks: ['track-001', 'track-015', 'track-023', 'track-042', 'track-087'],
   reputation: 87,
+  followerIds: [],
+  followingIds: [],
+  curatedCharts: [],
+  earnedBadges: [],
+  isPublicProfile: false,
 };
 
 export function ProfilesDemo() {

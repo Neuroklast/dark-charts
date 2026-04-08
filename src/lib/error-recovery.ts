@@ -8,7 +8,7 @@ export interface RetryOptions {
   signal?: AbortSignal;
 }
 
-interface CircuitBreakerOptions {
+export interface CircuitBreakerOptions {
   failureThreshold?: number;
   resetTimeoutMs?: number;
   halfOpenRetries?: number;
@@ -270,7 +270,7 @@ export async function batchWithRecovery<T, R>(
     });
 
     const batchResults = await Promise.all(batchPromises);
-    results.push(...batchResults.filter((r): r is R => r !== null));
+    results.push(...batchResults.filter((r): r is Awaited<R> => r !== null) as R[]);
   }
 
   return results;
