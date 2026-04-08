@@ -105,7 +105,7 @@ export function DashboardMetricsView({ metrics, isLoading }: DashboardMetricsVie
             {auditLogs.map((log: any) => (
               <div key={log.id} className="flex items-start gap-3 py-2 border-b border-border last:border-0 text-xs">
                 <span className="text-muted-foreground whitespace-nowrap font-mono">
-                  {new Date(log.createdAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}
+                  {new Date(log.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
                 </span>
                 <span className="text-muted-foreground">{log.adminEmail}</span>
                 <span className="font-medium uppercase tracking-wide">{log.action}</span>

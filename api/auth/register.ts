@@ -30,6 +30,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: 'Admin accounts cannot be self-registered' });
   }
 
+  if (role && !VALID_ROLES.includes(role)) {
+    return res.status(400).json({ error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}` });
+  }
+
   const userRole: AllowedRole = VALID_ROLES.includes(role) ? role : 'FAN';
 
   try {

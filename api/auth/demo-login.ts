@@ -76,7 +76,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!user) {
       // Create the demo account on first use
-      const passwordHash = await bcrypt.hash(`demo-${demoConfig.role.toLowerCase()}-darkcharts`, 10);
+      // Use a random password since demo accounts authenticate only via this endpoint
+      const randomPassword = crypto.randomUUID() + '-' + crypto.randomUUID();
+      const passwordHash = await bcrypt.hash(randomPassword, 10);
       user = await prisma.user.create({
         data: {
           email: demoConfig.email,

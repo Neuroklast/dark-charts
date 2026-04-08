@@ -41,7 +41,7 @@ export class AuthService {
   async register(userData: RegisterUserData): Promise<AuthResult> {
     // Admins must only be created via the init-admin endpoint using environment variables.
     if (userData.role === 'ADMIN') {
-      throw new Error('Admin registration is not allowed')
+      throw new Error('Admin registration is not allowed.')
     }
 
     const existingUser = await prisma.user.findUnique({

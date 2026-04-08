@@ -86,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to refresh user');
       logger.error('Failed to refresh user', { error });
+      setError(error);
       // Do not clear user on network errors – keep last known state
     }
   };
