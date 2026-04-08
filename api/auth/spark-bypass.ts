@@ -48,8 +48,8 @@ export default async function handler(
       // Create a profile for the user since AuthContext expects it
       await prisma.fanProfile.create({
         data: {
-          id: user.id,
-          username: 'SparkAdmin',
+          userId: user.id,
+          nickname: 'SparkAdmin',
           credits: 1000,
         }
       });

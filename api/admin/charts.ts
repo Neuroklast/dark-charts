@@ -1,12 +1,12 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withAdminAuth } from '../../src/backend/lib/auth-guard';
 import { prisma } from '../../src/backend/lib/prisma';
-import logger from '../../src/lib/logger';
+import { logger } from '../../src/lib/logger';
 
 // Mock global state for emergency pause, normally this would be in DB or Redis
 let isVotingPaused = false;
 
-async function handler(req: NextApiRequest, res: NextApiResponse, adminId: string) {
+async function handler(req: VercelRequest, res: VercelResponse, adminId: string) {
   if (req.method === 'GET') {
     try {
       const recentCharts = await prisma.chartEntry.findMany({

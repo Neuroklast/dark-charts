@@ -1,7 +1,7 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withAdminAuth } from '../../src/backend/lib/auth-guard';
 import { prisma } from '../../src/backend/lib/prisma';
-import logger from '../../src/lib/logger';
+import { logger } from '../../src/lib/logger';
 
 // Mocked DB settings
 let settings = {
@@ -13,7 +13,7 @@ let settings = {
   }
 };
 
-async function handler(req: NextApiRequest, res: NextApiResponse, adminId: string) {
+async function handler(req: VercelRequest, res: VercelResponse, adminId: string) {
   if (req.method === 'GET') {
     return res.status(200).json({ settings });
   } else if (req.method === 'POST') {
