@@ -2,6 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../src/backend/lib/prisma';
 import { z } from 'zod';
 import { logger } from '../src/lib/logger';
+import { handleCors } from './_lib/cors';
+import { applyRateLimit } from './_lib/rate-limit';
+import { authService } from '../src/backend/services/AuthService';
 
 const querySchema = z.object({
   id: z.string().optional(),
@@ -13,20 +16,13 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  if (handleCors(req, res, 'GET,OPTIONS')) return;
+  if (!applyRateLimit(req, res, { maxRequests: 120 })) return;
+
   logger.info(`Incoming request: ${req.method} ${req.url}`, {
     method: req.method,
     path: req.url,
   });
-
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
 
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -89,18 +85,11 @@ export default async function handler(
       },
     });
   } catch (error) {
-    // Attempt to extract userId from Auth headers or cookies if they existed
-    // For this mock, we try to grab it from a mock header, but in reality it'd come from session middleware
+    let userId: string | undefined;
     const authHeader = req.headers.authorization;
-    let userId = undefined;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        // Normally decode JWT to get userId. Let's just pass the token for debug, or assume userId is somehow available.
-        // As a placeholder, we can log that a token was present.
-        userId = 'extracted-from-token-placeholder';
-      } catch (e) {
-        // ignore
-      }
+    if (authHeader?.startsWith('Bearer ')) {
+      const decoded = await authService.verifyToken(authHeader.split(' ')[1]);
+      userId = decoded?.userId;
     }
 
     logger.error('Error fetching releases', {

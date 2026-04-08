@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { logger } from '../src/lib/logger';
 import { authService } from '../src/backend/services/AuthService';
 import { calculateVoteCost } from '../src/lib/math/quadratic';
+import { handleCors } from './_lib/cors';
+import { applyRateLimit } from './_lib/rate-limit';
 
 const bodySchema = z.object({
   type: z.literal("bulk").optional(),
@@ -17,20 +19,13 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  if (handleCors(req, res, 'POST,OPTIONS')) return;
+  if (!applyRateLimit(req, res, { windowMs: 60_000, maxRequests: 20 })) return;
+
   logger.info(`Incoming request: ${req.method} ${req.url}`, {
     method: req.method,
     path: req.url,
   });
-
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });

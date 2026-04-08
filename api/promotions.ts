@@ -1,15 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { promotionService } from '../src/backend/services/PromotionService';
 import { logger } from '../src/lib/logger';
+import { handleCors } from './_lib/cors';
+import { applyRateLimit } from './_lib/rate-limit';
 
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+  if (handleCors(req, res, 'GET,OPTIONS')) return;
+  if (!applyRateLimit(req, res, { maxRequests: 120 })) return;
 
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });

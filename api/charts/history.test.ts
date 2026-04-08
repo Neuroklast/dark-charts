@@ -32,6 +32,7 @@ function makeRes() {
   const res = {
     _statusCode: 0 as number,
     _body: undefined as unknown,
+    _headers: {} as Record<string, string>,
     status(code: number) {
       this._statusCode = code;
       return this;
@@ -41,6 +42,10 @@ function makeRes() {
       return this;
     },
     end() {
+      return this;
+    },
+    setHeader(key: string, value: string) {
+      this._headers[key] = value;
       return this;
     },
   };

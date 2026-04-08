@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../../src/backend/lib/prisma';
 import { z } from 'zod';
 import { logger } from '../../src/lib/logger';
+import { handleCors } from '../_lib/cors';
+import { applyRateLimit } from '../_lib/rate-limit';
 
 const querySchema = z.object({
   year: z
@@ -38,9 +40,8 @@ export function getCurrentWeekMonday(): Date {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (handleCors(req, res, 'GET,OPTIONS')) return;
+  if (!applyRateLimit(req, res, { maxRequests: 120 })) return;
 
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });

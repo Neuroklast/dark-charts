@@ -2,25 +2,20 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../../src/backend/lib/prisma';
 import { logger } from '../../src/lib/logger';
 import { authService } from '../../src/backend/services/AuthService';
+import { handleCors } from '../_lib/cors';
+import { applyRateLimit } from '../_lib/rate-limit';
 
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  if (handleCors(req, res, 'GET,OPTIONS')) return;
+  if (!applyRateLimit(req, res, { maxRequests: 60 })) return;
+
   logger.info(`Incoming request: ${req.method} ${req.url}`, {
     method: req.method,
     path: req.url,
   });
-
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
 
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
