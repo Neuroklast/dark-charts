@@ -4,6 +4,29 @@ import { logger } from '../src/lib/logger';
 import { handleCors } from './_lib/cors';
 import { applyRateLimit } from './_lib/rate-limit';
 
+interface CheckResult {
+  ok: boolean;
+  message: string;
+}
+
+interface HealthStatus {
+  status: 'ok' | 'degraded' | 'error';
+  timestamp: string;
+  checks: Record<string, CheckResult>;
+  setup_required: string[];
+}
+
+const REQUIRED_ENV_VARS: { key: string; description: string }[] = [
+  { key: 'DATABASE_URL', description: 'PostgreSQL connection string (e.g. postgresql://user:pass@host/db)' },
+  { key: 'JWT_SECRET', description: 'Secret key used to sign admin JWTs (use a long random string)' },
+];
+
+const OPTIONAL_ENV_VARS: { key: string; description: string }[] = [
+  { key: 'SPOTIFY_CLIENT_ID', description: 'Spotify API client ID for streaming data sync' },
+  { key: 'SPOTIFY_CLIENT_SECRET', description: 'Spotify API client secret for streaming data sync' },
+  { key: 'ALLOWED_ORIGIN', description: 'CORS allowed origin (defaults to * if not set)' },
+];
+
 export default async function handler(
   request: VercelRequest,
   response: VercelResponse,
@@ -16,33 +39,62 @@ export default async function handler(
     path: request.url,
   });
 
-  if (request.method === 'GET') {
-    try {
-      // Test database connectivity
-      const userCount = await prisma.user.count();
-      return response.status(200).json({
-        status: 'ok',
-        message: 'Serverless backend is operational',
-        timestamp: new Date().toISOString(),
-        dbStatus: `Connected. Users in database: ${userCount}`,
-      });
-    } catch (error) {
-      logger.error('Database connection error', {
-        error,
-        method: request.method,
-        path: request.url,
-        query: request.query,
-      });
-      return response.status(500).json({
-        status: 'error',
-        message: 'Internal Server Error',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+  if (request.method !== 'GET') {
+    return response.status(405).json({
+      status: 'error',
+      message: `Method ${request.method} Not Allowed`,
+    });
+  }
+
+  const checks: Record<string, CheckResult> = {};
+  const setupRequired: string[] = [];
+
+  // Check required environment variables
+  for (const { key, description } of REQUIRED_ENV_VARS) {
+    if (process.env[key]) {
+      checks[`env_${key}`] = { ok: true, message: 'Configured' };
+    } else {
+      checks[`env_${key}`] = { ok: false, message: `Missing – ${description}` };
+      setupRequired.push(`Set environment variable ${key}: ${description}`);
     }
   }
 
-  return response.status(405).json({
-    status: 'error',
-    message: `Method ${request.method} Not Allowed`,
-  });
+  // Check optional environment variables (warn only)
+  for (const { key, description } of OPTIONAL_ENV_VARS) {
+    if (process.env[key]) {
+      checks[`env_${key}`] = { ok: true, message: 'Configured' };
+    } else {
+      checks[`env_${key}`] = { ok: false, message: `Not set (optional) – ${description}` };
+    }
+  }
+
+  // Check database connectivity
+  let dbOk = false;
+  let userCount = 0;
+  try {
+    userCount = await prisma.user.count();
+    dbOk = true;
+    checks['database'] = { ok: true, message: `Connected – ${userCount} user(s) in database` };
+  } catch (error) {
+    checks['database'] = {
+      ok: false,
+      message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+    setupRequired.push(
+      'Ensure DATABASE_URL points to a running PostgreSQL instance and run `npx prisma migrate deploy` to apply migrations'
+    );
+    logger.error('Database connection error', { error, method: request.method, path: request.url });
+  }
+
+  const criticalFailing = REQUIRED_ENV_VARS.some(({ key }) => !process.env[key]) || !dbOk;
+  const overallStatus: HealthStatus['status'] = criticalFailing ? 'degraded' : 'ok';
+
+  const body: HealthStatus = {
+    status: overallStatus,
+    timestamp: new Date().toISOString(),
+    checks,
+    setup_required: setupRequired,
+  };
+
+  return response.status(criticalFailing ? 503 : 200).json(body);
 }

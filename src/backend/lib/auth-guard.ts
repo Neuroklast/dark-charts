@@ -1,12 +1,7 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { verify } from 'jsonwebtoken';
 import { prisma } from './prisma';
-import logger from '../../lib/logger';
-
-if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable must be set');
-}
-const JWT_SECRET = process.env.JWT_SECRET;
+import { logger } from '../../lib/logger';
 
 interface JwtPayload {
   userId: string;
@@ -15,9 +10,14 @@ interface JwtPayload {
 }
 
 export async function withAdminAuth(
-  handler: (req: NextApiRequest, res: NextApiResponse, adminId: string) => Promise<void>
+  handler: (req: VercelRequest, res: VercelResponse, adminId: string) => Promise<void | VercelResponse>
 ) {
-  return async (req: NextApiRequest, res: NextApiResponse) => {
+  return async (req: VercelRequest, res: VercelResponse) => {
+    if (!process.env.JWT_SECRET) {
+      logger.error('JWT_SECRET environment variable is not set');
+      return res.status(503).json({ error: 'Service unavailable: authentication is not configured' });
+    }
+    const JWT_SECRET = process.env.JWT_SECRET;
     try {
       const authHeader = req.headers.authorization;
 
