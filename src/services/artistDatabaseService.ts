@@ -147,11 +147,12 @@ class ArtistDatabaseService {
   }
 
   async verifyAndCorrect(): Promise<{ artistName: string; oldId: string; newId: string }[]> {
+    // TODO: Implement Spotify ID verification logic
     return [];
   }
 
   async enrichWithReleases(): Promise<void> {
-    // Stub - enrichment via Spotify API would go here
+    // TODO: Implement release enrichment via Spotify API
   }
 
   getCorrectedCSV(): string {

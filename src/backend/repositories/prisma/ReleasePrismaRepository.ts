@@ -1,5 +1,6 @@
 import { IReleasePrismaRepository } from './IReleasePrismaRepository'
 import { Release } from '../../models/Release'
+import { Prisma } from '@prisma/client'
 import prisma from '../../lib/prisma'
 
 export class ReleasePrismaRepository implements IReleasePrismaRepository {
@@ -51,7 +52,7 @@ export class ReleasePrismaRepository implements IReleasePrismaRepository {
         releaseType: releaseData.releaseType || 'single',
         releaseDate: new Date(releaseData.releaseDate),
         spotifyId: releaseData.spotifyId,
-        odesliLinks: (releaseData.odesliLinks || {}) as any,
+        odesliLinks: (releaseData.odesliLinks || {}) as unknown as Prisma.InputJsonObject,
         itunesArtworkUrl: releaseData.itunesArtworkUrl,
         vercelBlobUrl: vercelBlobUrl,
         artistId: releaseData.artistId
@@ -70,7 +71,7 @@ export class ReleasePrismaRepository implements IReleasePrismaRepository {
         ...(releaseData.releaseType && { releaseType: releaseData.releaseType }),
         ...(releaseData.releaseDate && { releaseDate: new Date(releaseData.releaseDate) }),
         ...(releaseData.spotifyId && { spotifyId: releaseData.spotifyId }),
-        ...(releaseData.odesliLinks && { odesliLinks: releaseData.odesliLinks as any }),
+        ...(releaseData.odesliLinks && { odesliLinks: releaseData.odesliLinks as unknown as Prisma.InputJsonObject }),
         ...(releaseData.itunesArtworkUrl && { itunesArtworkUrl: releaseData.itunesArtworkUrl }),
         ...(releaseData.vercelBlobUrl && { vercelBlobUrl: releaseData.vercelBlobUrl }),
         ...(releaseData.artistId && { artist: { connect: { id: releaseData.artistId } } })
