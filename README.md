@@ -42,4 +42,4 @@ A brutally dark music charting platform for the Heavy Metal, Gothic, Dark Wave, 
 
 ## License
 
-This software is proprietary and confidential. All rights reserved. © 2024 Neuroklast. Unauthorized copying, distribution, or modification is strictly prohibited.
+This software is proprietary and confidential. All rights reserved. © 2026 Neuroklast. Unauthorized copying, distribution, or modification is strictly prohibited.
