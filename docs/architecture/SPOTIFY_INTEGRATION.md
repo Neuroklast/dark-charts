@@ -216,7 +216,7 @@ Minimal nötige Scopes:
 ### "Spotify not authenticated" Fehler
 - Überprüfe ob CLIENT_ID korrekt ist
 - Stelle sicher, dass Redirect URI in Spotify Dashboard konfiguriert ist
-- Lösche alte Tokens: `await spark.kv.delete('spotify-tokens')`
+- Lösche alte Tokens: `await asyncStorage.delete('spotify-tokens')`
 
 ### Sync schlägt fehl
 - Überprüfe Artist-Spotify-ID (sollte Format `3Kg5qHXUcg1E65tDqDiE0X` haben)

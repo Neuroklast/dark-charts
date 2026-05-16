@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma'
+import { supabase } from '@/lib/supabase/client'
 // @ts-ignore - optional server dependency
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
@@ -39,28 +39,29 @@ export interface AuthResult {
 
 export class AuthService {
   async register(userData: RegisterUserData): Promise<AuthResult> {
-    // Admins must only be created via the init-admin endpoint using environment variables.
     if (userData.role === 'ADMIN') {
       throw new Error('Admin registration is not allowed.')
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email: userData.email }
-    })
-
+    const { data: existingUser } = await supabase.from('users').select('id').eq('email', userData.email).maybeSingle()
     if (existingUser) {
       throw new Error('User with this email already exists')
     }
 
     const passwordHash = await bcrypt.hash(userData.password, 10)
-
-    const user = await prisma.user.create({
-      data: {
+    const { data: user, error } = await supabase
+      .from('users')
+      .insert({
         email: userData.email,
         passwordHash,
-        role: userData.role
-      }
-    })
+        role: userData.role,
+      })
+      .select()
+      .single()
+
+    if (error || !user) {
+      throw new Error(error?.message || 'Failed to create user')
+    }
 
     await this.createRoleProfile(user.id, userData.role, userData.profileData)
 
@@ -77,11 +78,13 @@ export class AuthService {
   }
 
   async login(credentials: LoginCredentials): Promise<AuthResult> {
-    const user = await prisma.user.findUnique({
-      where: { email: credentials.email }
-    })
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', credentials.email)
+      .maybeSingle()
 
-    if (!user || !user.passwordHash) {
+    if (error || !user || !user.passwordHash) {
       throw new Error('Invalid credentials')
     }
 
@@ -114,27 +117,29 @@ export class AuthService {
         role: string
         isDemo?: boolean
       }
-      
+
       return decoded
-    } catch (error) {
+    } catch {
       return null
     }
   }
 
-  /**
-   * Create the initial admin user from environment variables.
-   * This bypasses the normal registration flow and is only called from init-admin endpoint.
-   */
   async registerAdmin(email: string, password: string): Promise<AuthResult> {
-    const existingUser = await prisma.user.findUnique({ where: { email } })
+    const { data: existingUser } = await supabase.from('users').select('id').eq('email', email).maybeSingle()
     if (existingUser) {
       throw new Error('User with this email already exists')
     }
 
     const passwordHash = await bcrypt.hash(password, 10)
-    const user = await prisma.user.create({
-      data: { email, passwordHash, role: 'ADMIN' }
-    })
+    const { data: user, error } = await supabase
+      .from('users')
+      .insert({ email, passwordHash, role: 'ADMIN' })
+      .select()
+      .single()
+
+    if (error || !user) {
+      throw new Error(error?.message || 'Failed to create admin user')
+    }
 
     const token = this.generateToken(user.id, user.email, user.role)
     return { token, user: { id: user.id, email: user.email, role: user.role } }
@@ -155,24 +160,21 @@ export class AuthService {
   ): Promise<void> {
     switch (role) {
       case 'FAN':
-        await prisma.fanProfile.create({
-          data: {
-            userId,
-            nickname: profileData?.nickname || 'Anonymous Fan',
-            credits: 150
-          }
+        await supabase.from('fan_profiles').insert({
+          userId,
+          nickname: profileData?.nickname || 'Anonymous Fan',
+          credits: 150,
+          remainingCredits: 150,
         })
         break
 
       case 'DJ':
-        await prisma.dJProfile.create({
-          data: {
-            userId,
-            bio: profileData?.bio,
-            soundcloudLink: profileData?.soundcloudLink,
-            expertStatus: false,
-            reputationScore: 0
-          }
+        await supabase.from('dj_profiles').insert({
+          userId,
+          bio: profileData?.bio ?? null,
+          soundcloudLink: profileData?.soundcloudLink ?? null,
+          expertStatus: false,
+          reputationScore: 0,
         })
         break
 
@@ -180,22 +182,18 @@ export class AuthService {
         if (!profileData?.artistId) {
           throw new Error('Artist ID is required for band profiles')
         }
-        await prisma.bandProfile.create({
-          data: {
-            userId,
-            artistId: profileData.artistId,
-            members: []
-          }
+        await supabase.from('band_profiles').insert({
+          userId,
+          artistId: profileData.artistId,
+          members: [],
         })
         break
 
       case 'LABEL':
-        await prisma.labelProfile.create({
-          data: {
-            userId,
-            companyName: profileData?.companyName || 'Unnamed Label',
-            website: profileData?.website
-          }
+        await supabase.from('label_profiles').insert({
+          userId,
+          companyName: profileData?.companyName || 'Unnamed Label',
+          website: profileData?.website ?? null,
         })
         break
 

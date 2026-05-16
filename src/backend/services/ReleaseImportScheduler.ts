@@ -1,4 +1,5 @@
 import { ReleaseImportService, ImportResult } from './ReleaseImportService';
+import { asyncStorage } from '@/lib/storage/asyncStorage';
 
 interface CronJobConfig {
   name: string;
@@ -37,7 +38,7 @@ export class ReleaseImportScheduler {
         nextRun: this.calculateNextRun(schedule)
       };
 
-      await spark.kv.set(this.SCHEDULER_CONFIG_KEY, config);
+      await asyncStorage.set(this.SCHEDULER_CONFIG_KEY, config);
       
       this.start(schedule);
       
@@ -123,7 +124,7 @@ export class ReleaseImportScheduler {
 
   private async getLastRunTime(): Promise<Date | undefined> {
     try {
-      const lastRun = await spark.kv.get<string>(this.LAST_RUN_KEY);
+      const lastRun = await asyncStorage.get<string>(this.LAST_RUN_KEY);
       return lastRun ? new Date(lastRun) : undefined;
     } catch (error) {
       console.error('Error retrieving last run time:', error);
@@ -133,7 +134,7 @@ export class ReleaseImportScheduler {
 
   private async setLastRunTime(date: Date): Promise<void> {
     try {
-      await spark.kv.set(this.LAST_RUN_KEY, date.toISOString());
+      await asyncStorage.set(this.LAST_RUN_KEY, date.toISOString());
     } catch (error) {
       console.error('Error setting last run time:', error);
     }
@@ -195,7 +196,7 @@ export class ReleaseImportScheduler {
 
   async getStatus(): Promise<CronJobConfig | null> {
     try {
-      return await spark.kv.get<CronJobConfig>(this.SCHEDULER_CONFIG_KEY);
+      return await asyncStorage.get<CronJobConfig>(this.SCHEDULER_CONFIG_KEY);
     } catch (error) {
       console.error('Error getting scheduler status:', error);
       return null;

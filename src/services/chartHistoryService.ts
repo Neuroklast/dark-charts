@@ -1,11 +1,12 @@
 import { Track, ChartSnapshot, TrackHistory, ChartType, WeeklyMovement } from '@/types';
+import { asyncStorage } from '@/lib/storage/asyncStorage';
 
 class ChartHistoryService {
   private readonly STORAGE_KEY = 'chart-history-snapshots';
   private readonly MAX_WEEKS = 12;
 
   async getSnapshots(): Promise<ChartSnapshot[]> {
-    const stored = await spark.kv.get<ChartSnapshot[]>(this.STORAGE_KEY);
+    const stored = await asyncStorage.get<ChartSnapshot[]>(this.STORAGE_KEY);
     return stored || this.generateMockHistory();
   }
 
@@ -21,7 +22,7 @@ class ChartHistoryService {
     };
 
     const updatedSnapshots = [newSnapshot, ...snapshots].slice(0, this.MAX_WEEKS);
-    await spark.kv.set(this.STORAGE_KEY, updatedSnapshots);
+    await asyncStorage.set(this.STORAGE_KEY, updatedSnapshots);
   }
 
   private normalizeTracksForSnapshot(tracks: Track[]): Track[] {

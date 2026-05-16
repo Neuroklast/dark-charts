@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { verify } from 'jsonwebtoken';
-import { prisma } from './prisma';
+import { supabase } from '@/lib/supabase/client';
 import { logger } from '../../lib/logger';
 
 interface JwtPayload {
@@ -47,10 +47,11 @@ export async function withAdminAuth(
       }
 
       // Verify user exists and is still an admin in the database
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
-        select: { id: true, role: true }
-      });
+      const { data: user } = await supabase
+        .from('users')
+        .select('id,role')
+        .eq('id', decoded.userId)
+        .maybeSingle();
 
       if (!user) {
         logger.error('Forbidden access attempt: User not found in database', { userId: decoded.userId });

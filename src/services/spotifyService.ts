@@ -1,5 +1,6 @@
 import { logger } from "@/lib/logger";
 import { Release, ReleaseTrack, Artist } from '@/types';
+import { asyncStorage } from '@/lib/storage/asyncStorage';
 
 interface SpotifyAuthTokens {
   accessToken: string;
@@ -53,7 +54,7 @@ class SpotifyService {
 
   async initiateAuth(): Promise<void> {
     const state = this.generateRandomString(16);
-    await spark.kv.set('spotify-auth-state', state);
+    await asyncStorage.set('spotify-auth-state', state);
 
     const params = new URLSearchParams({
       client_id: this.CLIENT_ID,
@@ -68,14 +69,14 @@ class SpotifyService {
 
   async handleCallback(code: string, state: string): Promise<boolean> {
     try {
-      const savedState = await spark.kv.get<string>('spotify-auth-state');
+      const savedState = await asyncStorage.get<string>('spotify-auth-state');
       if (state !== savedState) {
         throw new Error('State mismatch');
       }
 
       const tokens = await this.exchangeCodeForTokens(code);
       await this.saveTokens(tokens);
-      await spark.kv.delete('spotify-auth-state');
+      await asyncStorage.delete('spotify-auth-state');
       
       return true;
     } catch (error) {
@@ -111,11 +112,11 @@ class SpotifyService {
   }
 
   private async saveTokens(tokens: SpotifyAuthTokens): Promise<void> {
-    await spark.kv.set('spotify-tokens', tokens);
+    await asyncStorage.set('spotify-tokens', tokens);
   }
 
   private async getTokens(): Promise<SpotifyAuthTokens | null> {
-    return await spark.kv.get<SpotifyAuthTokens>('spotify-tokens');
+    return await asyncStorage.get<SpotifyAuthTokens>('spotify-tokens');
   }
 
   private async refreshAccessToken(): Promise<string> {
@@ -328,7 +329,7 @@ class SpotifyService {
         };
 
         releases.push(release);
-        await spark.kv.set(`release:${release.id}`, release);
+        await asyncStorage.set(`release:${release.id}`, release);
       }
 
       return releases;
@@ -377,7 +378,7 @@ class SpotifyService {
   }
 
   async logout(): Promise<void> {
-    await spark.kv.delete('spotify-tokens');
+    await asyncStorage.delete('spotify-tokens');
   }
 
   private generateRandomString(length: number): string {

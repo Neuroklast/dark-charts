@@ -17,7 +17,7 @@ Das System folgt strikt dem Repository-Pattern und ist in drei Schichten unterte
 ### 2. Repositories (`src/backend/repositories/`)
 - `IBadgeRepository`: Interface für Badge-Datenzugriffe
 - `SparkKVBadgeRepository`: Implementierung mit Spark KV Store
-  - Nutzt `spark.kv` für Persistierung der earned badges
+  - Nutzt Supabase (`user_badges`) für Persistierung der earned badges
   - Badge-Definitionen sind statisch in `BadgeDefinitions.ts`
 
 ### 3. Services (`src/backend/services/`)
@@ -161,7 +161,7 @@ const userBadges = await badgeService.getUserBadges(userId);
 ### Benötigte Dependencies
 - `IChartRepository`: Für Chart-Daten-Zugriff
 - `IBadgeRepository`: Für Badge-Persistierung
-- `spark.kv`: Für Key-Value Storage
+- Supabase (`user_badges`): Für Badge-Persistenz
 
 ### Initialisierung
 ```typescript

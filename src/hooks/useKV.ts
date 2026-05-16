@@ -1,10 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { asyncStorage } from '@/lib/storage/asyncStorage';
 
-/**
- * Local polyfill for @github/spark/hooks useKV.
- * Uses window.spark.kv which is either the real Spark KV (when running on Spark)
- * or the localStorage-backed polyfill set up in main.tsx.
- */
 export function useKV<T>(
   key: string,
   defaultValue: T
@@ -12,7 +8,7 @@ export function useKV<T>(
   const [value, setValue] = useState<T>(defaultValue);
 
   useEffect(() => {
-    window.spark.kv
+    asyncStorage
       .get<T>(key)
       .then(stored => {
         if (stored !== null && stored !== undefined) {
@@ -30,7 +26,7 @@ export function useKV<T>(
             ? (newValueOrUpdater as (prev: T) => T)(prev)
             : newValueOrUpdater;
 
-        window.spark.kv.set(key, newValue).catch(() => {});
+        asyncStorage.set(key, newValue).catch(() => {});
         return newValue;
       });
     },

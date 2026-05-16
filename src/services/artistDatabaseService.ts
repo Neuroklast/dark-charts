@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase/client';
 
 export interface Artist {
   name: string;
@@ -54,7 +55,7 @@ export async function getLatestAlbum(artistId: string): Promise<any> {
     const data = await response.json();
 
     if (data.items && data.items.length > 0) {
-      const sortedAlbums = data.items.sort((a: any, b: any) => 
+      const sortedAlbums = data.items.sort((a: any, b: any) =>
         new Date(b.release_date).getTime() - new Date(a.release_date).getTime()
       );
       return sortedAlbums[0];
@@ -77,7 +78,7 @@ export async function parseCSV(csvText: string): Promise<Artist[]> {
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
     const matches = line.match(/("(?:[^"]|"")*"|[^,]*)/g);
-    
+
     if (!matches || matches.length < 5) continue;
 
     artists.push({
@@ -113,27 +114,47 @@ export function generateCSV(artists: Artist[]): string {
 class ArtistDatabaseService {
   private artists: Artist[] = [];
 
-  async loadFromKV(key: string = 'darkcharts-artists'): Promise<void> {
+  async loadFromSupabase(): Promise<void> {
     try {
-      // @ts-ignore - spark global context
-      const data = await spark.kv.get<Artist[]>(key);
-      if (data) {
-        this.artists = data;
-        toast.success(`${this.artists.length} Artists aus Datenbank geladen`);
+      const { data, error } = await supabase.from('artists').select('*').order('name');
+      if (error) {
+        throw error;
       }
+
+      this.artists = (data ?? []).map((artist) => ({
+        name: artist.name,
+        members: '',
+        country: artist.country ?? '',
+        label: '',
+        spotifyId: artist.spotifyId ?? '',
+        verified: artist.verified ?? false,
+      }));
+
+      toast.success(`${this.artists.length} Artists aus Datenbank geladen`);
     } catch (error) {
-      console.error('Error loading artists from KV:', error);
+      console.error('Error loading artists from Supabase:', error);
       toast.error('Fehler beim Laden der Artists');
     }
   }
 
-  async saveToKV(key: string = 'darkcharts-artists'): Promise<void> {
+  async saveToSupabase(): Promise<void> {
     try {
-      // @ts-ignore - spark global context
-      await spark.kv.put(key, this.artists);
+      const rows = this.artists.map((artist) => ({
+        name: artist.name,
+        country: artist.country || null,
+        spotifyId: artist.spotifyId || null,
+        verified: artist.verified ?? false,
+        genres: [],
+      }));
+
+      const { error } = await supabase.from('artists').upsert(rows, { onConflict: 'spotifyId' });
+      if (error) {
+        throw error;
+      }
+
       toast.success('Daten erfolgreich gespeichert');
     } catch (error) {
-      console.error('Error saving artists to KV:', error);
+      console.error('Error saving artists to Supabase:', error);
       toast.error('Fehler beim Speichern');
     }
   }
@@ -147,12 +168,10 @@ class ArtistDatabaseService {
   }
 
   async verifyAndCorrect(): Promise<{ artistName: string; oldId: string; newId: string }[]> {
-    // TODO: Implement Spotify ID verification logic
     throw new Error('verifyAndCorrect() is not yet implemented');
   }
 
   async enrichWithReleases(): Promise<void> {
-    // TODO: Implement release enrichment via Spotify API
     throw new Error('enrichWithReleases() is not yet implemented');
   }
 

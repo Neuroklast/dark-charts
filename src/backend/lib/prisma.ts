@@ -1,22 +1,54 @@
-import { PrismaClient } from '@prisma/client'
+import { supabase } from '@/lib/supabase/client'
 
-declare global {
-  var prisma: PrismaClient | undefined
-}
+// Compatibility shim for legacy API routes that still import `prisma`.
+// All behavior here is backed by Supabase queries and exists only to avoid
+// breaking route-level imports during the migration.
+export const prisma = {
+  chartEntry: {
+    async findMany(options: {
+      where?: { weekStart?: Date }
+      orderBy?: { placement?: 'asc' | 'desc' }
+      include?: unknown
+    }) {
+      let query = supabase
+        .from('chart_entries')
+        .select('*, release:releases(*, artist:artists(*))')
 
-export const prisma =
-  global.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
+      if (options.where?.weekStart) {
+        query = query.eq('weekStart', options.where.weekStart.toISOString())
+      }
+
+      if (options.orderBy?.placement) {
+        query = query.order('placement', { ascending: options.orderBy.placement === 'asc' })
+      }
+
+      const { data, error } = await query
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      return (data ?? []).map((entry: any) => ({
+        ...entry,
+        weekStart: new Date(entry.weekStart),
+        createdAt: new Date(entry.createdAt),
+        release: entry.release
+          ? {
+              ...entry.release,
+              releaseDate: new Date(entry.release.releaseDate),
+              createdAt: new Date(entry.release.createdAt),
+              updatedAt: new Date(entry.release.updatedAt),
+              artist: entry.release.artist
+                ? {
+                    ...entry.release.artist,
+                    createdAt: new Date(entry.release.artist.createdAt),
+                    updatedAt: new Date(entry.release.artist.updatedAt),
+                  }
+                : null,
+            }
+          : null,
+      }))
     },
-  })
-
-if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma
+  },
 }
 
 export default prisma

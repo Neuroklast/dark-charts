@@ -1,8 +1,9 @@
-// Use window.spark.kv (set up in main.tsx as a localStorage polyfill when not on Spark)
+import { asyncStorage } from '@/lib/storage/asyncStorage';
+
 const kv = {
-  get: <T>(key: string): Promise<T | null> => window.spark.kv.get<T>(key),
-  set: (key: string, value: unknown): Promise<void> => window.spark.kv.set(key, value),
-  delete: (key: string): Promise<void> => window.spark.kv.delete(key),
+  get: <T>(key: string): Promise<T | null> => asyncStorage.get<T>(key),
+  set: (key: string, value: unknown): Promise<void> => asyncStorage.set(key, value),
+  delete: (key: string): Promise<void> => asyncStorage.delete(key),
 };
 
 export interface OAuthTokens {
