@@ -94,17 +94,22 @@ export class SupabaseArtistRepository implements IArtistRepository {
   }
 
   async search(query: string): Promise<Artist[]> {
-    const safeQuery = query.replace(/[%(),]/g, '').trim()
-    const { data, error } = await supabase
-      .from('artists')
-      .select('*')
-      .or(`name.ilike.%${safeQuery}%,bio.ilike.%${safeQuery}%`)
-      .limit(20)
+    const term = `%${query.trim()}%`
+    const [nameResult, bioResult] = await Promise.all([
+      supabase.from('artists').select('*').ilike('name', term).limit(20),
+      supabase.from('artists').select('*').ilike('bio', term).limit(20),
+    ])
 
-    if (error) {
-      throw new Error(`Failed to search artists: ${error.message}`)
+    if (nameResult.error) {
+      throw new Error(`Failed to search artists by name: ${nameResult.error.message}`)
     }
 
-    return (data ?? []).map(toDomain)
+    if (bioResult.error) {
+      throw new Error(`Failed to search artists by bio: ${bioResult.error.message}`)
+    }
+
+    const merged = [...(nameResult.data ?? []), ...(bioResult.data ?? [])]
+    const uniqueById = new Map(merged.map((artist) => [artist.id, artist]))
+    return Array.from(uniqueById.values()).map(toDomain).slice(0, 20)
   }
 }

@@ -20,6 +20,14 @@ interface SyncSettings {
   delayBetweenArtists: number;
 }
 
+interface SyncHistoryEntry {
+  date: number;
+  success: boolean;
+  duration: number;
+  artistsSynced: number;
+  errorCount: number;
+}
+
 class NightlySyncService {
   private syncTimer: number | null = null;
   private isRunning = false;
@@ -44,14 +52,14 @@ class NightlySyncService {
   }
 
   async getSettings(): Promise<SyncSettings> {
-    const saved = this.read<SyncSettings>(this.SETTINGS_KEY);
+    const saved = await this.read<SyncSettings>(this.SETTINGS_KEY);
     return saved || this.DEFAULT_SETTINGS;
   }
 
   async updateSettings(settings: Partial<SyncSettings>): Promise<SyncSettings> {
     const current = await this.getSettings();
     const updated = { ...current, ...settings };
-    this.write(this.SETTINGS_KEY, updated);
+    await this.write(this.SETTINGS_KEY, updated);
     
     if (this.syncTimer !== null) {
       clearTimeout(this.syncTimer);
@@ -66,7 +74,7 @@ class NightlySyncService {
   }
 
   async getStatus(): Promise<SyncJobStatus> {
-    const status = this.read<SyncJobStatus>(this.STATUS_KEY);
+    const status = await this.read<SyncJobStatus>(this.STATUS_KEY);
     if (!status) {
       return {
         lastRun: 0,
@@ -85,7 +93,7 @@ class NightlySyncService {
   private async updateStatus(update: Partial<SyncJobStatus>): Promise<void> {
     const current = await this.getStatus();
     const updated = { ...current, ...update };
-    this.write(this.STATUS_KEY, updated);
+    await this.write(this.STATUS_KEY, updated);
   }
 
   private async scheduleNextSync(): Promise<void> {
@@ -265,14 +273,8 @@ class NightlySyncService {
     return `In ${hours}h ${minutes}m`;
   }
 
-  async getSyncHistory(): Promise<{
-    date: number;
-    success: boolean;
-    duration: number;
-    artistsSynced: number;
-    errorCount: number;
-  }[]> {
-    const history = this.read<any[]>(this.HISTORY_KEY) || [];
+  async getSyncHistory(): Promise<SyncHistoryEntry[]> {
+    const history = await this.read<SyncHistoryEntry[]>(this.HISTORY_KEY) || [];
     return history.slice(-30);
   }
 
@@ -288,10 +290,10 @@ class NightlySyncService {
       errorCount: status.errorCount,
     });
     
-    this.write(this.HISTORY_KEY, history.slice(-30));
+    await this.write(this.HISTORY_KEY, history.slice(-30));
   }
 
-  private read<T>(key: string): T | null {
+  private async read<T>(key: string): Promise<T | null> {
     try {
       const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) as T : null;
@@ -300,7 +302,7 @@ class NightlySyncService {
     }
   }
 
-  private write(key: string, value: unknown): void {
+  private async write(key: string, value: unknown): Promise<void> {
     localStorage.setItem(key, JSON.stringify(value));
   }
 }

@@ -100,6 +100,11 @@ export class SupabaseReleaseRepository implements IReleaseRepository {
   }
 
   async create(dto: CreateReleaseDTO): Promise<Release> {
+    const extendedDto = dto as CreateReleaseDTO & {
+      odesliLinks?: Record<string, unknown>
+      itunesArtworkUrl?: string
+    }
+
     const payload = {
       artistId: dto.artistId,
       title: dto.title,
@@ -109,9 +114,9 @@ export class SupabaseReleaseRepository implements IReleaseRepository {
       spotifyUrl: dto.spotifyUrl ?? null,
       artworkUrl: dto.artworkUrl ?? null,
       highResArtworkUrl: dto.highResArtworkUrl ?? null,
-      itunesArtworkUrl: dto.highResArtworkUrl ?? dto.artworkUrl ?? null,
+      itunesArtworkUrl: extendedDto.itunesArtworkUrl ?? null,
       platformLinks: dto.platformLinks ?? null,
-      odesliLinks: dto.platformLinks ?? null,
+      odesliLinks: extendedDto.odesliLinks ?? null,
       albumType: dto.albumType,
       totalTracks: dto.totalTracks,
       genres: dto.genres ?? [],

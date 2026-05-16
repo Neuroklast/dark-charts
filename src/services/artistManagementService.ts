@@ -34,6 +34,11 @@ const toFrontendRelease = (release: any): Release => ({
   lastCached: new Date(release.updatedAt).getTime(),
 });
 
+const toSpotifyLink = (spotifyIdOrUrl: string): string =>
+  spotifyIdOrUrl.startsWith('http')
+    ? spotifyIdOrUrl
+    : `https://open.spotify.com/artist/${spotifyIdOrUrl}`;
+
 class ArtistManagementService {
   private syncInProgress = new Set<string>();
 
@@ -63,7 +68,7 @@ class ArtistManagementService {
       bio: artistData.bio,
       genres: artistData.genres as string[],
       imageUrl: artistData.artwork,
-      socialLinks: artistData.spotifyId ? { spotify: artistData.spotifyId } : undefined,
+      socialLinks: artistData.spotifyId ? { spotify: toSpotifyLink(artistData.spotifyId) } : undefined,
     });
 
     await this.syncArtistReleases(created.id);

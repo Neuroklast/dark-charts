@@ -1,5 +1,8 @@
 import { supabase } from '@/lib/supabase/client'
 
+// Compatibility shim for legacy API routes that still import `prisma`.
+// All behavior here is backed by Supabase queries and exists only to avoid
+// breaking route-level imports during the migration.
 export const prisma = {
   chartEntry: {
     async findMany(options: {
