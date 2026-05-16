@@ -87,7 +87,7 @@ export class SupabaseReleaseRepository implements IReleaseRepository {
       .from('releases')
       .select('id, releaseDate')
       .eq('artistId', artistId)
-      .ilike('title', title)
+      .ilike('title', title.trim())
 
     if (error) {
       throw new Error(`Failed to check release existence: ${error.message}`)

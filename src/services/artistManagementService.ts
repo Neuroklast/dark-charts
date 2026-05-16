@@ -68,7 +68,7 @@ class ArtistManagementService {
       bio: artistData.bio,
       genres: artistData.genres as string[],
       imageUrl: artistData.artwork,
-      socialLinks: artistData.spotifyId ? { spotify: toSpotifyLink(artistData.spotifyId) } : undefined,
+      socialLinks: artistData.spotifyId ? { spotify: toSpotifyLink(artistData.spotifyId) } : null,
     });
 
     await this.syncArtistReleases(created.id);
