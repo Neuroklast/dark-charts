@@ -37,7 +37,7 @@ export class ReleaseImportScheduler {
         nextRun: this.calculateNextRun(schedule)
       };
 
-      await spark.kv.set(this.SCHEDULER_CONFIG_KEY, config);
+      localStorage.setItem(this.SCHEDULER_CONFIG_KEY, JSON.stringify(config));
       
       this.start(schedule);
       
@@ -123,7 +123,7 @@ export class ReleaseImportScheduler {
 
   private async getLastRunTime(): Promise<Date | undefined> {
     try {
-      const lastRun = await spark.kv.get<string>(this.LAST_RUN_KEY);
+      const lastRun = localStorage.getItem(this.LAST_RUN_KEY);
       return lastRun ? new Date(lastRun) : undefined;
     } catch (error) {
       console.error('Error retrieving last run time:', error);
@@ -133,7 +133,7 @@ export class ReleaseImportScheduler {
 
   private async setLastRunTime(date: Date): Promise<void> {
     try {
-      await spark.kv.set(this.LAST_RUN_KEY, date.toISOString());
+      localStorage.setItem(this.LAST_RUN_KEY, date.toISOString());
     } catch (error) {
       console.error('Error setting last run time:', error);
     }
@@ -195,7 +195,8 @@ export class ReleaseImportScheduler {
 
   async getStatus(): Promise<CronJobConfig | null> {
     try {
-      return await spark.kv.get<CronJobConfig>(this.SCHEDULER_CONFIG_KEY);
+      const raw = localStorage.getItem(this.SCHEDULER_CONFIG_KEY);
+      return raw ? JSON.parse(raw) as CronJobConfig : null;
     } catch (error) {
       console.error('Error getting scheduler status:', error);
       return null;

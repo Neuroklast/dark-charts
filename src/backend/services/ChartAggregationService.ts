@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma';
+import { supabase } from '@/lib/supabase/client'
 import { calculateExpertPoints } from '../../lib/math/expert-ranking';
 
 export class ChartAggregationService {
@@ -8,37 +8,39 @@ export class ChartAggregationService {
     weekEnd.setDate(weekEnd.getDate() + 7);
 
     // Fetch all votes for the current week
-    const fanVotes = await prisma.vote.findMany({
-      where: {
-        createdAt: {
-          gte: weekStart,
-          lt: weekEnd,
-        },
-      },
-    });
+    const { data: fanVotes, error: fanVotesError } = await supabase
+      .from('votes')
+      .select('*')
+      .gte('createdAt', weekStart.toISOString())
+      .lt('createdAt', weekEnd.toISOString())
 
-    const expertVotes = await prisma.expertVote.findMany({
-      where: {
-        createdAt: {
-          gte: weekStart,
-          lt: weekEnd,
-        },
-      },
-      include: {
-        dj: true,
-      },
-    });
+    if (fanVotesError) {
+      throw new Error(`Failed to fetch fan votes: ${fanVotesError.message}`)
+    }
+
+    const { data: expertVotes, error: expertVotesError } = await supabase
+      .from('expert_votes')
+      .select('*, dj_profiles(reputationScore)')
+      .gte('createdAt', weekStart.toISOString())
+      .lt('createdAt', weekEnd.toISOString())
+
+    if (expertVotesError) {
+      throw new Error(`Failed to fetch expert votes: ${expertVotesError.message}`)
+    }
 
     // Fetch last week's chart to calculate movement
     const lastWeekStart = new Date(weekStart);
     lastWeekStart.setDate(lastWeekStart.getDate() - 7);
 
-    const lastWeekEntries = await prisma.chartEntry.findMany({
-      where: {
-        weekStart: lastWeekStart,
-        chartType: 'combined',
-      },
-    });
+    const { data: lastWeekEntries, error: lastWeekEntriesError } = await supabase
+      .from('chart_entries')
+      .select('*')
+      .eq('weekStart', lastWeekStart.toISOString())
+      .eq('chartType', 'combined')
+
+    if (lastWeekEntriesError) {
+      throw new Error(`Failed to fetch last week chart entries: ${lastWeekEntriesError.message}`)
+    }
 
     const lastWeekPlacements = new Map<string, number>();
     for (const entry of lastWeekEntries) {
@@ -50,15 +52,15 @@ export class ChartAggregationService {
     // Aggregate metrics per release
     const releaseMetrics = new Map<string, { fanScore: number; expertScore: number }>();
 
-    for (const vote of fanVotes) {
+    for (const vote of fanVotes ?? []) {
       const current = releaseMetrics.get(vote.releaseId) || { fanScore: 0, expertScore: 0 };
       current.fanScore += vote.allocatedVotes; // Aggregating allocated votes as fanScore
       releaseMetrics.set(vote.releaseId, current);
     }
 
-    for (const expertVote of expertVotes) {
+    for (const expertVote of expertVotes ?? []) {
       const current = releaseMetrics.get(expertVote.releaseId) || { fanScore: 0, expertScore: 0 };
-      const expertPoints = calculateExpertPoints(expertVote.rank, expertVote.dj.reputationScore);
+      const expertPoints = calculateExpertPoints(expertVote.rank, expertVote.dj_profiles?.reputationScore ?? 0);
       current.expertScore += expertPoints;
       releaseMetrics.set(expertVote.releaseId, current);
     }
@@ -92,19 +94,21 @@ export class ChartAggregationService {
         movement = 0;
       }
 
-      await prisma.chartEntry.create({
-        data: {
-          releaseId: entry.releaseId,
-          chartType: 'combined',
-          weekStart: weekStart,
-          placement: currentPlacement,
-          score: entry.score,
-          fanScore: entry.fanScore,
-          expertScore: entry.expertScore,
-          communityPower: 0,
-          movement: movement,
-        },
-      });
+      const { error: insertError } = await supabase.from('chart_entries').insert({
+        releaseId: entry.releaseId,
+        chartType: 'combined',
+        weekStart: weekStart.toISOString(),
+        placement: currentPlacement,
+        score: entry.score,
+        fanScore: entry.fanScore,
+        expertScore: entry.expertScore,
+        communityPower: 0,
+        movement: movement,
+      })
+
+      if (insertError) {
+        throw new Error(`Failed to create chart entry: ${insertError.message}`)
+      }
     }
 
     return entries;

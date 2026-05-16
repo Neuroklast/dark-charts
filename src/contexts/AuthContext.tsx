@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AuthUser, UserProfile } from '@/types';
 import { logger } from '@/lib/logger';
+import { asyncStorage } from '@/lib/storage/asyncStorage';
 
 interface LoginCredentials {
   email: string;
@@ -59,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const token = await window.spark.kv.get<string>('auth-token');
+      const token = await asyncStorage.get<string>('auth-token');
       if (!token) {
         setUser(null);
         return;
@@ -72,15 +73,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!response.ok) {
         // Token is invalid or expired – clear stored credentials
-        await window.spark.kv.delete('auth-token');
-        await window.spark.kv.delete('auth-user');
+        await asyncStorage.delete('auth-token');
+        await asyncStorage.delete('auth-user');
         setUser(null);
         return;
       }
 
       const data = await response.json();
       const authUser = buildAuthUser(data);
-      await window.spark.kv.set('auth-user', authUser);
+      await asyncStorage.set('auth-user', authUser);
       setUser(authUser);
       setError(null);
     } catch (err) {
@@ -119,10 +120,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const data = await response.json();
         if (data.token) {
-          await window.spark.kv.set('auth-token', data.token);
+          await asyncStorage.set('auth-token', data.token);
         }
         const authUser = buildAuthUser(data);
-        await window.spark.kv.set('auth-user', authUser);
+        await asyncStorage.set('auth-user', authUser);
         setUser(authUser);
         return;
       }
@@ -157,10 +158,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = await response.json();
       if (data.token) {
-        await window.spark.kv.set('auth-token', data.token);
+        await asyncStorage.set('auth-token', data.token);
       }
       const authUser = buildAuthUser(data, 'demo');
-      await window.spark.kv.set('auth-user', authUser);
+      await asyncStorage.set('auth-user', authUser);
       setUser(authUser);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Demo login failed');
@@ -176,8 +177,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      await window.spark.kv.delete('auth-token');
-      await window.spark.kv.delete('auth-user');
+      await asyncStorage.delete('auth-token');
+      await asyncStorage.delete('auth-user');
       setUser(null);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Logout failed');
@@ -198,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updatedProfile = { ...user.profile, ...updates } as UserProfile;
       const updatedUser = { ...user, profile: updatedProfile };
 
-      await window.spark.kv.set('auth-user', updatedUser);
+      await asyncStorage.set('auth-user', updatedUser);
       setUser(updatedUser);
       setError(null);
     } catch (err) {
@@ -210,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const getAuthToken = async (): Promise<string | null> => {
-    return window.spark.kv.get<string>('auth-token');
+    return asyncStorage.get<string>('auth-token');
   };
 
   const getToken = getAuthToken;
@@ -231,4 +232,3 @@ export function useAuth() {
   }
   return context;
 }
-

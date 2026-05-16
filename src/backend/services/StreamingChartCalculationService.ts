@@ -1,6 +1,6 @@
 import { StreamingMetrics, StreamingScore, StreamingChartResult } from '../models/StreamingMetrics';
 import { IArtistRepository } from '../repositories/IArtistRepository';
-import { prisma } from '../lib/prisma';
+import { supabase } from '@/lib/supabase/client';
 import { isSpotifyConfigured, getArtistStreamingData } from '../../../api/_lib/spotify';
 
 /**
@@ -115,7 +115,7 @@ export class StreamingChartCalculationService {
 
   private async getStreamingMetricsForArtist(artistId: string): Promise<StreamingMetrics | null> {
     try {
-      const artist = await prisma.artist.findUnique({ where: { id: artistId } });
+      const { data: artist } = await supabase.from('artists').select('*').eq('id', artistId).maybeSingle();
       if (!artist?.spotifyId) return null;
 
       const now = new Date();
@@ -135,29 +135,40 @@ export class StreamingChartCalculationService {
           // Scale it to make the logarithmic score meaningful.
           const estimatedStreams = Math.round(Math.pow(10, spotifyData.popularity / 20));
 
-          await prisma.streamingSnapshot.upsert({
-            where: {
-              artistId_weekStart: { artistId, weekStart: currentWeekStart },
-            },
-            update: {
-              spotifyPopularity: spotifyData.popularity,
-              followerCount: spotifyData.followerCount,
-              topTrackPopularity: spotifyData.topTrackAvgPopularity,
-            },
-            create: {
-              artistId,
-              spotifyPopularity: spotifyData.popularity,
-              followerCount: spotifyData.followerCount,
-              topTrackPopularity: spotifyData.topTrackAvgPopularity,
-              weekStart: currentWeekStart,
-            },
-          });
+          const { data: existingSnapshot } = await supabase
+            .from('streaming_snapshots')
+            .select('id')
+            .eq('artistId', artistId)
+            .eq('weekStart', currentWeekStart.toISOString())
+            .maybeSingle();
 
-          const previousSnapshot = await prisma.streamingSnapshot.findUnique({
-            where: {
-              artistId_weekStart: { artistId, weekStart: previousWeekStart },
-            },
-          });
+          if (existingSnapshot?.id) {
+            await supabase
+              .from('streaming_snapshots')
+              .update({
+                spotifyPopularity: spotifyData.popularity,
+                followerCount: spotifyData.followerCount,
+                topTrackPopularity: spotifyData.topTrackAvgPopularity,
+              })
+              .eq('id', existingSnapshot.id);
+          } else {
+            await supabase
+              .from('streaming_snapshots')
+              .insert({
+                artistId,
+                spotifyPopularity: spotifyData.popularity,
+                followerCount: spotifyData.followerCount,
+                topTrackPopularity: spotifyData.topTrackAvgPopularity,
+                weekStart: currentWeekStart.toISOString(),
+              });
+          }
+
+          const { data: previousSnapshot } = await supabase
+            .from('streaming_snapshots')
+            .select('*')
+            .eq('artistId', artistId)
+            .eq('weekStart', previousWeekStart.toISOString())
+            .maybeSingle();
 
           const previousStreams = previousSnapshot
             ? Math.round(Math.pow(10, previousSnapshot.spotifyPopularity / 20))
@@ -179,15 +190,21 @@ export class StreamingChartCalculationService {
       }
 
       // Fallback: use stored snapshots
-      const currentSnapshot = await prisma.streamingSnapshot.findUnique({
-        where: { artistId_weekStart: { artistId, weekStart: currentWeekStart } },
-      });
+      const { data: currentSnapshot } = await supabase
+        .from('streaming_snapshots')
+        .select('*')
+        .eq('artistId', artistId)
+        .eq('weekStart', currentWeekStart.toISOString())
+        .maybeSingle();
 
       if (!currentSnapshot) return null;
 
-      const previousSnapshot = await prisma.streamingSnapshot.findUnique({
-        where: { artistId_weekStart: { artistId, weekStart: previousWeekStart } },
-      });
+      const { data: previousSnapshot } = await supabase
+        .from('streaming_snapshots')
+        .select('*')
+        .eq('artistId', artistId)
+        .eq('weekStart', previousWeekStart.toISOString())
+        .maybeSingle();
 
       const currentStreams = Math.round(Math.pow(10, currentSnapshot.spotifyPopularity / 20));
       const previousStreams = previousSnapshot

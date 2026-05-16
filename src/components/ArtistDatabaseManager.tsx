@@ -104,7 +104,7 @@ export function ArtistDatabaseManager() {
     setIsProcessing(true);
 
     try {
-      await artistDatabaseService.saveToKV();
+      await artistDatabaseService.saveToSupabase();
       toast.success('Artists in Datenbank gespeichert');
     } catch (error) {
       console.error('Error saving to database:', error);

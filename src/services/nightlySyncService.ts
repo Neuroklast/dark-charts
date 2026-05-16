@@ -23,6 +23,9 @@ interface SyncSettings {
 class NightlySyncService {
   private syncTimer: number | null = null;
   private isRunning = false;
+  private readonly SETTINGS_KEY = 'nightly-sync-settings';
+  private readonly STATUS_KEY = 'nightly-sync-status';
+  private readonly HISTORY_KEY = 'nightly-sync-history';
 
   private readonly DEFAULT_SETTINGS: SyncSettings = {
     enabled: true,
@@ -41,14 +44,14 @@ class NightlySyncService {
   }
 
   async getSettings(): Promise<SyncSettings> {
-    const saved = await spark.kv.get<SyncSettings>('nightly-sync-settings');
+    const saved = this.read<SyncSettings>(this.SETTINGS_KEY);
     return saved || this.DEFAULT_SETTINGS;
   }
 
   async updateSettings(settings: Partial<SyncSettings>): Promise<SyncSettings> {
     const current = await this.getSettings();
     const updated = { ...current, ...settings };
-    await spark.kv.set('nightly-sync-settings', updated);
+    this.write(this.SETTINGS_KEY, updated);
     
     if (this.syncTimer !== null) {
       clearTimeout(this.syncTimer);
@@ -63,7 +66,7 @@ class NightlySyncService {
   }
 
   async getStatus(): Promise<SyncJobStatus> {
-    const status = await spark.kv.get<SyncJobStatus>('nightly-sync-status');
+    const status = this.read<SyncJobStatus>(this.STATUS_KEY);
     if (!status) {
       return {
         lastRun: 0,
@@ -82,7 +85,7 @@ class NightlySyncService {
   private async updateStatus(update: Partial<SyncJobStatus>): Promise<void> {
     const current = await this.getStatus();
     const updated = { ...current, ...update };
-    await spark.kv.set('nightly-sync-status', updated);
+    this.write(this.STATUS_KEY, updated);
   }
 
   private async scheduleNextSync(): Promise<void> {
@@ -269,7 +272,7 @@ class NightlySyncService {
     artistsSynced: number;
     errorCount: number;
   }[]> {
-    const history = await spark.kv.get<any[]>('nightly-sync-history') || [];
+    const history = this.read<any[]>(this.HISTORY_KEY) || [];
     return history.slice(-30);
   }
 
@@ -285,7 +288,20 @@ class NightlySyncService {
       errorCount: status.errorCount,
     });
     
-    await spark.kv.set('nightly-sync-history', history.slice(-30));
+    this.write(this.HISTORY_KEY, history.slice(-30));
+  }
+
+  private read<T>(key: string): T | null {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) as T : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private write(key: string, value: unknown): void {
+    localStorage.setItem(key, JSON.stringify(value));
   }
 }
 

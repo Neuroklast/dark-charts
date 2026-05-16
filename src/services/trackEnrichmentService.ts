@@ -1,5 +1,6 @@
 import { logger } from "@/lib/logger";
 import { Track, OdesliData, CachedTrackData } from '@/types';
+import { asyncStorage } from '@/lib/storage/asyncStorage';
 
 const ODESLI_API_BASE = 'https://api.song.link/v1-alpha.1/links';
 const ITUNES_SEARCH_API = 'https://itunes.apple.com/search';
@@ -91,7 +92,7 @@ class TrackEnrichmentService {
 
   async getCache(): Promise<Map<string, CachedTrackData>> {
     try {
-      const cached = await window.spark.kv.get<Record<string, CachedTrackData>>(this.cacheKey);
+      const cached = await asyncStorage.get<Record<string, CachedTrackData>>(this.cacheKey);
       return new Map(Object.entries(cached || {}));
     } catch {
       return new Map();
@@ -101,7 +102,7 @@ class TrackEnrichmentService {
   async setCache(cache: Map<string, CachedTrackData>): Promise<void> {
     try {
       const obj = Object.fromEntries(cache);
-      await window.spark.kv.set(this.cacheKey, obj);
+      await asyncStorage.set(this.cacheKey, obj);
     } catch (error) {
       logger.error('Failed to save cache:', error);
     }
@@ -109,7 +110,7 @@ class TrackEnrichmentService {
 
   async getFailedLookups(): Promise<Map<string, FailedLookup>> {
     try {
-      const failed = await window.spark.kv.get<Record<string, FailedLookup>>(this.failedLookupsKey);
+      const failed = await asyncStorage.get<Record<string, FailedLookup>>(this.failedLookupsKey);
       return new Map(Object.entries(failed || {}));
     } catch {
       return new Map();
@@ -119,7 +120,7 @@ class TrackEnrichmentService {
   async setFailedLookups(failed: Map<string, FailedLookup>): Promise<void> {
     try {
       const obj = Object.fromEntries(failed);
-      await window.spark.kv.set(this.failedLookupsKey, obj);
+      await asyncStorage.set(this.failedLookupsKey, obj);
     } catch (error) {
       logger.error('Failed to save failed lookups:', error);
     }
@@ -348,10 +349,10 @@ class TrackEnrichmentService {
 
   async shouldSync(): Promise<boolean> {
     try {
-      const syncInProgress = await window.spark.kv.get<boolean>(this.syncInProgressKey);
+      const syncInProgress = await asyncStorage.get<boolean>(this.syncInProgressKey);
       if (syncInProgress) return false;
 
-      const lastSync = await window.spark.kv.get<number>(this.lastSyncKey);
+      const lastSync = await asyncStorage.get<number>(this.lastSyncKey);
       if (!lastSync) return true;
       
       const timeSinceSync = Date.now() - lastSync;
@@ -366,15 +367,15 @@ class TrackEnrichmentService {
     if (!shouldSync) return;
 
     try {
-      await window.spark.kv.set(this.syncInProgressKey, true);
+      await asyncStorage.set(this.syncInProgressKey, true);
       
       for (const track of tracks) {
         await this.enrichTrack(track);
       }
       
-      await window.spark.kv.set(this.lastSyncKey, Date.now());
+      await asyncStorage.set(this.lastSyncKey, Date.now());
     } finally {
-      await window.spark.kv.set(this.syncInProgressKey, false);
+      await asyncStorage.set(this.syncInProgressKey, false);
     }
   }
 
@@ -389,7 +390,7 @@ class TrackEnrichmentService {
   }
 
   async clearFailedLookups(): Promise<void> {
-    await window.spark.kv.delete(this.failedLookupsKey);
+    await asyncStorage.delete(this.failedLookupsKey);
   }
 
   async getStats(): Promise<{
@@ -399,7 +400,7 @@ class TrackEnrichmentService {
   }> {
     const cache = await this.getCache();
     const failed = await this.getFailedLookups();
-    const lastSync = await window.spark.kv.get<number>(this.lastSyncKey);
+    const lastSync = await asyncStorage.get<number>(this.lastSyncKey);
 
     return {
       cachedTracks: cache.size,

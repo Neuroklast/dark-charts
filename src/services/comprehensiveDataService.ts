@@ -1,6 +1,7 @@
 import { IDataService, Track, ChartData, ChartWeights } from '@/types';
 import { generateComprehensiveCharts } from './comprehensiveData';
 import { rankToPoints, calculateConsensusBonus, calculateTotalScore } from '@/lib/math/borda';
+import { asyncStorage } from '@/lib/storage/asyncStorage';
 
 export class ComprehensiveDataService implements IDataService {
   private fanCharts: Track[] = [];
@@ -174,7 +175,7 @@ export class ComprehensiveDataService implements IDataService {
 
   private async loadVoteData(): Promise<VoteData> {
     try {
-      const data = await window.spark.kv.get<VoteData>('chart-vote-data');
+      const data = await asyncStorage.get<VoteData>('chart-vote-data');
       return data || { voteStore: {}, userVotes: {} };
     } catch (error) {
       return { voteStore: {}, userVotes: {} };
@@ -182,7 +183,7 @@ export class ComprehensiveDataService implements IDataService {
   }
 
   private async saveVoteData(data: VoteData): Promise<void> {
-    await window.spark.kv.set('chart-vote-data', data);
+    await asyncStorage.set('chart-vote-data', data);
   }
 }
 

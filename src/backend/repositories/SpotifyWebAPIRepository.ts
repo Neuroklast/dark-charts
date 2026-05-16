@@ -1,5 +1,6 @@
 import { ISpotifyRepository } from './ISpotifyRepository';
 import { SpotifyAlbum, SpotifyArtistAlbumsResponse } from '../models/Release';
+import { asyncStorage } from '@/lib/storage/asyncStorage';
 
 interface TokenCacheEntry {
   token: string;
@@ -37,7 +38,7 @@ export class SpotifyWebAPIRepository implements ISpotifyRepository {
 
   async authenticate(): Promise<string> {
     try {
-      const cached = await spark.kv.get<TokenCacheEntry>(this.TOKEN_CACHE_KEY);
+      const cached = await asyncStorage.get<TokenCacheEntry>(this.TOKEN_CACHE_KEY);
       
       if (cached && cached.expiresAt > Date.now()) {
         return cached.token;
@@ -67,7 +68,7 @@ export class SpotifyWebAPIRepository implements ISpotifyRepository {
         expiresAt: Date.now() + (data.expires_in * 1000) - 60000
       };
       
-      await spark.kv.set(this.TOKEN_CACHE_KEY, cacheEntry);
+      await asyncStorage.set(this.TOKEN_CACHE_KEY, cacheEntry);
       
       return data.access_token;
     } catch (error) {

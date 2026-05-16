@@ -156,7 +156,7 @@ const tokens = await exchangeSpotifyCode(code, codeVerifier);
 }
 
 // Tokens werden in Spark KV gespeichert
-await spark.kv.set(`oauth-tokens-spotify`, tokens);
+await asyncStorage.set(`oauth-tokens-spotify`, tokens);
 ```
 
 ### 4. Automatisches Token Refresh
@@ -207,10 +207,10 @@ Verhindert CSRF-Attacken:
 ```typescript
 // Bei Auth-Initiierung
 const state = generateRandomString(16);
-await spark.kv.set('oauth-state', { state, provider: 'spotify' });
+await asyncStorage.set('oauth-state', { state, provider: 'spotify' });
 
 // Bei Callback
-const savedState = await spark.kv.get('oauth-state');
+const savedState = await asyncStorage.get('oauth-state');
 if (state !== savedState.state) {
   throw new Error('State mismatch - possible CSRF attack');
 }
