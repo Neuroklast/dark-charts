@@ -109,7 +109,7 @@ export class SupabaseReleaseRepository implements IReleaseRepository {
       spotifyUrl: dto.spotifyUrl ?? null,
       artworkUrl: dto.artworkUrl ?? null,
       highResArtworkUrl: dto.highResArtworkUrl ?? null,
-      itunesArtworkUrl: dto.highResArtworkUrl ?? null,
+      itunesArtworkUrl: dto.highResArtworkUrl ?? dto.artworkUrl ?? null,
       platformLinks: dto.platformLinks ?? null,
       odesliLinks: dto.platformLinks ?? null,
       albumType: dto.albumType,

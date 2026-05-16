@@ -20,7 +20,7 @@ export class ChartAggregationService {
 
     const { data: expertVotes, error: expertVotesError } = await supabase
       .from('expert_votes')
-      .select('*, dj_profiles(reputationScore)')
+      .select('*, dj:dj_profiles(reputationScore)')
       .gte('createdAt', weekStart.toISOString())
       .lt('createdAt', weekEnd.toISOString())
 
@@ -60,7 +60,7 @@ export class ChartAggregationService {
 
     for (const expertVote of expertVotes ?? []) {
       const current = releaseMetrics.get(expertVote.releaseId) || { fanScore: 0, expertScore: 0 };
-      const expertPoints = calculateExpertPoints(expertVote.rank, expertVote.dj_profiles?.reputationScore ?? 0);
+      const expertPoints = calculateExpertPoints(expertVote.rank, expertVote.dj?.reputationScore ?? 0);
       current.expertScore += expertPoints;
       releaseMetrics.set(expertVote.releaseId, current);
     }
