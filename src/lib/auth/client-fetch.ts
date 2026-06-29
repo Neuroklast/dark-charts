@@ -1,21 +1,23 @@
-import { createBrowserSupabaseClient } from '@/lib/supabase/client';
+import { tryCreateBrowserSupabaseClient } from '@/lib/supabase/client';
 import { asyncStorage } from '@/lib/storage/asyncStorage';
 
 export async function getClientAuthHeaders(): Promise<HeadersInit> {
   const headers: Record<string, string> = {};
 
-  try {
-    const supabase = createBrowserSupabaseClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+  const supabase = tryCreateBrowserSupabaseClient();
+  if (supabase) {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-    if (session?.access_token) {
-      headers.Authorization = `Bearer ${session.access_token}`;
-      return headers;
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+        return headers;
+      }
+    } catch {
+      // Fall back to legacy JWT storage
     }
-  } catch {
-    // Fall back to legacy JWT storage
   }
 
   const legacyToken = await asyncStorage.get<string>('auth-token');

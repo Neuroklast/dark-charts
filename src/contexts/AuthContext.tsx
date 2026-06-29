@@ -9,7 +9,7 @@ import {
 import { AuthUser, UserProfile } from '@/types';
 import { logger } from '@/lib/logger';
 import { asyncStorage } from '@/lib/storage/asyncStorage';
-import { createBrowserSupabaseClient } from '@/lib/supabase/client';
+import { tryCreateBrowserSupabaseClient } from '@/lib/supabase/client';
 import { authFetch } from '@/lib/auth/client-fetch';
 
 interface LoginCredentials {
@@ -178,17 +178,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const supabase = createBrowserSupabaseClient();
+    const supabase = tryCreateBrowserSupabaseClient();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    const subscription = supabase?.auth.onAuthStateChange(() => {
       void refreshUser();
-    });
+    }).data.subscription;
 
     refreshUser().finally(() => setIsLoading(false));
 
-    return () => subscription.unsubscribe();
+    return () => subscription?.unsubscribe();
   }, [refreshUser]);
 
   const login = async (
@@ -203,11 +201,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error('Email and password are required');
         }
 
-        const supabase = createBrowserSupabaseClient();
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
-          email: credentials.email,
-          password: credentials.password,
-        });
+        const supabase = tryCreateBrowserSupabaseClient();
+        let signInError: Error | null = null;
+        let sessionData: Awaited<
+          ReturnType<NonNullable<typeof supabase>['auth']['signInWithPassword']>
+        >['data'] | null = null;
+
+        if (supabase) {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: credentials.email,
+            password: credentials.password,
+          });
+          signInError = error;
+          sessionData = data;
+        } else {
+          signInError = new Error('Supabase not configured');
+        }
 
         if (signInError) {
           const response = await fetch('/api/auth/login', {
@@ -232,8 +241,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        if (data.session?.access_token) {
-          await asyncStorage.set('auth-token', data.session.access_token);
+        if (sessionData?.session?.access_token) {
+          await asyncStorage.set('auth-token', sessionData.session.access_token);
         }
         await refreshUser();
         return;
@@ -288,8 +297,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      const supabase = createBrowserSupabaseClient();
-      await supabase.auth.signOut();
+      const supabase = tryCreateBrowserSupabaseClient();
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
       await asyncStorage.delete('auth-token');
       await asyncStorage.delete('auth-user');
       setUser(null);
@@ -324,14 +335,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const getAuthToken = async (): Promise<string | null> => {
-    try {
-      const supabase = createBrowserSupabaseClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.access_token) return session.access_token;
-    } catch {
-      // Fall through to legacy token
+    const supabase = tryCreateBrowserSupabaseClient();
+    if (supabase) {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.access_token) return session.access_token;
+      } catch {
+        // Fall through to legacy token
+      }
     }
     return asyncStorage.get<string>('auth-token');
   };

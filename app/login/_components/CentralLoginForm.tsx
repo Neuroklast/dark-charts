@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartLine, Warning } from '@phosphor-icons/react';
-import { createBrowserSupabaseClient } from '@/lib/supabase/client';
+import { tryCreateBrowserSupabaseClient } from '@/lib/supabase/client';
 import { resolveRedirectPath } from '@/lib/auth/resolveRedirectPath';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -27,7 +27,26 @@ export function CentralLoginForm() {
     setIsLoading(true);
 
     try {
-      const supabase = createBrowserSupabaseClient();
+      const supabase = tryCreateBrowserSupabaseClient();
+
+      if (!supabase) {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!response.ok) {
+          toast.error(t('auth.loginFailed') || 'Login failed');
+          return;
+        }
+
+        const payload = await response.json();
+        window.location.assign(resolveRedirectPath(payload.user?.role ?? payload.role, returnTo));
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
@@ -61,7 +80,12 @@ export function CentralLoginForm() {
 
     setIsLoading(true);
     try {
-      const supabase = createBrowserSupabaseClient();
+      const supabase = tryCreateBrowserSupabaseClient();
+      if (!supabase) {
+        toast.error(t('auth.resetFailed') || 'Could not send reset email');
+        return;
+      }
+
       const redirectTo = `${window.location.origin}/auth/callback?recovery=1`;
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
       if (error) {

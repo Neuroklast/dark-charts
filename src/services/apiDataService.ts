@@ -1,6 +1,7 @@
 import { ChartData, Genre, IDataService, Track } from '@/types';
 import { ComprehensiveDataService } from './comprehensiveDataService';
 import { logger } from '@/lib/logger';
+import { isSupabaseEnvConfigured } from '@/lib/supabase/isConfigured';
 
 type ChartApiEntry = {
   id: string;
@@ -86,6 +87,15 @@ export class ApiDataService implements IDataService {
   }
 
   async getAllCharts(): Promise<ChartData> {
+    if (!isSupabaseEnvConfigured()) {
+      logger.info('Supabase not configured — using demo chart data');
+      this.isUsingMockData = true;
+      this.isUsingItunesData = false;
+      const data = await this.fallback.getAllCharts();
+      this.cacheCharts(data);
+      return data;
+    }
+
     try {
       const [fanResult, expertResult, combinedResult] = await Promise.all([
         fetchChartType('fan'),
@@ -130,6 +140,12 @@ export class ApiDataService implements IDataService {
   }
 
   async getChartByType(type: 'fan' | 'expert' | 'streaming'): Promise<Track[]> {
+    if (!isSupabaseEnvConfigured()) {
+      this.isUsingMockData = true;
+      this.isUsingItunesData = false;
+      return this.fallback.getChartByType(type);
+    }
+
     const { tracks } = await fetchChartType(type);
     if (tracks.length > 0) return tracks;
     return this.fallback.getChartByType(type);
