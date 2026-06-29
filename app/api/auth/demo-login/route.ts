@@ -75,6 +75,9 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
         email: demoConfig.email,
         passwordHash,
         role: demoConfig.role,
+        emailVerified: true,
+        trustLevel: 2,
+        authProvider: 'demo',
       })
       .select()
       .single();

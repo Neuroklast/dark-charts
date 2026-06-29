@@ -44,6 +44,57 @@ function LoginView() {
   );
 }
 
+function EmailVerificationBanner({
+  emailVerified,
+  authProvider,
+}: {
+  emailVerified?: boolean;
+  authProvider?: string | null;
+}) {
+  const { getToken } = useAuth();
+  const { t } = useLanguage();
+  const [isResending, setIsResending] = useState(false);
+
+  if (emailVerified || authProvider !== 'email') {
+    return null;
+  }
+
+  const handleResend = async () => {
+    setIsResending(true);
+    try {
+      const token = await getToken();
+      const res = await fetch('/api/auth/verify-email/resend', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Resend failed');
+      toast.success(t('profile.verificationResent'));
+    } catch {
+      toast.error(t('profile.verificationResendFailed'));
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  return (
+    <Card className="bg-destructive/10 border border-destructive/40 p-4">
+      <p className="font-ui text-sm text-foreground">{t('profile.verificationRequired')}</p>
+      <p className="font-ui text-xs text-muted-foreground mt-2">
+        {t('profile.verificationHint')}
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        className="mt-4 font-ui text-[10px] uppercase"
+        onClick={handleResend}
+        disabled={isResending}
+      >
+        {isResending ? t('profile.verificationSending') : t('profile.verificationResend')}
+      </Button>
+    </Card>
+  );
+}
+
 function AccountSettingsCard() {
   const { logout, getToken } = useAuth();
   const { t } = useLanguage();
@@ -175,7 +226,15 @@ function AccountSettingsCard() {
   );
 }
 
-function FanProfileView({ profile }: { profile: FanProfile }) {
+function FanProfileView({
+  profile,
+  emailVerified,
+  authProvider,
+}: {
+  profile: FanProfile;
+  emailVerified?: boolean;
+  authProvider?: string | null;
+}) {
   const { updateProfile, logout } = useAuth();
   const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
@@ -202,6 +261,10 @@ function FanProfileView({ profile }: { profile: FanProfile }) {
 
   return (
     <div className="space-y-6">
+      <EmailVerificationBanner
+        emailVerified={emailVerified}
+        authProvider={authProvider}
+      />
       <Card className="bg-card border border-border p-6">
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -387,7 +450,11 @@ export function ProfileView() {
       {!user?.isAuthenticated ? (
         <LoginView />
       ) : user.profile?.userType === 'fan' ? (
-        <FanProfileView profile={user.profile as FanProfile} />
+        <FanProfileView
+          profile={user.profile as FanProfile}
+          emailVerified={user.emailVerified}
+          authProvider={user.authProvider}
+        />
       ) : (
         <Card className="bg-card border border-border p-8">
           <div className="text-center">

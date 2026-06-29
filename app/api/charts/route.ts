@@ -10,6 +10,9 @@ import {
 import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import { formatChartEntry } from '@/lib/chart-format';
 import { getStartOfWeek } from '@/lib/api-auth';
+import { mainGenreChartKey } from '@/lib/genre-charts';
+import { MainGenre } from '@/types';
+import { mainGenreMap } from '@/lib/config/genres';
 
 const querySchema = z.object({
   type: z.enum(['fan', 'expert', 'streaming', 'combined']),
@@ -23,6 +26,8 @@ const querySchema = z.object({
     .string()
     .optional()
     .transform((val) => val === 'true'),
+  genre: z.string().optional(),
+  mainGenre: z.string().optional(),
 });
 
 export const GET = withErrorHandler(async (req: NextRequest) => {
@@ -38,16 +43,34 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
     throw new ApiError(400, 'Invalid parameters', 'VALIDATION_ERROR');
   }
 
-  const { type, limit: limitNum, completed } = parseResult.data;
+  const { type, limit: limitNum, completed, genre, mainGenre } = parseResult.data;
   const supabase = createServiceRoleSupabaseClient();
+
+  let genreFilter: string | null = null;
+  if (genre) {
+    genreFilter = genre;
+  } else if (mainGenre) {
+    const resolved = mainGenre as MainGenre;
+    if (resolved in mainGenreMap) {
+      genreFilter = mainGenreChartKey(resolved);
+    }
+  }
 
   let targetWeekStart = getStartOfWeek();
 
   if (completed) {
-    const { data: latestEntry } = await supabase
+    let latestQuery = supabase
       .from('chart_entries')
       .select('weekStart')
-      .eq('chartType', type)
+      .eq('chartType', type);
+
+    if (genreFilter) {
+      latestQuery = latestQuery.eq('genre', genreFilter);
+    } else {
+      latestQuery = latestQuery.is('genre', null);
+    }
+
+    const { data: latestEntry } = await latestQuery
       .order('weekStart', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -59,11 +82,19 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
     }
   }
 
-  const { data: chartEntries, error } = await supabase
+  let chartQuery = supabase
     .from('chart_entries')
     .select('*, release:releases(*, artist:artists(*))')
     .eq('chartType', type)
-    .eq('weekStart', targetWeekStart.toISOString())
+    .eq('weekStart', targetWeekStart.toISOString());
+
+  if (genreFilter) {
+    chartQuery = chartQuery.eq('genre', genreFilter);
+  } else {
+    chartQuery = chartQuery.is('genre', null);
+  }
+
+  const { data: chartEntries, error } = await chartQuery
     .order('placement', { ascending: true })
     .limit(limitNum);
 

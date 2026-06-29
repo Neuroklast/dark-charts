@@ -327,6 +327,9 @@ export interface AuthUser {
   isAuthenticated: boolean;
   isDemo?: boolean;
   role?: string;
+  emailVerified?: boolean;
+  trustLevel?: number;
+  authProvider?: string | null;
   profile?: UserProfile;
 }
 

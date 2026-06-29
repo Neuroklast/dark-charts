@@ -4,6 +4,8 @@ import {
   calculateFanScore,
   calculateCommunityPowerPercent,
 } from '@/lib/math/fan-scoring';
+import { getTrustWeight } from '@/lib/trust-level';
+import { buildGenreChartInserts } from '@/lib/genre-aggregation';
 import { getSystemSettings } from '@/lib/api/systemSettings';
 import { getWeekEnd, getPreviousWeekStart, getIsoWeekYear } from '@/lib/week';
 
@@ -18,6 +20,7 @@ interface ReleaseMetrics {
 interface ChartEntryInsert {
   releaseId: string;
   chartType: ChartTypeKey;
+  genre?: string | null;
   weekStart: string;
   placement: number;
   score: number;
@@ -157,11 +160,55 @@ export class ChartAggregationService {
       return fresh;
     };
 
-    const fanVotesByRelease = new Map<string, { fanId: string; cost: number }[]>();
+    const fanIds = [...new Set((fanVotes ?? []).map((v) => v.fanId))];
+    const trustWeightByFanId = new Map<string, number>();
+
+    if (fanIds.length > 0) {
+      const { data: fanProfiles } = await supabase
+        .from('fan_profiles')
+        .select('id, userId')
+        .in('id', fanIds);
+
+      const userIds = [...new Set((fanProfiles ?? []).map((p) => p.userId))];
+      const trustByUserId = new Map<string, number>();
+
+      if (userIds.length > 0) {
+        const { data: users } = await supabase
+          .from('users')
+          .select('id, trustLevel')
+          .in('id', userIds);
+
+        for (const user of users ?? []) {
+          trustByUserId.set(user.id, getTrustWeight(user.trustLevel));
+        }
+      }
+
+      for (const profile of fanProfiles ?? []) {
+        trustWeightByFanId.set(
+          profile.id,
+          trustByUserId.get(profile.userId) ?? getTrustWeight(0)
+        );
+      }
+    }
+
+    const fanVotesByRelease = new Map<
+      string,
+      { fanId: string; cost: number; trustWeight: number }[]
+    >();
+    const fanVoteCountByRelease = new Map<string, number>();
+
     for (const vote of fanVotes ?? []) {
       const list = fanVotesByRelease.get(vote.releaseId) ?? [];
-      list.push({ fanId: vote.fanId, cost: vote.cost ?? 0 });
+      list.push({
+        fanId: vote.fanId,
+        cost: vote.cost ?? 0,
+        trustWeight: trustWeightByFanId.get(vote.fanId) ?? getTrustWeight(0),
+      });
       fanVotesByRelease.set(vote.releaseId, list);
+      fanVoteCountByRelease.set(
+        vote.releaseId,
+        (fanVoteCountByRelease.get(vote.releaseId) ?? 0) + 1
+      );
     }
 
     for (const [releaseId, votes] of fanVotesByRelease) {
@@ -261,6 +308,7 @@ export class ChartAggregationService {
         inserts.push({
           releaseId: item.releaseId,
           chartType,
+          genre: null,
           weekStart: weekStartIso,
           placement,
           score: scoreFn(item),
@@ -278,6 +326,34 @@ export class ChartAggregationService {
     buildEntries('expert', (i) => i.expertScore);
     buildEntries('streaming', (i) => i.streamingScore);
     buildEntries('combined', (i) => i.weightedScore);
+
+    const { data: releaseGenreRows } = await supabase
+      .from('releases')
+      .select('id, genres, artist:artists(genres)')
+      .in('id', allReleaseIds)
+      .eq('isVisible', true);
+
+    const releaseGenreMap = new Map<
+      string,
+      { releaseGenres: string[]; artistGenres: string[] }
+    >();
+    for (const row of releaseGenreRows ?? []) {
+      const artist = row.artist as { genres?: string[] } | null;
+      releaseGenreMap.set(row.id, {
+        releaseGenres: row.genres ?? [],
+        artistGenres: artist?.genres ?? [],
+      });
+    }
+
+    const genreInserts = buildGenreChartInserts({
+      combinedScores,
+      releaseGenreMap,
+      fanVoteCountByRelease,
+      weekStartIso,
+      weekNumber,
+      year,
+    });
+    inserts.push(...genreInserts);
 
     const { error: insertError } = await supabase.from('chart_entries').insert(inserts);
     if (insertError) {

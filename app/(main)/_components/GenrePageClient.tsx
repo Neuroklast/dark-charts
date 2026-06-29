@@ -8,6 +8,7 @@ import { SubGenreNavigation } from '@/components/SubGenreNavigation';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { mainGenrePath } from '@/lib/routes';
 import { useChartShell } from './ChartShellClient';
+import { useGenreChartData } from '@/hooks/useGenreChartData';
 
 interface GenrePageClientProps {
   mainGenre: MainGenre;
@@ -24,26 +25,52 @@ export function GenrePageClient({ mainGenre, subGenre = null }: GenrePageClientP
       : 'overview';
 
   const {
-    fanCharts,
-    expertCharts,
-    streamingCharts,
-    isLoading,
+    fanCharts: shellFan,
+    expertCharts: shellExpert,
+    streamingCharts: shellStreaming,
+    isLoading: shellLoading,
     handleTrackClick,
   } = useChartShell();
 
+  const {
+    fanCharts: genreFan,
+    expertCharts: genreExpert,
+    streamingCharts: genreStreaming,
+    isLoading: genreLoading,
+    hasServerData,
+  } = useGenreChartData(mainGenre, subGenre);
+
   const filteredCharts = useMemo(() => {
-    if (!subGenre) {
-      return { fanCharts, expertCharts, streamingCharts };
+    if (hasServerData) {
+      return {
+        fanCharts: genreFan,
+        expertCharts: genreExpert,
+        streamingCharts: genreStreaming,
+      };
     }
-    const filterBySub = (tracks: typeof fanCharts) =>
-      tracks.filter((t) => t.genres?.includes(subGenre));
+
+    const filterBySub = (tracks: typeof shellFan) => {
+      if (!subGenre) return tracks;
+      return tracks.filter((t) => t.genres?.includes(subGenre));
+    };
 
     return {
-      fanCharts: filterBySub(fanCharts),
-      expertCharts: filterBySub(expertCharts),
-      streamingCharts: filterBySub(streamingCharts),
+      fanCharts: filterBySub(shellFan),
+      expertCharts: filterBySub(shellExpert),
+      streamingCharts: filterBySub(shellStreaming),
     };
-  }, [subGenre, fanCharts, expertCharts, streamingCharts]);
+  }, [
+    hasServerData,
+    genreFan,
+    genreExpert,
+    genreStreaming,
+    subGenre,
+    shellFan,
+    shellExpert,
+    shellStreaming,
+  ]);
+
+  const isLoading = hasServerData ? genreLoading : shellLoading;
 
   return (
     <div className="space-y-6">

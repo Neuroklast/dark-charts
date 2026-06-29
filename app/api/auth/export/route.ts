@@ -10,7 +10,7 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
 
   const { data: user, error: userError } = await supabase
     .from('users')
-    .select('id, email, role, createdAt, updatedAt, isSuspended')
+    .select('id, email, role, emailVerified, trustLevel, authProvider, createdAt, updatedAt, isSuspended')
     .eq('id', userId)
     .maybeSingle();
 

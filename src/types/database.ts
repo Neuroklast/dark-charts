@@ -17,6 +17,12 @@ export type Database = {
           role: string
           isSuspended: boolean
           isPublicProfile: boolean
+          emailVerified: boolean
+          emailVerificationToken: string | null
+          emailVerificationExpires: string | null
+          trustLevel: number
+          authProvider: string | null
+          oauthProviderId: string | null
           createdAt: string
           updatedAt: string
         }
@@ -27,6 +33,12 @@ export type Database = {
           role?: string
           isSuspended?: boolean
           isPublicProfile?: boolean
+          emailVerified?: boolean
+          emailVerificationToken?: string | null
+          emailVerificationExpires?: string | null
+          trustLevel?: number
+          authProvider?: string | null
+          oauthProviderId?: string | null
           createdAt?: string
           updatedAt?: string
         }
@@ -37,6 +49,12 @@ export type Database = {
           role?: string
           isSuspended?: boolean
           isPublicProfile?: boolean
+          emailVerified?: boolean
+          emailVerificationToken?: string | null
+          emailVerificationExpires?: string | null
+          trustLevel?: number
+          authProvider?: string | null
+          oauthProviderId?: string | null
           createdAt?: string
           updatedAt?: string
         }
@@ -294,6 +312,7 @@ export type Database = {
           communityPower: number
           releaseId: string | null
           chartType: string
+          genre: string | null
           weekStart: string
           movement: number
           trackId: string | null
@@ -311,6 +330,7 @@ export type Database = {
           communityPower?: number
           releaseId?: string | null
           chartType: string
+          genre?: string | null
           weekStart: string
           movement?: number
           trackId?: string | null
@@ -328,6 +348,7 @@ export type Database = {
           communityPower?: number
           releaseId?: string | null
           chartType?: string
+          genre?: string | null
           weekStart?: string
           movement?: number
           trackId?: string | null

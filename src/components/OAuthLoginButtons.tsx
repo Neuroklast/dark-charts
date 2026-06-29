@@ -57,7 +57,10 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
         if (!response.ok) {
           throw new Error(data.error || 'Registrierung fehlgeschlagen');
         }
-        toast.success('Registrierung erfolgreich! Bitte einloggen.');
+        toast.success(
+          data.message ||
+            'Registrierung erfolgreich! Bitte bestätige deine E-Mail, bevor du abstimmst.'
+        );
         setIsRegistering(false);
       } else {
         await authContextLogin('email', { email, password });

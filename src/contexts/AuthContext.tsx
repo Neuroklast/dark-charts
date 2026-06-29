@@ -122,13 +122,17 @@ function buildProfileFromRole(data: any): UserProfile | undefined {
 
 /** Map a raw server user response to the AuthUser shape the UI expects. */
 function buildAuthUser(data: any, provider: AuthUser['provider'] = 'email'): AuthUser {
+  const user = data.user ?? data;
   return {
-    id: data.user?.id ?? data.id,
-    email: data.user?.email ?? data.email,
+    id: user?.id ?? data.id,
+    email: user?.email ?? data.email,
     provider,
     isAuthenticated: true,
-    isDemo: data.user?.isDemo ?? data.isDemo ?? false,
-    role: data.user?.role ?? data.role,
+    isDemo: user?.isDemo ?? data.isDemo ?? false,
+    role: user?.role ?? data.role,
+    emailVerified: user?.emailVerified ?? data.emailVerified,
+    trustLevel: user?.trustLevel ?? data.trustLevel,
+    authProvider: user?.authProvider ?? data.authProvider,
     profile: buildProfileFromRole(data),
   };
 }

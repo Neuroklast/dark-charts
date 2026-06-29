@@ -48,9 +48,29 @@ export function MethodologyView() {
 {`fanScore = uniqueVoters × ${UNIQUE_VOTER_WEIGHT} + Σ√(costᵢ)`}
           </pre>
           <p className="mt-3">
-            Einzelne Accounts können Leidenschaft via QV ausdrücken (√cost), aber die <strong className="text-foreground">Breite
-            der Unterstützung</strong> (Anzahl einzigartiger Voter) dominiert. Vollständiger Sybil-Schutz erfordert
-            zusätzliche Trust-Level (OAuth-Hörhistorie) — in Entwicklung.
+            Einzelne Accounts können Leidenschaft via QV ausdrücken (√cost × Trust-Gewicht), aber die <strong className="text-foreground">gewichtete
+            Breite der Unterstützung</strong> dominiert. Trust-Gewichte: unverifizierte E-Mail 0.1×, verifizierte E-Mail 0.5×,
+            OAuth 1.0×, OAuth + Hörhistorie (geplant) 1.25×.
+          </p>
+        </section>
+
+        <Separator />
+
+        <section>
+          <h2 className="font-display text-xl uppercase text-foreground mb-3">Genre-Charts</h2>
+          <p>
+            Subgenre- und Main-Genre-Charts werden wöchentlich serverseitig aggregiert (nicht nur clientseitig gefiltert).
+            Ein Subgenre-Chart erscheint erst ab mindestens 5 Fan-Votes in der jeweiligen Woche und Genre-Zuordnung.
+          </p>
+        </section>
+
+        <Separator />
+
+        <section>
+          <h2 className="font-display text-xl uppercase text-foreground mb-3">E-Mail-Verifizierung</h2>
+          <p>
+            E-Mail-Registrierungen müssen die Adresse bestätigen, bevor Votes gezählt werden. OAuth-Accounts (Spotify/Google)
+            gelten als verifiziert und erhalten Trust-Level 2.
           </p>
         </section>
 
@@ -110,10 +130,10 @@ export function MethodologyView() {
         <section>
           <h2 className="font-display text-xl uppercase text-foreground mb-3">Bekannte Limitierungen</h2>
           <ul className="list-disc list-inside ml-2 space-y-2 text-xs">
-            <li>Email-Registrierung ohne Identitätsprüfung — Multi-Accounting möglich</li>
+            <li>Sybil-Schutz durch Trust-Gewichte reduziert, beseitigt aber nicht vollständig Multi-Accounting</li>
+            <li>OAuth-Hörhistorie (Trust-Level 3) noch nicht implementiert</li>
             <li>Streaming basiert auf Spotify-Popularity, nicht auf echten Stream-Zahlen</li>
-            <li>Genre-Charts sind gefilterte Gesamtcharts, keine separaten Genre-Aggregationen</li>
-            <li>Trust-Level / OAuth-Hörhistorie noch nicht aktiv</li>
+            <li>Neue Genre-Charts benötigen eine Aggregationswoche mit mindestens 5 Fan-Votes im Genre</li>
           </ul>
           <p className="mt-4 text-xs">
             Fragen: <Link href="/imprint" className="text-accent underline">Impressum</Link>

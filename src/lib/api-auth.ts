@@ -45,6 +45,31 @@ export async function requireAuth(req: NextRequest) {
   return decoded;
 }
 
+export async function requireVerifiedVoter(
+  decoded: { userId: string; isDemo?: boolean }
+): Promise<void> {
+  if (decoded.isDemo) return;
+
+  const supabase = createServiceRoleSupabaseClient();
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('emailVerified, authProvider')
+    .eq('id', decoded.userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new ApiError(500, 'Failed to verify email status');
+  }
+
+  if (!user?.emailVerified) {
+    throw new ApiError(
+      403,
+      'Email verification required before voting',
+      'EMAIL_NOT_VERIFIED'
+    );
+  }
+}
+
 /**
  * Token-geschützter API-Zugang für /api/v1/*.
  * Akzeptiert JWT (Login/Demo/OAuth) oder statischen DATA_API_TOKEN.

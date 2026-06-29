@@ -49,7 +49,13 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
     });
 
     const response = NextResponse.json(
-      { success: true, token: result.token, user: result.user },
+      {
+        success: true,
+        token: result.token,
+        user: result.user,
+        message: 'Registration successful. Please verify your email before voting.',
+        requiresEmailVerification: true,
+      },
       { status: 201 }
     );
 

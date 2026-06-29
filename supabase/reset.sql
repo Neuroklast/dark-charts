@@ -19,6 +19,12 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS "isSuspended" BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS "emailVerified" BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS "emailVerificationToken" TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS "emailVerificationExpires" TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS "trustLevel" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS "authProvider" TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS "oauthProviderId" TEXT;
 
 CREATE TABLE IF NOT EXISTS artists (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -120,6 +126,7 @@ CREATE TABLE IF NOT EXISTS chart_entries (
   "communityPower" NUMERIC NOT NULL DEFAULT 0,
   "releaseId" UUID REFERENCES releases(id) ON DELETE SET NULL,
   "chartType" TEXT NOT NULL,
+  genre TEXT,
   "weekStart" TIMESTAMPTZ NOT NULL,
   movement INTEGER NOT NULL DEFAULT 0,
   "trackId" UUID,
@@ -128,6 +135,8 @@ CREATE TABLE IF NOT EXISTS chart_entries (
   year INTEGER,
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE chart_entries ADD COLUMN IF NOT EXISTS genre TEXT;
 
 CREATE TABLE IF NOT EXISTS votes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -220,6 +229,7 @@ CREATE INDEX IF NOT EXISTS idx_releases_spotify_id ON releases ("spotifyId");
 CREATE INDEX IF NOT EXISTS idx_releases_is_visible ON releases ("isVisible");
 CREATE INDEX IF NOT EXISTS idx_chart_entries_chart_type_week ON chart_entries ("chartType", "weekStart");
 CREATE INDEX IF NOT EXISTS idx_chart_entries_release_id ON chart_entries ("releaseId");
+CREATE INDEX IF NOT EXISTS idx_chart_entries_genre ON chart_entries (genre, "chartType", "weekStart");
 CREATE INDEX IF NOT EXISTS idx_votes_fan_id ON votes ("fanId");
 CREATE INDEX IF NOT EXISTS idx_votes_release_id ON votes ("releaseId");
 CREATE INDEX IF NOT EXISTS idx_expert_votes_dj_id ON expert_votes ("djId");

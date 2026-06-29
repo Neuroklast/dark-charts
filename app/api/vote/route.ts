@@ -7,7 +7,7 @@ import {
   handleCors,
   setRateLimitHeaders,
 } from '@/lib/api-middleware';
-import { requireAuth, getStartOfWeek } from '@/lib/api-auth';
+import { requireAuth, requireVerifiedVoter, getStartOfWeek } from '@/lib/api-auth';
 import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import { getIsVotingPaused, getVoiceCreditsBudget } from '@/lib/system-settings';
 import { logger } from '@/lib/logger';
@@ -30,6 +30,8 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
 
   const decoded = await requireAuth(req);
   const { userId, role, isDemo } = decoded;
+
+  await requireVerifiedVoter(decoded);
 
   if (role !== 'FAN' && role !== 'DJ') {
     throw new ApiError(403, 'Forbidden: Role not authorized to vote');
