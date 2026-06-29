@@ -1,5 +1,7 @@
 const ITUNES_RETRY = { maxRetries: 3, baseDelayMs: 500 };
 
+export const RATE_LIMIT_JOB_COOLDOWN_MS = 15 * 60 * 1000;
+
 export async function withItunesRetry<T>(
   fn: () => Promise<T>,
   label = 'itunes'

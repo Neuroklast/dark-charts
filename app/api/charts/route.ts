@@ -7,12 +7,14 @@ import {
   handleCors,
   setRateLimitHeaders,
 } from '@/lib/api-middleware';
-import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
+import { tryCreateServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import { formatChartEntry } from '@/lib/chart-format';
 import { getStartOfWeek } from '@/lib/api-auth';
 import { mainGenreChartKey } from '@/lib/genre-charts';
 import { MainGenre } from '@/types';
 import { mainGenreMap } from '@/lib/config/genres';
+import { getItunesChartResponse } from '@/lib/charts/itunesChartFallback';
+import { logger } from '@/lib/logger';
 
 const querySchema = z.object({
   type: z.enum(['fan', 'expert', 'streaming', 'combined']),
@@ -30,21 +32,15 @@ const querySchema = z.object({
   mainGenre: z.string().optional(),
 });
 
-export const GET = withErrorHandler(async (req: NextRequest) => {
-  const cors = handleCors(req, 'GET,OPTIONS');
-  if (cors) return cors;
-
-  const rateLimited = applyRateLimit(req, { maxRequests: 120 });
-  if (rateLimited) return rateLimited;
-
-  const params = Object.fromEntries(req.nextUrl.searchParams.entries());
-  const parseResult = querySchema.safeParse(params);
-  if (!parseResult.success) {
-    throw new ApiError(400, 'Invalid parameters', 'VALIDATION_ERROR');
-  }
-
-  const { type, limit: limitNum, completed, genre, mainGenre } = parseResult.data;
-  const supabase = createServiceRoleSupabaseClient();
+async function fetchChartsFromDatabase(
+  type: 'fan' | 'expert' | 'streaming' | 'combined',
+  limitNum: number,
+  completed: boolean | undefined,
+  genre: string | undefined,
+  mainGenre: string | undefined
+) {
+  const supabase = tryCreateServiceRoleSupabaseClient();
+  if (!supabase) return null;
 
   let genreFilter: string | null = null;
   if (genre) {
@@ -102,14 +98,62 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
     throw new ApiError(500, error.message);
   }
 
-  const formattedEntries = (chartEntries ?? []).map((entry) => formatChartEntry(entry));
-  const response = NextResponse.json({
-    success: true,
-    chartType: type,
-    entries: formattedEntries,
-    count: formattedEntries.length,
+  if (!chartEntries?.length) return null;
+
+  return chartEntries.map((entry) => formatChartEntry(entry));
+}
+
+export const GET = withErrorHandler(async (req: NextRequest) => {
+  const cors = handleCors(req, 'GET,OPTIONS');
+  if (cors) return cors;
+
+  const rateLimited = applyRateLimit(req, { maxRequests: 120 });
+  if (rateLimited) return rateLimited;
+
+  const params = Object.fromEntries(req.nextUrl.searchParams.entries());
+  const parseResult = querySchema.safeParse(params);
+  if (!parseResult.success) {
+    throw new ApiError(400, 'Invalid parameters', 'VALIDATION_ERROR');
+  }
+
+  const { type, limit: limitNum, completed, genre, mainGenre } = parseResult.data;
+
+  try {
+    const dbEntries = await fetchChartsFromDatabase(
+      type,
+      limitNum,
+      completed,
+      genre,
+      mainGenre
+    );
+
+    if (dbEntries && dbEntries.length > 0) {
+      const response = NextResponse.json({
+        success: true,
+        chartType: type,
+        entries: dbEntries,
+        count: dbEntries.length,
+        source: 'database',
+      });
+      return setRateLimitHeaders(applyCorsToResponse(response, 'GET,OPTIONS'), req, {
+        maxRequests: 120,
+      });
+    }
+  } catch (error) {
+    if (error instanceof ApiError && error.status !== 500) {
+      throw error;
+    }
+    logger.warn('Database chart fetch failed, falling back to iTunes', { error });
+  }
+
+  const itunesPayload = await getItunesChartResponse({
+    type,
+    limit: limitNum,
+    genre,
+    mainGenre,
   });
 
+  const response = NextResponse.json(itunesPayload);
   return setRateLimitHeaders(applyCorsToResponse(response, 'GET,OPTIONS'), req, {
     maxRequests: 120,
   });
