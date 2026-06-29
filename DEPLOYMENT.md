@@ -1,46 +1,82 @@
-# Deployment
+# Deployment (Vercel + Next.js 16)
 
-Deploy to **Vercel** with Next.js 16.
+## 1. Vercel project setup
 
-## Required environment variables
+1. Import the GitHub repo in [Vercel](https://vercel.com/new).
+2. Framework preset: **Next.js** (auto-detected).
+3. Build command: `npm run build` (default).
+4. Output: App Router (no static export).
+5. Optional local link: `npx vercel link` then `npx vercel env pull .env.local`.
+
+Crons and API security headers are defined in `vercel.json`.
+
+## 2. Database (Supabase)
+
+1. Create a Supabase project.
+2. Run `supabase/reset.sql` in the SQL Editor (fresh install).
+3. For existing databases, also run `supabase/migrations/20260629_spotlight_stripe_columns.sql`.
+
+## 3. Required environment variables
+
+| Variable | Scope | Description |
+|----------|-------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | All | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | All | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server | Service role (API routes only) |
+| `JWT_SECRET` | Server | JWT signing secret |
+| `CRON_SECRET` | Server | Bearer token for `/api/cron/*` |
+| `NEXT_PUBLIC_APP_URL` | All | Production URL (Stripe redirects, email links) |
+| `SPOTIFY_CLIENT_ID` | Server | Spotify API |
+| `SPOTIFY_CLIENT_SECRET` | Server | Spotify API |
+| `NEXT_PUBLIC_SPOTIFY_CLIENT_ID` | All | Spotify OAuth (PKCE) |
+
+## 4. Recommended for production
 
 | Variable | Description |
 |----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only service role key |
-| `JWT_SECRET` | Admin/user JWT signing secret |
-| `CRON_SECRET` | Vercel cron auth bearer token |
-| `SPOTIFY_CLIENT_ID` | Server Spotify credentials |
-| `SPOTIFY_CLIENT_SECRET` | Server Spotify credentials |
-| `NEXT_PUBLIC_SPOTIFY_CLIENT_ID` | Client OAuth (PKCE) |
+| `RESEND_API_KEY` | Email verification |
+| `EMAIL_FROM` | Sender address |
+| `STRIPE_SECRET_KEY` | Spotlight self-service checkout |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signature |
+| `DATA_API_TOKEN` | Server-to-server `/api/v1/*` access |
+| `ALLOWED_ORIGIN` | CORS origin (default `*`) |
+| `NEXT_PUBLIC_LEGAL_*` | Imprint / privacy operator data |
 
-## Optional
+See `.env.example` for the full list (R2, Google OAuth, admin bootstrap).
 
-| Variable | Description |
-|----------|-------------|
-| `R2_ACCOUNT_ID` | Cloudflare account ID |
-| `R2_ACCESS_KEY_ID` | R2 access key |
-| `R2_SECRET_ACCESS_KEY` | R2 secret |
-| `R2_BUCKET_NAME` | R2 bucket name |
-| `R2_PUBLIC_URL` | Public CDN base URL |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth (server) |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google OAuth (client) |
-| `ALLOWED_ORIGIN` | CORS allowed origin |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_INIT_SECRET` | One-time admin bootstrap |
+## 5. Stripe webhook
 
-## Database
+Register in Stripe Dashboard:
 
-1. Create Supabase project
-2. Paste and run `supabase/reset.sql` in SQL Editor
+- **URL:** `https://<your-domain>/api/spotlight/webhook`
+- **Events:** `checkout.session.completed`, `checkout.session.expired`
+- Copy signing secret → `STRIPE_WEBHOOK_SECRET`
 
-## Build
+## 6. Cron jobs (`vercel.json`)
+
+| Schedule (UTC) | Path | Purpose |
+|----------------|------|---------|
+| `55 23 * * 0` | `/api/cron/aggregate-charts` | Weekly chart aggregation + anomaly detection |
+| `0 4 * * *` | `/api/cron/sync-itunes-artwork` | iTunes → R2 cover cache |
+
+Vercel sends `Authorization: Bearer <CRON_SECRET>` automatically.
+
+## 7. Post-deploy checks
+
+```bash
+curl https://<your-domain>/api/health
+```
+
+- Register/login flow
+- Email verification (Resend)
+- Fan vote submission
+- Admin: `/admin/anomalies`, `/admin/promotions`
+- Spotlight checkout (Band/Label test account)
+
+## 8. Local production preview
 
 ```bash
 npm ci
 npm run build
+npm run preview
 ```
-
-## Cron
-
-Configured in `vercel.json`: Sunday 23:55 UTC → `/api/cron/aggregate-charts`

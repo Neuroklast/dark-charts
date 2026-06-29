@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { logger } from '@/lib/logger';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Track } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ interface ExpertVotingAreaProps {
 
 export function ExpertVotingArea({ allTracks, onTrackClick, onVoteComplete }: ExpertVotingAreaProps) {
   const { getAuthToken } = useAuth();
+  const { t } = useLanguage();
   const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [blockedReleaseIds, setBlockedReleaseIds] = useState<Set<string>>(new Set());
@@ -41,7 +43,7 @@ export function ExpertVotingArea({ allTracks, onTrackClick, onVoteComplete }: Ex
 
   const handleAddToTop10 = useCallback((track: Track) => {
     if (blockedReleaseIds.has(track.id)) {
-      toast.error('Dieser Track ist vorübergehend für Abstimmungen gesperrt (Integritätsprüfung).');
+      toast.error(t('voting.integrityReview'));
       return;
     }
     if (selectedTracks.length >= 10) {
@@ -53,7 +55,7 @@ export function ExpertVotingArea({ allTracks, onTrackClick, onVoteComplete }: Ex
       return;
     }
     setSelectedTracks(prev => [...prev, track]);
-  }, [selectedTracks, blockedReleaseIds]);
+  }, [selectedTracks, blockedReleaseIds, t]);
 
   const handleRemoveFromTop10 = useCallback((trackId: string) => {
     setSelectedTracks(prev => prev.filter(t => t.id !== trackId));
@@ -104,19 +106,20 @@ export function ExpertVotingArea({ allTracks, onTrackClick, onVoteComplete }: Ex
       if (!res.ok) {
         const errorData = await res.json();
         if (res.status === 403 && errorData.code === 'RELEASE_VOTE_SUSPENDED') {
-          toast.error('Mindestens ein Track ist vorübergehend gesperrt (Integritätsprüfung).');
+          toast.error(t('voting.integrityReview'));
           return;
         }
         throw new Error(errorData.error || 'Failed to submit votes');
       }
 
-      toast.success("Abstimmung erfolgreich eingereicht");
+      toast.success(t('voting.submitSuccess') || 'Vote submitted');
       if (onVoteComplete) {
         onVoteComplete();
       }
-    } catch (error: any) {
-      console.error('Error submitting votes:', error);
-      toast.error(`Fehler beim Senden der Abstimmung: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to submit votes';
+      logger.error('Error submitting expert votes', { error });
+      toast.error(message);
     }
   };
 

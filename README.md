@@ -1,45 +1,42 @@
 # Dark Charts
 
-A brutally dark music charting platform for the Heavy Metal, Gothic, Dark Wave, and EBM underground scene.
+Independent music charts for the Heavy Metal, Gothic, Dark Wave, and EBM underground scene.
 
----
+**Stack:** Next.js 16 · React 19 · Supabase · Vercel · Stripe (Spotlight)
 
-## Table of Contents
+## Quick start
 
-### Guidelines (Agent Rules)
-| File | Description |
-|------|-------------|
-| [docs/guidelines/AGENT_MANDATE.md](docs/guidelines/AGENT_MANDATE.md) | Primary ruleset for all agents and developers – read before every sprint. |
-| [docs/guidelines/LESSONS_LEARNED.md](docs/guidelines/LESSONS_LEARNED.md) | Failed approaches and final solutions to prevent repeat mistakes. |
+```bash
+cp .env.example .env.local   # fill Supabase + JWT_SECRET
+npm ci
+npm run dev
+```
 
-### Architecture & Feature Documentation
-| File | Description |
-|------|-------------|
-| [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) | Overall system architecture and UI/data separation design. |
-| [docs/architecture/PRD.md](docs/architecture/PRD.md) | Product Requirements Document. |
-| [docs/architecture/BADGE_SYSTEM_IMPLEMENTATION.md](docs/architecture/BADGE_SYSTEM_IMPLEMENTATION.md) | Badge system backend implementation details. |
-| [docs/architecture/ENHANCED_DJ_PROFILE_IMPLEMENTATION.md](docs/architecture/ENHANCED_DJ_PROFILE_IMPLEMENTATION.md) | Enhanced DJ profile system with JSON-LD and reputation metrics. |
-| [docs/architecture/OAUTH_INTEGRATION.md](docs/architecture/OAUTH_INTEGRATION.md) | OAuth 2.0 / PKCE integration for Spotify and Google. |
-| [docs/architecture/PROFILE_SYSTEM.md](docs/architecture/PROFILE_SYSTEM.md) | User profile system documentation. |
-| [docs/architecture/SPOTIFY_INTEGRATION.md](docs/architecture/SPOTIFY_INTEGRATION.md) | Spotify API integration for automatic release synchronisation. |
-| [docs/architecture/AUTOMATED_RECOVERY.md](docs/architecture/AUTOMATED_RECOVERY.md) | Automated error recovery system implementation summary. |
-| [docs/architecture/ERROR_HANDLING.md](docs/architecture/ERROR_HANDLING.md) | Comprehensive error handling implementation. |
-| [docs/architecture/PROGRESSIVE_IMAGE_LOADING.md](docs/architecture/PROGRESSIVE_IMAGE_LOADING.md) | Artwork caching and progressive image loading. |
-| [docs/architecture/SKELETON_LOADING.md](docs/architecture/SKELETON_LOADING.md) | Skeleton loading system implementation. |
-| [docs/architecture/COVER_ARTWORK_REQUIREMENT.md](docs/architecture/COVER_ARTWORK_REQUIREMENT.md) | Cover artwork display requirements. |
-| [docs/architecture/IMPROVEMENTS.md](docs/architecture/IMPROVEMENTS.md) | UI improvement notes. |
-| [docs/architecture/DEPLOYMENT_READY.md](docs/architecture/DEPLOYMENT_READY.md) | Vercel deployment preparation summary. |
-| [docs/architecture/VERCEL_DEPLOYMENT_GUIDE.md](docs/architecture/VERCEL_DEPLOYMENT_GUIDE.md) | Step-by-step Vercel deployment guide. |
-| [docs/architecture/SECURITY.md](docs/architecture/SECURITY.md) | Security policy and responsible disclosure. |
-| [docs/architecture/audit-report.md](docs/architecture/audit-report.md) | Audit report. |
+Open [http://localhost:3000](http://localhost:3000).
 
-### Changelog
-| File | Description |
-|------|-------------|
-| [CHANGELOG.md](CHANGELOG.md) | Technical changelog of all changes. |
+## Deploy
 
----
+See [DEPLOYMENT.md](DEPLOYMENT.md) for Vercel, Supabase, Stripe webhook, and cron setup.
+
+## Docs
+
+| Topic | File |
+|-------|------|
+| Architecture | [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) |
+| Agent rules | [.github/AGENTS.md](.github/AGENTS.md) |
+| Agent workflows | [docs/agent/](docs/agent/) |
+| Guidelines | [docs/guidelines/](docs/guidelines/) |
+| Changelog | [CHANGELOG.md](CHANGELOG.md) |
+
+## Scripts
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Next.js dev server |
+| `npm test` | Vitest unit tests |
+| `npm run build` | Production build |
+| `npm run preview` | Serve production build locally |
 
 ## License
 
-This software is proprietary and confidential. All rights reserved. © 2026 NEUROKLAST. Unauthorized copying, distribution, or modification is strictly prohibited.
+Proprietary. © 2026 NEUROKLAST. All rights reserved.

@@ -1,22 +1,22 @@
-# Backend
+# Backend patterns
 
-## Route handlers
+## API routes
 
-All under `app/api/`. Wrap with `withErrorHandler`.
+- Location: `app/api/**/route.ts`
+- Wrap handlers with `withErrorHandler` from `@/lib/errors`
+- Auth: `requireAuth`, `requireVerifiedVoter`, `withAdminAuth` from `@/lib/api-auth` / `@/lib/adminAuth`
+- DB: `createServiceRoleSupabaseClient()` — never expose service role to the client
 
-## Admin auth
+## Services
 
-`requireAdmin()` / `withAdminAuth()` in `src/lib/adminAuth.ts` — JWT Bearer + DB role check.
+- `src/backend/services/` — domain logic (Auth, Charts, Promotions, Badges)
+- `src/lib/api/` — transactional helpers (e.g. fan vote bulk submit)
 
-## Voting
+## Removed legacy
 
-- `system_settings.isVotingPaused` persisted in Supabase
-- Checked in `app/api/vote/route.ts` before processing
+- Prisma, Vite SPA (`index.html`, `src/App.tsx`), `@vercel/node` auth-guard
+- Old `api/` serverless folder — use App Router handlers only
 
 ## Cron
 
-Vercel cron → `GET /api/cron/aggregate-charts` with `Authorization: Bearer $CRON_SECRET`
-
-## Health
-
-`GET /api/health` — Supabase connectivity + env var checks
+Protected by `CRON_SECRET` via `src/lib/cronAuth.ts`. Schedules in `vercel.json`.

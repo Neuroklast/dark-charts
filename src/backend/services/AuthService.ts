@@ -8,6 +8,7 @@ import {
 } from '@/lib/email-verification'
 import { sendVerificationEmail } from '@/lib/email'
 import { trustLevelForProvider } from '@/lib/trust-level'
+import { logger } from '@/lib/logger'
 
 type AuthSupabaseClient = SupabaseClient<any, 'public', any>
 
@@ -116,7 +117,7 @@ export class AuthService {
         buildVerificationUrl(verificationToken)
       )
     } catch (emailError) {
-      console.error('Failed to send verification email:', emailError)
+      logger.error('Failed to send verification email', { error: emailError })
     }
 
     const token = this.generateToken(user.id, user.email, user.role)

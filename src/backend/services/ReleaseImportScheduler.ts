@@ -26,7 +26,7 @@ export class ReleaseImportScheduler {
       const schedule = this.getScheduleFromEnv();
       
       if (!schedule) {
-        console.log('Release import scheduler: No schedule configured. Set VITE_RELEASE_IMPORT_CRON to enable.');
+        console.log('Release import scheduler: No schedule configured. Set RELEASE_IMPORT_CRON to enable.');
         return;
       }
 
@@ -49,7 +49,7 @@ export class ReleaseImportScheduler {
   }
 
   private getScheduleFromEnv(): string | null {
-    const schedule = import.meta.env.VITE_RELEASE_IMPORT_CRON || '';
+    const schedule = process.env.RELEASE_IMPORT_CRON || '';
     
     if (!schedule) {
       return null;
