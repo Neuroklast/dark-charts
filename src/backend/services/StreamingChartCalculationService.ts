@@ -1,7 +1,8 @@
 import { StreamingMetrics, StreamingScore, StreamingChartResult } from '../models/StreamingMetrics';
 import { IArtistRepository } from '../repositories/IArtistRepository';
 import { supabase } from '@/lib/supabase/client';
-import { isSpotifyConfigured, getArtistStreamingData } from '../../../api/_lib/spotify';
+import { isSpotifyConfigured, getArtistStreamingData } from '@/lib/spotify-server';
+import { getWeekStartMonday, getPreviousWeekStart } from '@/lib/week';
 
 /**
  * Streaming chart calculation service.
@@ -118,13 +119,8 @@ export class StreamingChartCalculationService {
       const { data: artist } = await supabase.from('artists').select('*').eq('id', artistId).maybeSingle();
       if (!artist?.spotifyId) return null;
 
-      const now = new Date();
-      const currentWeekStart = new Date(now);
-      currentWeekStart.setDate(now.getDate() - now.getDay());
-      currentWeekStart.setHours(0, 0, 0, 0);
-
-      const previousWeekStart = new Date(currentWeekStart);
-      previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+      const currentWeekStart = getWeekStartMonday();
+      const previousWeekStart = getPreviousWeekStart(currentWeekStart);
 
       // Try to fetch fresh data from Spotify if configured
       if (isSpotifyConfigured()) {

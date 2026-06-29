@@ -15,6 +15,7 @@ export type Database = {
           email: string
           passwordHash: string | null
           role: string
+          isSuspended: boolean
           isPublicProfile: boolean
           createdAt: string
           updatedAt: string
@@ -24,6 +25,7 @@ export type Database = {
           email: string
           passwordHash?: string | null
           role?: string
+          isSuspended?: boolean
           isPublicProfile?: boolean
           createdAt?: string
           updatedAt?: string
@@ -33,6 +35,7 @@ export type Database = {
           email?: string
           passwordHash?: string | null
           role?: string
+          isSuspended?: boolean
           isPublicProfile?: boolean
           createdAt?: string
           updatedAt?: string
@@ -168,6 +171,7 @@ export type Database = {
           country: string | null
           foundedYear: number | null
           verified: boolean
+          isVisible: boolean
           socialLinks: Json | null
           createdAt: string
           updatedAt: string
@@ -185,6 +189,7 @@ export type Database = {
           country?: string | null
           foundedYear?: number | null
           verified?: boolean
+          isVisible?: boolean
           socialLinks?: Json | null
           createdAt?: string
           updatedAt?: string
@@ -202,6 +207,7 @@ export type Database = {
           country?: string | null
           foundedYear?: number | null
           verified?: boolean
+          isVisible?: boolean
           socialLinks?: Json | null
           createdAt?: string
           updatedAt?: string
@@ -217,6 +223,7 @@ export type Database = {
           odesliLinks: Json | null
           itunesArtworkUrl: string | null
           vercelBlobUrl: string | null
+          r2ArtworkUrl: string | null
           artistId: string
           albumType: 'album' | 'single' | 'ep' | 'compilation' | null
           totalTracks: number | null
@@ -226,6 +233,7 @@ export type Database = {
           platformLinks: Json | null
           genres: string[]
           label: string | null
+          isVisible: boolean
           createdAt: string
           updatedAt: string
         }
@@ -238,6 +246,7 @@ export type Database = {
           odesliLinks?: Json | null
           itunesArtworkUrl?: string | null
           vercelBlobUrl?: string | null
+          r2ArtworkUrl?: string | null
           artistId: string
           albumType?: 'album' | 'single' | 'ep' | 'compilation' | null
           totalTracks?: number | null
@@ -247,6 +256,7 @@ export type Database = {
           platformLinks?: Json | null
           genres?: string[]
           label?: string | null
+          isVisible?: boolean
           createdAt?: string
           updatedAt?: string
         }
@@ -259,6 +269,7 @@ export type Database = {
           odesliLinks?: Json | null
           itunesArtworkUrl?: string | null
           vercelBlobUrl?: string | null
+          r2ArtworkUrl?: string | null
           artistId?: string
           albumType?: 'album' | 'single' | 'ep' | 'compilation' | null
           totalTracks?: number | null
@@ -268,6 +279,7 @@ export type Database = {
           platformLinks?: Json | null
           genres?: string[]
           label?: string | null
+          isVisible?: boolean
           createdAt?: string
           updatedAt?: string
         }
@@ -508,6 +520,32 @@ export type Database = {
           userId?: string
           badgeId?: string
           earnedAt?: string
+        }
+      }
+      system_settings: {
+        Row: {
+          id: string
+          isVotingPaused: boolean
+          voiceCreditsBudget: number
+          chartWeights: Json
+          createdAt: string
+          updatedAt: string
+        }
+        Insert: {
+          id?: string
+          isVotingPaused?: boolean
+          voiceCreditsBudget?: number
+          chartWeights?: Json
+          createdAt?: string
+          updatedAt?: string
+        }
+        Update: {
+          id?: string
+          isVotingPaused?: boolean
+          voiceCreditsBudget?: number
+          chartWeights?: Json
+          createdAt?: string
+          updatedAt?: string
         }
       }
     }

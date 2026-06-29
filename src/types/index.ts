@@ -108,6 +108,7 @@ export interface ChartData {
   fanCharts: Track[];
   expertCharts: Track[];
   streamingCharts: Track[];
+  combinedCharts?: Track[];
 }
 
 export interface Vote {

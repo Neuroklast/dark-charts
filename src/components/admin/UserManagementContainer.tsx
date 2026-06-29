@@ -33,7 +33,7 @@ export function UserManagementContainer() {
   const handleSuspendUser = async (userId: string) => {
     // Optimistic UI update
     const previousUsers = [...users];
-    setUsers(users.map(u => u.id === userId ? { ...u, role: 'SUSPENDED' } : u));
+    setUsers(users.map(u => u.id === userId ? { ...u, isSuspended: true } : u));
     toast.success('User suspended (optimistic)');
 
     try {

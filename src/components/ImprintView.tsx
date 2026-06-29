@@ -1,10 +1,26 @@
+'use client';
+
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Envelope, MapPin, IdentificationCard } from '@phosphor-icons/react';
+import { Envelope, MapPin, IdentificationCard, Warning } from '@phosphor-icons/react';
+import { getLegalConfig } from '@/lib/legal-config';
 
 export function ImprintView() {
+  const legal = getLegalConfig();
+
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
+    <div className="w-full max-w-4xl mx-auto space-y-6 py-8 px-4">
+      {!legal.isConfigured && (
+        <div className="flex items-start gap-3 border border-amber-500/40 bg-amber-500/10 p-4 rounded text-sm text-amber-200">
+          <Warning size={20} weight="fill" className="shrink-0" />
+          <p className="font-ui text-xs leading-relaxed">
+            Dieses Impressum ist unvollständig. Vor dem öffentlichen Launch müssen NEXT_PUBLIC_LEGAL_OPERATOR_NAME,
+            NEXT_PUBLIC_LEGAL_STREET, NEXT_PUBLIC_LEGAL_CITY und NEXT_PUBLIC_LEGAL_EMAIL in der Umgebung gesetzt werden
+            (§ 5 DDG).
+          </p>
+        </div>
+      )}
+
       <Card className="bg-card border border-border p-8">
         <h1 className="font-display text-3xl uppercase text-foreground mb-8 tracking-tight">
           Impressum / Legal Notice
@@ -14,14 +30,14 @@ export function ImprintView() {
           <section>
             <h2 className="font-display text-xl uppercase text-foreground mb-4 flex items-center gap-3">
               <IdentificationCard size={24} weight="bold" className="text-accent" />
-              Angaben gemäß § 5 TMG
+              Angaben gemäß § 5 DDG
             </h2>
             <div className="space-y-2">
               <p className="font-data text-foreground">
-                <strong>Betreiber:</strong> [Ihr Name / Firma]
+                <strong>Betreiber:</strong> {legal.name}
               </p>
               <p className="font-data">
-                <strong>Rechtsform:</strong> [z.B. Einzelunternehmen, GmbH]
+                <strong>Rechtsform:</strong> {legal.legalForm}
               </p>
             </div>
           </section>
@@ -34,9 +50,9 @@ export function ImprintView() {
               Anschrift
             </h2>
             <address className="not-italic font-data space-y-1">
-              <p>[Straße und Hausnummer]</p>
-              <p>[PLZ] [Ort]</p>
-              <p>[Land]</p>
+              <p>{legal.street}</p>
+              <p>{legal.zip} {legal.city}</p>
+              <p>{legal.country}</p>
             </address>
           </section>
 
@@ -50,37 +66,38 @@ export function ImprintView() {
             <div className="font-data space-y-2">
               <p>
                 <strong>E-Mail:</strong>{' '}
-                <a href="mailto:info@darkcharts.example" className="text-accent hover:text-primary transition-colors">
-                  info@darkcharts.example
+                <a href={`mailto:${legal.email}`} className="text-accent hover:text-primary transition-colors">
+                  {legal.email}
                 </a>
               </p>
-              <p>
-                <strong>Telefon:</strong> [Optional: Telefonnummer]
-              </p>
+              {legal.phone && (
+                <p>
+                  <strong>Telefon:</strong> {legal.phone}
+                </p>
+              )}
             </div>
           </section>
 
-          <Separator />
-
-          <section>
-            <h2 className="font-display text-xl uppercase text-foreground mb-4">Umsatzsteuer-ID</h2>
-            <p className="font-data">
-              Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG:<br />
-              <strong>DE [Ihre USt-IdNr.]</strong>
-            </p>
-            <p className="mt-4 text-xs">
-              (Falls zutreffend – nur erforderlich, wenn Sie unternehmerisch tätig sind)
-            </p>
-          </section>
+          {legal.vatId && (
+            <>
+              <Separator />
+              <section>
+                <h2 className="font-display text-xl uppercase text-foreground mb-4">Umsatzsteuer-ID</h2>
+                <p className="font-data">
+                  Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG: <strong>{legal.vatId}</strong>
+                </p>
+              </section>
+            </>
+          )}
 
           <Separator />
 
           <section>
             <h2 className="font-display text-xl uppercase text-foreground mb-4">Verantwortlich für den Inhalt</h2>
             <p className="font-data">
-              Verantwortlich nach § 55 Abs. 2 RStV:<br />
-              <strong>[Ihr Name]</strong><br />
-              [Adresse wie oben]
+              Verantwortlich nach § 18 Abs. 2 MStV:<br />
+              <strong>{legal.representative || legal.name}</strong><br />
+              {legal.street}, {legal.zip} {legal.city}
             </p>
           </section>
 
@@ -92,17 +109,14 @@ export function ImprintView() {
               Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:
             </p>
             <p>
-              <a 
-                href="https://ec.europa.eu/consumers/odr" 
-                target="_blank" 
+              <a
+                href="https://ec.europa.eu/consumers/odr"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-accent hover:text-primary transition-colors font-data"
               >
                 https://ec.europa.eu/consumers/odr
               </a>
-            </p>
-            <p className="mt-4">
-              Unsere E-Mail-Adresse finden Sie oben im Impressum.
             </p>
           </section>
 
@@ -111,61 +125,8 @@ export function ImprintView() {
           <section>
             <h2 className="font-display text-xl uppercase text-foreground mb-4">Verbraucher­streit­beilegung</h2>
             <p>
-              Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer 
-              Verbraucherschlichtungsstelle teilzunehmen.
-            </p>
-          </section>
-
-          <Separator />
-
-          <section>
-            <h2 className="font-display text-xl uppercase text-foreground mb-4">Haftung für Inhalte</h2>
-            <p className="mb-4">
-              Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den 
-              allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht 
-              verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen 
-              zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen.
-            </p>
-            <p>
-              Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen 
-              Gesetzen bleiben hiervon unberührt. Eine diesbezügliche Haftung ist jedoch erst ab dem Zeitpunkt 
-              der Kenntnis einer konkreten Rechtsverletzung möglich. Bei Bekanntwerden von entsprechenden 
-              Rechtsverletzungen werden wir diese Inhalte umgehend entfernen.
-            </p>
-          </section>
-
-          <Separator />
-
-          <section>
-            <h2 className="font-display text-xl uppercase text-foreground mb-4">Haftung für Links</h2>
-            <p className="mb-4">
-              Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben. 
-              Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der 
-              verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.
-            </p>
-            <p>
-              Die verlinkten Seiten wurden zum Zeitpunkt der Verlinkung auf mögliche Rechtsverstöße überprüft. 
-              Rechtswidrige Inhalte waren zum Zeitpunkt der Verlinkung nicht erkennbar. Eine permanente inhaltliche 
-              Kontrolle der verlinkten Seiten ist jedoch ohne konkrete Anhaltspunkte einer Rechtsverletzung nicht 
-              zumutbar. Bei Bekanntwerden von Rechtsverletzungen werden wir derartige Links umgehend entfernen.
-            </p>
-          </section>
-
-          <Separator />
-
-          <section>
-            <h2 className="font-display text-xl uppercase text-foreground mb-4">Urheberrecht</h2>
-            <p className="mb-4">
-              Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen 
-              Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der 
-              Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.
-            </p>
-            <p>
-              Downloads und Kopien dieser Seite sind nur für den privaten, nicht kommerziellen Gebrauch gestattet. 
-              Soweit die Inhalte auf dieser Seite nicht vom Betreiber erstellt wurden, werden die Urheberrechte 
-              Dritter beachtet. Insbesondere werden Inhalte Dritter als solche gekennzeichnet. Sollten Sie trotzdem 
-              auf eine Urheberrechtsverletzung aufmerksam werden, bitten wir um einen entsprechenden Hinweis. 
-              Bei Bekanntwerden von Rechtsverletzungen werden wir derartige Inhalte umgehend entfernen.
+              Wir sind nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle
+              teilzunehmen.
             </p>
           </section>
 
@@ -173,27 +134,13 @@ export function ImprintView() {
 
           <section>
             <h2 className="font-display text-xl uppercase text-foreground mb-4">Musikmetadaten und APIs</h2>
-            <p className="mb-4">
-              Diese Plattform nutzt folgende Drittanbieter-APIs zur Bereitstellung von Musikmetadaten und Streaming-Links:
-            </p>
             <ul className="list-disc list-inside space-y-2 ml-4">
-              <li><strong>Spotify Web API:</strong> Musikmetadaten, Artworks, Previews</li>
+              <li><strong>Spotify Web API:</strong> Musikmetadaten, Artworks</li>
+              <li><strong>Apple iTunes Search API:</strong> Cover-Artworks</li>
               <li><strong>Odesli / song.link:</strong> Multi-Platform Streaming Links</li>
+              <li><strong>Supabase, Vercel, Cloudflare R2:</strong> Infrastruktur</li>
             </ul>
-            <p className="mt-4">
-              Alle Markenrechte und Logos der genannten Dienste liegen bei den jeweiligen Rechteinhabern. 
-              Wir verwenden diese ausschließlich zur Darstellung von Musikinformationen im Rahmen der API-Nutzungsbedingungen.
-            </p>
           </section>
-
-          <div className="pt-8 border-t border-border">
-            <p className="text-xs text-muted-foreground">
-              Quelle: <a href="https://www.e-recht24.de" className="text-accent hover:text-primary transition-colors">e-recht24.de</a> (adaptiert)
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              Letzte Aktualisierung: {new Date().toLocaleDateString('de-DE')}
-            </p>
-          </div>
         </div>
       </Card>
     </div>

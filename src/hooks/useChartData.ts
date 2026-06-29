@@ -6,6 +6,32 @@ import { trackEnrichmentService } from '@/services/trackEnrichmentService';
 import { nightlySyncService } from '@/services/nightlySyncService';
 import { safeFilter, safeSlice } from '@/lib/safe-utils';
 
+let nightlySyncInitialized = false;
+
+async function enrichTracksInBackground(
+  fan: Track[],
+  expert: Track[],
+  streaming: Track[],
+  allTracks: Track[],
+  onUpdate: (fan: Track[], expert: Track[], streaming: Track[]) => void
+) {
+  if (!trackEnrichmentService || allTracks.length === 0) return;
+
+  try {
+    trackEnrichmentService.startBackgroundSync(allTracks);
+    const enrichedTracks = await trackEnrichmentService.enrichTracks(allTracks);
+    const enrichedMap = new Map(enrichedTracks.map((t) => [t.id, t]));
+
+    onUpdate(
+      fan.map((t) => enrichedMap.get(t.id) || t),
+      expert.map((t) => enrichedMap.get(t.id) || t),
+      streaming.map((t) => enrichedMap.get(t.id) || t)
+    );
+  } catch (enrichmentError) {
+    logger.error('Failed to enrich tracks in background:', enrichmentError);
+  }
+}
+
 export function useChartData() {
   const dataService = useDataService();
   const [fanCharts, setFanCharts] = useState<Track[]>([]);
@@ -16,6 +42,8 @@ export function useChartData() {
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadCharts = async () => {
       setIsLoading(true);
       try {
@@ -29,51 +57,31 @@ export function useChartData() {
           throw new Error('Invalid data received from service');
         }
 
-        const allTracks = [
-          ...(Array.isArray(data.fanCharts) ? data.fanCharts : []),
-          ...(Array.isArray(data.expertCharts) ? data.expertCharts : []),
-          ...(Array.isArray(data.streamingCharts) ? data.streamingCharts : [])
-        ];
+        const fan = Array.isArray(data.fanCharts) ? data.fanCharts : [];
+        const expert = Array.isArray(data.expertCharts) ? data.expertCharts : [];
+        const streaming = Array.isArray(data.streamingCharts) ? data.streamingCharts : [];
 
-        if (trackEnrichmentService && allTracks.length > 0) {
-          try {
-            const enrichedTracks = await trackEnrichmentService.enrichTracks(allTracks);
-            const enrichedMap = new Map(enrichedTracks.map(t => [t.id, t]));
+        if (cancelled) return;
 
-            const enrichedFanCharts = (data.fanCharts || []).map((t: Track) => enrichedMap.get(t.id) || t);
-            const enrichedExpertCharts = (data.expertCharts || []).map((t: Track) => enrichedMap.get(t.id) || t);
-            const enrichedStreamingCharts = (data.streamingCharts || []).map((t: Track) => enrichedMap.get(t.id) || t);
+        setFanCharts(fan);
+        setExpertCharts(expert);
+        setStreamingCharts(streaming);
 
-            setFanCharts(enrichedFanCharts);
-            setExpertCharts(enrichedExpertCharts);
-            setStreamingCharts(enrichedStreamingCharts);
-
-            if (enrichedFanCharts.length > 0) {
-              setCurrentTrack(enrichedFanCharts[0]);
-            }
-
-            trackEnrichmentService.startBackgroundSync(allTracks);
-          } catch (enrichmentError) {
-            logger.error('Failed to enrich tracks:', enrichmentError);
-            setFanCharts(Array.isArray(data.fanCharts) ? data.fanCharts : []);
-            setExpertCharts(Array.isArray(data.expertCharts) ? data.expertCharts : []);
-            setStreamingCharts(Array.isArray(data.streamingCharts) ? data.streamingCharts : []);
-
-            if (Array.isArray(data.fanCharts) && data.fanCharts.length > 0) {
-              setCurrentTrack(data.fanCharts[0]);
-            }
-          }
-        } else {
-          setFanCharts(Array.isArray(data.fanCharts) ? data.fanCharts : []);
-          setExpertCharts(Array.isArray(data.expertCharts) ? data.expertCharts : []);
-          setStreamingCharts(Array.isArray(data.streamingCharts) ? data.streamingCharts : []);
-
-          if (Array.isArray(data.fanCharts) && data.fanCharts.length > 0) {
-            setCurrentTrack(data.fanCharts[0]);
-          }
+        if (fan.length > 0) {
+          setCurrentTrack(fan[0]);
         }
 
-        if (nightlySyncService) {
+        const allTracks = [...fan, ...expert, ...streaming];
+        void enrichTracksInBackground(fan, expert, streaming, allTracks, (ef, ee, es) => {
+          if (!cancelled) {
+            setFanCharts(ef);
+            setExpertCharts(ee);
+            setStreamingCharts(es);
+          }
+        });
+
+        if (nightlySyncService && !nightlySyncInitialized) {
+          nightlySyncInitialized = true;
           try {
             nightlySyncService.initialize();
           } catch (syncError) {
@@ -82,36 +90,23 @@ export function useChartData() {
         }
       } catch (error) {
         logger.error('Failed to load charts:', error);
-        setFanCharts([]);
-        setExpertCharts([]);
-        setStreamingCharts([]);
+        if (!cancelled) {
+          setFanCharts([]);
+          setExpertCharts([]);
+          setStreamingCharts([]);
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadCharts();
+    return () => {
+      cancelled = true;
+    };
   }, [dataService]);
-
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const allTracks = [...fanCharts, ...expertCharts, ...streamingCharts];
-        if (allTracks.length > 0 && trackEnrichmentService) {
-          const enrichedTracks = await trackEnrichmentService.enrichTracks(allTracks);
-          const enrichedMap = new Map(enrichedTracks.map(t => [t.id, t]));
-
-          setFanCharts(current => current.map(t => enrichedMap.get(t.id) || t));
-          setExpertCharts(current => current.map(t => enrichedMap.get(t.id) || t));
-          setStreamingCharts(current => current.map(t => enrichedMap.get(t.id) || t));
-        }
-      } catch (error) {
-        logger.error('Failed to sync tracks:', error);
-      }
-    }, 24 * 60 * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [fanCharts, expertCharts, streamingCharts]);
 
   const allGenres: Genre[] = useMemo(() => {
     try {
@@ -186,17 +181,15 @@ export function useChartData() {
 
   const overallChart = useMemo(() => {
     try {
-      if (!Array.isArray(fanCharts) || fanCharts.length === 0 ||
-          !Array.isArray(expertCharts) || expertCharts.length === 0 ||
-          !Array.isArray(streamingCharts) || streamingCharts.length === 0) {
-        return [];
-      }
-
       if (!dataService || typeof dataService.calculateOverallChart !== 'function') {
         return [];
       }
 
       const chart = dataService.calculateOverallChart();
+      if (!Array.isArray(chart) || chart.length === 0) {
+        return [];
+      }
+
       return safeSlice(filterByGenre(chart), 0, 10, []);
     } catch (error) {
       logger.error('Error calculating overall chart:', error);

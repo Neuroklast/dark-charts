@@ -23,6 +23,103 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function roleToUserType(role?: string): 'fan' | 'dj' | 'band' | 'label' {
+  switch (role) {
+    case 'DJ': return 'dj';
+    case 'BAND': return 'band';
+    case 'LABEL': return 'label';
+    default: return 'fan';
+  }
+}
+
+function buildProfileFromRole(data: any): UserProfile | undefined {
+  const user = data.user ?? data;
+  const role = user?.role ?? data.role;
+
+  if (user?.fanProfile) {
+    return {
+      userType: 'fan',
+      id: user.fanProfile.id,
+      username: user.fanProfile.nickname,
+      biography: '',
+      externalLinks: [],
+      displayedBadges: [],
+      allBadges: [],
+      isPublicProfile: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      votingCredits: user.fanProfile.remainingCredits ?? 150,
+      votingHistory: [],
+      favoritesList: [],
+      personalCharts: [],
+    } as any;
+  }
+
+  if (user?.djProfile) {
+    return {
+      userType: 'dj',
+      id: user.djProfile.id,
+      username: user.email?.split('@')[0] ?? 'DJ',
+      biography: user.djProfile.bio ?? '',
+      externalLinks: [],
+      displayedBadges: [],
+      allBadges: [],
+      isPublicProfile: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    } as any;
+  }
+
+  if (user?.bandProfile) {
+    return {
+      userType: 'band',
+      id: user.bandProfile.id,
+      username: user.email?.split('@')[0] ?? 'Band',
+      biography: '',
+      externalLinks: [],
+      displayedBadges: [],
+      allBadges: [],
+      isPublicProfile: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      genres: [],
+      latestReleases: [],
+    } as any;
+  }
+
+  if (user?.labelProfile) {
+    return {
+      userType: 'label',
+      id: user.labelProfile.id,
+      username: user.labelProfile.companyName ?? 'Label',
+      biography: '',
+      externalLinks: [],
+      displayedBadges: [],
+      allBadges: [],
+      isPublicProfile: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    } as any;
+  }
+
+  if (role) {
+    return {
+      userType: roleToUserType(role),
+      id: user?.id ?? data.id,
+      username: user?.email?.split('@')[0] ?? 'User',
+      biography: '',
+      externalLinks: [],
+      displayedBadges: [],
+      allBadges: [],
+      isPublicProfile: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    } as any;
+  }
+
+  return undefined;
+}
+
 /** Map a raw server user response to the AuthUser shape the UI expects. */
 function buildAuthUser(data: any, provider: AuthUser['provider'] = 'email'): AuthUser {
   return {
@@ -32,24 +129,7 @@ function buildAuthUser(data: any, provider: AuthUser['provider'] = 'email'): Aut
     isAuthenticated: true,
     isDemo: data.user?.isDemo ?? data.isDemo ?? false,
     role: data.user?.role ?? data.role,
-    profile: data.user?.fanProfile
-      ? {
-          userType: 'fan',
-          id: data.user.fanProfile.id,
-          username: data.user.fanProfile.nickname,
-          biography: '',
-          externalLinks: [],
-          displayedBadges: [],
-          allBadges: [],
-          isPublicProfile: false,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          votingCredits: data.user.fanProfile.remainingCredits ?? 150,
-          votingHistory: [],
-          favoritesList: [],
-          personalCharts: [],
-        } as any
-      : undefined,
+    profile: buildProfileFromRole(data),
   };
 }
 

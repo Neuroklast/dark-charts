@@ -9,13 +9,22 @@ const safeParse = <T>(value: string | null): T | null => {
   }
 }
 
+function getLocalStorage(): Storage | null {
+  if (typeof window === 'undefined') return null
+  return window.localStorage
+}
+
 export const asyncStorage = {
   async get<T = StorageValue>(key: string): Promise<T | null> {
-    return safeParse<T>(localStorage.getItem(key))
+    const storage = getLocalStorage()
+    if (!storage) return null
+    return safeParse<T>(storage.getItem(key))
   },
 
   async set<T = StorageValue>(key: string, value: T): Promise<void> {
-    localStorage.setItem(key, JSON.stringify(value))
+    const storage = getLocalStorage()
+    if (!storage) return
+    storage.setItem(key, JSON.stringify(value))
   },
 
   async put<T = StorageValue>(key: string, value: T): Promise<void> {
@@ -23,13 +32,15 @@ export const asyncStorage = {
   },
 
   async delete(key: string): Promise<void> {
-    localStorage.removeItem(key)
+    getLocalStorage()?.removeItem(key)
   },
 
   async keys(prefix?: string): Promise<string[]> {
+    const storage = getLocalStorage()
+    if (!storage) return []
     const allKeys: string[] = []
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const key = localStorage.key(i)
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i)
       if (key && (!prefix || key.startsWith(prefix))) {
         allKeys.push(key)
       }

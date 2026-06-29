@@ -1,5 +1,6 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { IDataService, IAuthService } from '@/types';
+import { ApiDataService } from '@/services/apiDataService';
 import { ComprehensiveDataService } from '@/services/comprehensiveDataService';
 
 // Fallback stub for authService if providedAuthService isn't passed
@@ -32,10 +33,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({
 }) => {
   const [dataService] = useState<IDataService>(() => {
     try {
-      return providedDataService || new ComprehensiveDataService();
+      return providedDataService || new ApiDataService();
     } catch (error) {
       console.error('Failed to initialize DataService:', error);
-      return new ComprehensiveDataService();
+      return new ApiDataService();
     }
   });
 

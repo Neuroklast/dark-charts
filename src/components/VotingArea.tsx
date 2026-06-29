@@ -12,7 +12,11 @@ interface VotingAreaProps {
 export function VotingArea(props: VotingAreaProps) {
   const { user } = useAuth();
 
-  if (user?.profile?.userType === 'dj') {
+  const isExpert =
+    user?.role === 'DJ' ||
+    user?.profile?.userType === 'dj';
+
+  if (isExpert) {
     return <ExpertVotingArea {...props} />;
   }
 

@@ -1,24 +1,37 @@
 import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { User, ChartLine, Info, Sliders, List, X, ChartBar, ClockCounterClockwise, Translate, Users } from '@phosphor-icons/react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ViewType } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
+import { NAV_ITEMS, ROUTES } from '@/lib/routes';
 
 interface NavigationProps {
-  currentView: ViewType;
-  onNavigate: (view: ViewType) => void;
+  currentView?: ViewType;
+  onNavigate?: (view: ViewType) => void;
+  linkMode?: boolean;
 }
 
-export function Navigation({ currentView, onNavigate }: NavigationProps) {
+function isNavActive(pathname: string, href: string): boolean {
+  if (href === ROUTES.home) return pathname === ROUTES.home;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function Navigation({ currentView, onNavigate, linkMode = false }: NavigationProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { t, language, setLanguage } = useLanguage();
+  const pathname = usePathname();
+
+  const isActive = (view: ViewType, href: string) =>
+    linkMode ? isNavActive(pathname, href) : currentView === view;
 
   const NavContent = () => (
     <>
       <button
         onClick={() => {
-          onNavigate('home');
+          onNavigate?.('home');
           setMobileOpen(false);
         }}
         className={`flex items-center gap-3 px-4 py-3 border-b border-border snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
@@ -32,7 +45,7 @@ export function Navigation({ currentView, onNavigate }: NavigationProps) {
 
       <button
         onClick={() => {
-          onNavigate('custom-charts');
+          onNavigate?.('custom-charts');
           setMobileOpen(false);
         }}
         className={`flex items-center gap-3 px-4 py-3 border-b border-border snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
@@ -46,7 +59,7 @@ export function Navigation({ currentView, onNavigate }: NavigationProps) {
 
       <button
         onClick={() => {
-          onNavigate('voting');
+          onNavigate?.('voting');
           setMobileOpen(false);
         }}
         className={`flex items-center gap-3 px-4 py-3 border-b border-border snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
@@ -60,7 +73,7 @@ export function Navigation({ currentView, onNavigate }: NavigationProps) {
 
       <button
         onClick={() => {
-          onNavigate('history');
+          onNavigate?.('history');
           setMobileOpen(false);
         }}
         className={`flex items-center gap-3 px-4 py-3 border-b border-border snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
@@ -74,7 +87,7 @@ export function Navigation({ currentView, onNavigate }: NavigationProps) {
 
       <button
         onClick={() => {
-          onNavigate('profile');
+          onNavigate?.('profile');
           setMobileOpen(false);
         }}
         className={`flex items-center gap-3 px-4 py-3 border-b border-border snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
@@ -88,7 +101,7 @@ export function Navigation({ currentView, onNavigate }: NavigationProps) {
 
       <button
         onClick={() => {
-          onNavigate('profiles-demo');
+          onNavigate?.('profiles-demo');
           setMobileOpen(false);
         }}
         className={`flex items-center gap-3 px-4 py-3 border-b border-border snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
@@ -102,7 +115,7 @@ export function Navigation({ currentView, onNavigate }: NavigationProps) {
 
       <button
         onClick={() => {
-          onNavigate('about');
+          onNavigate?.('about');
           setMobileOpen(false);
         }}
         className={`flex items-center gap-3 px-4 py-3 border-b border-border snap-transition font-ui text-xs uppercase tracking-[0.15em] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary

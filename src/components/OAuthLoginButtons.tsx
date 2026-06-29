@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { oauthService, OAuthUser } from '@/services/oauthService';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface OAuthLoginButtonsProps {
   onSuccess?: () => void;
@@ -19,6 +21,7 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
   const [role, setRole] = useState('FAN');
   const [isRegistering, setIsRegistering] = useState(false);
   const [showDemoPanel, setShowDemoPanel] = useState(false);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -35,6 +38,10 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!acceptedLegal) {
+      toast.error('Bitte AGB und Datenschutzerklärung akzeptieren.');
+      return;
+    }
     try {
       setIsLoading('email');
 
@@ -80,6 +87,10 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
   };
 
   const handleSpotifyLogin = async () => {
+    if (!acceptedLegal) {
+      toast.error('Bitte AGB und Datenschutzerklärung akzeptieren.');
+      return;
+    }
     try {
       setIsLoading('spotify');
       await oauthService.initiateSpotifyAuth();
@@ -91,6 +102,10 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
   };
 
   const handleGoogleLogin = async () => {
+    if (!acceptedLegal) {
+      toast.error('Bitte AGB und Datenschutzerklärung akzeptieren.');
+      return;
+    }
     try {
       setIsLoading('google');
       await oauthService.initiateGoogleAuth();
@@ -166,9 +181,23 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
               <option value="BAND">Band</option>
             </select>
           )}
+          <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
+            <Checkbox
+              checked={acceptedLegal}
+              onCheckedChange={(v) => setAcceptedLegal(v === true)}
+              className="mt-0.5"
+            />
+            <span>
+              Ich habe die{' '}
+              <Link href="/terms" className="text-accent underline hover:text-primary">AGB</Link>
+              {' '}gelesen und die{' '}
+              <Link href="/privacy" className="text-accent underline hover:text-primary">Datenschutzerklärung</Link>
+              {' '}zur Kenntnis genommen.
+            </span>
+          </label>
           <button
             type="submit"
-            disabled={isLoading === 'email'}
+            disabled={isLoading === 'email' || !acceptedLegal}
             className="w-full py-2 bg-primary text-primary-foreground font-medium disabled:opacity-50"
           >
             {isLoading === 'email' ? 'Bitte warten...' : (isRegistering ? 'Registrieren' : 'Anmelden')}
@@ -322,7 +351,7 @@ export function OAuthLoginButtons({ onSuccess }: OAuthLoginButtonsProps) {
 
       <div className="pt-4 border-t border-border">
         <p className="text-xs text-muted-foreground">
-          {t('oauth.privacyNote') || 'Wir verwenden OAuth nur zur Authentifizierung. Ihre Daten bleiben privat.'}
+          {t('oauth.privacyNote') || 'Zur Anmeldung werden Daten an Spotify bzw. Google übermittelt. Details in unserer Datenschutzerklärung.'}
         </p>
       </div>
     </div>

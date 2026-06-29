@@ -1,0 +1,4 @@
+@import 'tailwindcss';
+@import '../src/styles/theme.css';
+@import '../src/index.css';
+@import 'tw-animate-css';

@@ -1,3 +1,5 @@
+'use client';
+
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
@@ -23,7 +25,7 @@ export function TermsOfServiceView() {
           <section>
             <h2 className="font-display text-xl uppercase text-foreground mb-4">2. Registrierung und Account</h2>
             <p className="mb-4">
-              Die Nutzung der Voting-Funktionen erfordert eine Registrierung über OAuth (Spotify). 
+              Die Nutzung der Voting-Funktionen erfordert ein registriertes Nutzerkonto (E-Mail/Passwort oder OAuth).
               Bei der Registrierung verpflichten Sie sich:
             </p>
             <ul className="list-disc list-inside space-y-2 ml-4">
@@ -64,7 +66,7 @@ export function TermsOfServiceView() {
               <li><strong>Copyright-Verstöße:</strong> Hochladen von Inhalten, für die Sie keine Rechte besitzen</li>
             </ul>
             <p className="mt-4 text-accent">
-              Bei Verdacht auf Manipulation behalten wir uns vor, Accounts ohne Vorwarnung auf <strong>RESTRICTED</strong> zu setzen 
+              Bei Verdacht auf Manipulation behalten wir uns vor, Accounts zu sperren (<strong>isSuspended</strong>)
               oder vollständig zu löschen.
             </p>
           </section>
@@ -80,12 +82,13 @@ export function TermsOfServiceView() {
               <li>Jeder Fan erhält wöchentlich eine festgelegte Anzahl an Voting-Credits</li>
               <li>Credits können frei auf Tracks verteilt werden (min. 1, max. alle auf einen Track)</li>
               <li>Votes beeinflussen die Fan Charts</li>
-              <li>DJ-Votes haben erhöhtes Gewicht in den Expert Charts</li>
-              <li>Votes sind endgültig und können nicht rückgängig gemacht werden</li>
+              <li>DJ-/Experten-Votes fließen in die separaten Expert Charts ein (eigenes Gewicht in der Gesamtwertung)</li>
+              <li>Fan-Abstimmungen sind pro Woche einmalig und nach Einreichung nicht änderbar</li>
+              <li>Experten können ihre wöchentliche Top-10-Liste per Bulk-Submit erneut einreichen</li>
             </ul>
             <p className="mt-4">
-              Wir überwachen das Voting-Verhalten algorithmisch. Auffällige Muster (z.B. koordiniertes Voting) 
-              können zur Sperrung führen.
+              Wir behalten uns manuelle Prüfung und Sperrung bei Manipulationsverdacht vor. Automatisierte
+              Anomalie-Erkennung ist in Entwicklung.
             </p>
           </section>
 
@@ -95,7 +98,9 @@ export function TermsOfServiceView() {
             <h2 className="font-display text-xl uppercase text-foreground mb-4">5. Werbeplätze und Zahlungen (Spotlight)</h2>
             <h3 className="font-display text-lg uppercase text-accent mb-3">5.1 Buchung</h3>
             <p className="mb-4">
-              Bands und Labels können kostenpflichtige Werbeplätze ("Spotlight") buchen. Die Buchung erfolgt über Stripe.
+              Bands und Labels können kostenpflichtige Werbeplätze (&quot;Spotlight&quot;) buchen. Die Selbstbuchung über
+              Stripe ist in Vorbereitung; derzeit erfolgt die Freischaltung manuell durch Administratoren.
+              Spotlight-Placements beeinflussen Chart-Rankings nicht.
             </p>
             <ul className="list-disc list-inside space-y-2 ml-4">
               <li>Preise werden transparent auf der Buchungsseite angezeigt</li>
@@ -114,6 +119,16 @@ export function TermsOfServiceView() {
             </ul>
             <p className="mt-4">
               Rückerstattungsanfragen müssen per E-Mail gestellt werden und werden innerhalb von 7 Werktagen bearbeitet.
+            </p>
+
+            <h3 className="font-display text-lg uppercase text-accent mb-3 mt-6">5.3 Widerrufsrecht (Verbraucher)</h3>
+            <p className="mb-4">
+              Verbrauchern steht bei Fernabsatzverträgen ein Widerrufsrecht von 14 Tagen zu, sofern gesetzlich anwendbar.
+              Das Muster-Widerrufsformular der EU-Kommission ist unter{' '}
+              <a href="https://ec.europa.eu/consumers/odr" className="text-accent underline" target="_blank" rel="noopener noreferrer">
+                ec.europa.eu/consumers/odr
+              </a>{' '}
+              abrufbar.
             </p>
           </section>
 
@@ -151,7 +166,7 @@ export function TermsOfServiceView() {
             </p>
             <ul className="list-disc list-inside space-y-2 ml-4 mt-4">
               <li><strong>Warnung:</strong> Hinweis auf Verstoß</li>
-              <li><strong>RESTRICTED:</strong> Einschränkung von Voting-Rechten (Soft Ban)</li>
+              <li><strong>Suspended:</strong> Einschränkung von Voting-Rechten (Soft Ban)</li>
               <li><strong>BANNED:</strong> Vollständige Sperrung des Accounts</li>
               <li><strong>Deletion:</strong> Permanente Löschung bei schwerwiegenden Verstößen</li>
             </ul>
@@ -204,7 +219,9 @@ export function TermsOfServiceView() {
           <section>
             <h2 className="font-display text-xl uppercase text-foreground mb-4">11. Schlussbestimmungen</h2>
             <p className="mb-4">
-              Es gilt deutsches Recht unter Ausschluss des UN-Kaufrechts. Gerichtsstand ist der Sitz des Betreibers (siehe Impressum).
+              Es gilt deutsches Recht unter Ausschluss des UN-Kaufrechts. Für Verbraucher mit Wohnsitz in der EU gelten
+              zwingende Verbraucherschutzvorschriften des Wohnsitzstaates. Gerichtsstand am Sitz des Betreibers gilt nur,
+              soweit der Nutzer Kaufmann oder juristische Person des öffentlichen Rechts ist (siehe Impressum).
             </p>
             <p className="mt-4 text-xs text-muted-foreground">
               Letzte Aktualisierung: {new Date().toLocaleDateString('de-DE')}

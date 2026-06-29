@@ -7,5 +7,5 @@ export function calculateExpertPoints(rank: number, reputationScore: number): nu
   else if (rank === 5) basePoints = 2;
   else if (rank >= 6 && rank <= 10) basePoints = 1;
 
-  return basePoints * reputationScore;
+  return basePoints * Math.max(1, reputationScore);
 }

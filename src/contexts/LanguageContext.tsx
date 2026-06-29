@@ -219,11 +219,11 @@ const translations: Record<Language, Translations> = {
     'about.noPayToPlayText': 'Artists don\'t pay to be ranked. Rankings are determined solely by authentic fan votes, expert reviews, and streaming engagement.',
     'about.howItWorks': 'How Voting Works',
     'about.fanCharts': 'Fan Charts',
-    'about.fanChartsText': 'Community-driven rankings powered by quadratic voting. Each authenticated user receives monthly vote credits to support their favorite artists.',
+    'about.fanChartsText': 'Community-driven rankings powered by quadratic voting. Each authenticated user receives weekly vote credits to support their favorite artists.',
     'about.expertCharts': 'Expert Charts',
-    'about.expertChartsText': 'Curated by DJs, producers, and music journalists using bayesian ranking algorithms. Expert reputation scores ensure quality evaluations.',
+    'about.expertChartsText': 'Curated by verified DJs and scene experts via weekly Top-10 rankings. Reputation scores weight expert evaluations.',
     'about.streamingCharts': 'Streaming Charts',
-    'about.streamingChartsText': 'Normalized streaming data from Spotify and YouTube, weighted by listener loyalty rather than raw play counts.',
+    'about.streamingChartsText': 'Normalized Spotify popularity metrics with growth and engagement factors — not raw play counts.',
     'about.principles': 'Principles',
     'about.principle1': 'No pay-to-play mechanisms',
     'about.principle2': 'Community-driven rankings',
@@ -233,6 +233,12 @@ const translations: Record<Language, Translations> = {
     'about.builtFor': 'Built for fans, by fans. Supporting underground artists through fair representation and authentic community engagement.',
     
     'footer.tagline': 'Independent music charts for Metal & Gothic scene. Fair, transparent, and free from pay-to-win mechanics.',
+    'footer.imprint': 'Legal Notice',
+    'footer.privacy': 'Privacy',
+    'footer.terms': 'Terms',
+    'footer.about': 'About',
+    'footer.methodology': 'Methodology',
+    'footer.legalNav': 'Legal',
     'footer.underground': 'Underground Never Dies',
     
     'common.loading': 'Loading...',
@@ -309,7 +315,7 @@ const translations: Record<Language, Translations> = {
     'oauth.loginFailed': 'Login failed',
     'oauth.loggedOut': 'Successfully logged out',
     'oauth.logoutFailed': 'Logout failed',
-    'oauth.privacyNote': 'We use OAuth only for authentication. Your data remains private.',
+    'oauth.privacyNote': 'Sign-in involves sharing data with Spotify or Google. See our Privacy Policy.',
   },
   de: {
     'nav.home': 'Startseite',
@@ -516,11 +522,11 @@ const translations: Record<Language, Translations> = {
     'about.noPayToPlayText': 'Künstler zahlen nicht für Rankings. Die Platzierungen werden ausschließlich durch authentische Fan-Stimmen, Expertenrezensionen und Streaming-Engagement bestimmt.',
     'about.howItWorks': 'Wie das Voting funktioniert',
     'about.fanCharts': 'Fan-Charts',
-    'about.fanChartsText': 'Community-gesteuerte Rankings mit quadratischem Voting. Jeder authentifizierte Benutzer erhält monatlich Voting-Credits, um seine Lieblingskünstler zu unterstützen.',
+    'about.fanChartsText': 'Community-gesteuerte Rankings mit quadratischem Voting. Jeder authentifizierte Benutzer erhält wöchentlich Voting-Credits, um seine Lieblingskünstler zu unterstützen.',
     'about.expertCharts': 'Experten-Charts',
-    'about.expertChartsText': 'Kuratiert von DJs, Produzenten und Musikjournalisten mit Bayesschen Ranking-Algorithmen. Experten-Reputationswerte gewährleisten qualitativ hochwertige Bewertungen.',
+    'about.expertChartsText': 'Kuratiert von verifizierten DJs und Szene-Experten per wöchentlicher Top-10-Bewertung. Reputationswerte gewichten Expertenstimmen.',
     'about.streamingCharts': 'Streaming-Charts',
-    'about.streamingChartsText': 'Normalisierte Streaming-Daten von Spotify und YouTube, gewichtet nach Hörer-Loyalität statt bloßen Wiedergabezahlen.',
+    'about.streamingChartsText': 'Normalisierte Spotify-Popularitätsmetriken mit Wachstums- und Engagement-Faktoren — keine reinen Wiedergabezahlen.',
     'about.principles': 'Grundsätze',
     'about.principle1': 'Keine Pay-to-Play-Mechaniken',
     'about.principle2': 'Community-gesteuerte Rankings',
@@ -530,6 +536,12 @@ const translations: Record<Language, Translations> = {
     'about.builtFor': 'Von Fans für Fans gebaut. Unterstützung von Underground-Künstlern durch faire Repräsentation und authentisches Community-Engagement.',
     
     'footer.tagline': 'Unabhängige Musik-Charts für die Metal & Gothic-Szene. Fair, transparent und frei von Pay-to-Win-Mechaniken.',
+    'footer.imprint': 'Impressum',
+    'footer.privacy': 'Datenschutz',
+    'footer.terms': 'AGB',
+    'footer.about': 'Über uns',
+    'footer.methodology': 'Methodik',
+    'footer.legalNav': 'Rechtliches',
     'footer.underground': 'Underground stirbt nie',
     
     'common.loading': 'Lädt...',
@@ -606,7 +618,7 @@ const translations: Record<Language, Translations> = {
     'oauth.loginFailed': 'Anmeldung fehlgeschlagen',
     'oauth.loggedOut': 'Erfolgreich abgemeldet',
     'oauth.logoutFailed': 'Abmeldung fehlgeschlagen',
-    'oauth.privacyNote': 'Wir verwenden OAuth nur zur Authentifizierung. Ihre Daten bleiben privat.',
+    'oauth.privacyNote': 'Zur Anmeldung werden Daten an Spotify bzw. Google übermittelt. Details in unserer Datenschutzerklärung.',
   }
 };
 

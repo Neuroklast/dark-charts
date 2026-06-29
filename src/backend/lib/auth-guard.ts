@@ -47,11 +47,13 @@ export async function withAdminAuth(
       }
 
       // Verify user exists and is still an admin in the database
-      const { data: user } = await supabase
+      const { data: userData } = await supabase
         .from('users')
         .select('id,role')
         .eq('id', decoded.userId)
         .maybeSingle();
+
+      const user = userData as { id: string; role: string } | null;
 
       if (!user) {
         logger.error('Forbidden access attempt: User not found in database', { userId: decoded.userId });

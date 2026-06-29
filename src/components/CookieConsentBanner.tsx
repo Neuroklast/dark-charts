@@ -1,14 +1,12 @@
+'use client';
+
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X } from '@phosphor-icons/react';
 import { useKV } from '@/hooks/useKV';
 
-interface CookieConsentBannerProps {
-  onNavigateToPrivacy?: () => void;
-}
-
-export function CookieConsentBanner({ onNavigateToPrivacy }: CookieConsentBannerProps) {
+export function CookieConsentBanner() {
   const [consentGiven, setConsentGiven] = useKV<'unset' | 'acceptedAll' | 'essentialOnly'>('cookie-consent', 'unset');
   const [showBanner, setShowBanner] = useState(false);
 
@@ -37,39 +35,22 @@ export function CookieConsentBanner({ onNavigateToPrivacy }: CookieConsentBanner
     <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 md:p-6 pointer-events-none">
       <Card className="bg-card border border-primary shadow-lg pointer-events-auto max-w-5xl mx-auto">
         <div className="p-6 space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-3 flex-1">
-              <h3 className="font-display text-lg uppercase text-foreground">
-                Cookie-Hinweis / Cookie Notice
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Wir verwenden Cookies und ähnliche Technologien, um die Funktionalität dieser Website zu gewährleisten.
-                Dazu gehören technisch notwendige Cookies für Authentifizierung sowie Drittanbieter-Cookies von Spotify
-                und Stripe. Durch Klicken auf "Akzeptieren" stimmen Sie der Verwendung zu.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Weitere Informationen finden Sie in unserer{' '}
-                <button
-                  onClick={() => {
-                    if (onNavigateToPrivacy) {
-                      onNavigateToPrivacy();
-                    }
-                    setShowBanner(false);
-                  }}
-                  className="text-accent hover:text-primary transition-colors underline"
-                >
-                  Datenschutzerklärung
-                </button>
-                .
-              </p>
-            </div>
-            <button
-              onClick={() => setShowBanner(false)}
-              className="text-muted-foreground hover:text-foreground transition-colors p-1"
-              aria-label="Banner schließen"
-            >
-              <X size={20} weight="bold" />
-            </button>
+          <div className="space-y-3">
+            <h3 className="font-display text-lg uppercase text-foreground">
+              Cookie-Hinweis / Cookie Notice
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Wir verwenden technisch notwendige Speicher (Login-Session, Spracheinstellung, Cookie-Einwilligung).
+              Optionale Drittanbieter-Cookies werden erst nach Ihrer Einwilligung geladen, sobald entsprechende
+              Dienste aktiviert werden.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Weitere Informationen in unserer{' '}
+              <Link href="/privacy" className="text-accent hover:text-primary transition-colors underline">
+                Datenschutzerklärung
+              </Link>
+              .
+            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -77,7 +58,7 @@ export function CookieConsentBanner({ onNavigateToPrivacy }: CookieConsentBanner
               onClick={handleAccept}
               className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 sm:flex-none"
             >
-              Akzeptieren / Accept
+              Alle akzeptieren / Accept All
             </Button>
             <Button
               onClick={handleReject}

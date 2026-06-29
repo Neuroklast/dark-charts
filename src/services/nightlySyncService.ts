@@ -31,6 +31,7 @@ interface SyncHistoryEntry {
 class NightlySyncService {
   private syncTimer: number | null = null;
   private isRunning = false;
+  private initialized = false;
   private readonly SETTINGS_KEY = 'nightly-sync-settings';
   private readonly STATUS_KEY = 'nightly-sync-status';
   private readonly HISTORY_KEY = 'nightly-sync-history';
@@ -45,6 +46,9 @@ class NightlySyncService {
   };
 
   async initialize(): Promise<void> {
+    if (this.initialized) return;
+    this.initialized = true;
+
     const settings = await this.getSettings();
     if (settings.enabled) {
       await this.scheduleNextSync();
@@ -97,6 +101,11 @@ class NightlySyncService {
   }
 
   private async scheduleNextSync(): Promise<void> {
+    if (this.syncTimer !== null) {
+      clearTimeout(this.syncTimer);
+      this.syncTimer = null;
+    }
+
     const settings = await this.getSettings();
     const now = new Date();
     const nextSync = this.calculateNextSyncTime(settings.syncTime);

@@ -1,117 +1,305 @@
-import { supabase } from '@/lib/supabase/client'
-import { calculateExpertPoints } from '../../lib/math/expert-ranking';
+import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
+import { calculateExpertPoints } from '@/lib/math/expert-ranking';
+import {
+  calculateFanScore,
+  calculateCommunityPowerPercent,
+} from '@/lib/math/fan-scoring';
+import { getSystemSettings } from '@/lib/api/systemSettings';
+import { getWeekEnd, getPreviousWeekStart, getIsoWeekYear } from '@/lib/week';
+
+type ChartTypeKey = 'fan' | 'expert' | 'streaming' | 'combined';
+
+interface ReleaseMetrics {
+  fanScore: number;
+  expertScore: number;
+  streamingScore: number;
+}
+
+interface ChartEntryInsert {
+  releaseId: string;
+  chartType: ChartTypeKey;
+  weekStart: string;
+  placement: number;
+  score: number;
+  fanScore: number;
+  expertScore: number;
+  communityPower: number;
+  movement: number;
+  weekNumber: number;
+  year: number;
+}
+
+function calculateStreamingScore(
+  current: { spotifyPopularity: number; followerCount: number },
+  previous: { spotifyPopularity: number; followerCount: number } | null
+): number {
+  const estimatedStreams = Math.round(Math.pow(10, current.spotifyPopularity / 20));
+  const previousStreams = previous
+    ? Math.round(Math.pow(10, previous.spotifyPopularity / 20))
+    : estimatedStreams;
+
+  const logScore =
+    estimatedStreams <= 0 ? 0 : Math.log10(estimatedStreams + 1) * 100;
+
+  let growthFactor = 1.0;
+  if (previousStreams > 0) {
+    const growth = ((estimatedStreams - previousStreams) / previousStreams) * 100;
+    if (growth < 0) {
+      growthFactor = Math.max(0.5, 1 + growth / 100);
+    } else if (growth > 0) {
+      growthFactor = Math.min(3.0, 1 + Math.log10(growth + 1) / 10);
+    }
+  }
+
+  const followerCount = current.followerCount;
+  let engagementRatio = 0;
+  if (followerCount === 0) {
+    engagementRatio = estimatedStreams > 0 ? 2.0 : 0;
+  } else {
+    engagementRatio = Math.min(
+      2.0,
+      Math.log10(estimatedStreams / followerCount + 1) / 2
+    );
+  }
+
+  return logScore * growthFactor * (1 + engagementRatio);
+}
+
+function normalizeScore(value: number, max: number): number {
+  if (max <= 0) return 0;
+  return value / max;
+}
 
 export class ChartAggregationService {
   async aggregateChartsForWeek(weekStart: Date) {
-    // Determine the end of the week
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 7);
+    const supabase = createServiceRoleSupabaseClient();
+    const weekEnd = getWeekEnd(weekStart);
+    const lastWeekStart = getPreviousWeekStart(weekStart);
+    const { weekNumber, year } = getIsoWeekYear(weekStart);
+    const settings = await getSystemSettings(supabase);
+    const weights = settings.chartWeights;
 
-    // Fetch all votes for the current week
+    const weekStartIso = weekStart.toISOString();
+    const lastWeekStartIso = lastWeekStart.toISOString();
+
+    await supabase.from('chart_entries').delete().eq('weekStart', weekStartIso);
+
     const { data: fanVotes, error: fanVotesError } = await supabase
       .from('votes')
       .select('*')
-      .gte('createdAt', weekStart.toISOString())
-      .lt('createdAt', weekEnd.toISOString())
+      .gte('createdAt', weekStartIso)
+      .lt('createdAt', weekEnd.toISOString());
 
     if (fanVotesError) {
-      throw new Error(`Failed to fetch fan votes: ${fanVotesError.message}`)
+      throw new Error(`Failed to fetch fan votes: ${fanVotesError.message}`);
     }
 
     const { data: expertVotes, error: expertVotesError } = await supabase
       .from('expert_votes')
-      .select('*, dj:dj_profiles(reputationScore)')
-      .gte('createdAt', weekStart.toISOString())
-      .lt('createdAt', weekEnd.toISOString())
+      .select('*, dj:dj_profiles(reputationScore, expertStatus)')
+      .gte('createdAt', weekStartIso)
+      .lt('createdAt', weekEnd.toISOString());
 
     if (expertVotesError) {
-      throw new Error(`Failed to fetch expert votes: ${expertVotesError.message}`)
+      throw new Error(`Failed to fetch expert votes: ${expertVotesError.message}`);
     }
 
-    // Fetch last week's chart to calculate movement
-    const lastWeekStart = new Date(weekStart);
-    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
-
-    const { data: lastWeekEntries, error: lastWeekEntriesError } = await supabase
-      .from('chart_entries')
+    const { data: snapshots, error: snapshotsError } = await supabase
+      .from('streaming_snapshots')
       .select('*')
-      .eq('weekStart', lastWeekStart.toISOString())
-      .eq('chartType', 'combined')
+      .eq('weekStart', weekStartIso);
 
-    if (lastWeekEntriesError) {
-      throw new Error(`Failed to fetch last week chart entries: ${lastWeekEntriesError.message}`)
+    if (snapshotsError) {
+      throw new Error(`Failed to fetch streaming snapshots: ${snapshotsError.message}`);
     }
 
-    const lastWeekPlacements = new Map<string, number>();
-    for (const entry of lastWeekEntries) {
-      if (entry.releaseId) {
-        lastWeekPlacements.set(entry.releaseId, entry.placement);
+    const { data: prevSnapshots } = await supabase
+      .from('streaming_snapshots')
+      .select('*')
+      .eq('weekStart', lastWeekStartIso);
+
+    const prevSnapshotByArtist = new Map(
+      (prevSnapshots ?? []).map((s) => [s.artistId, s])
+    );
+
+    const artistIds = (snapshots ?? []).map((s) => s.artistId);
+    const { data: releases } = artistIds.length
+      ? await supabase
+          .from('releases')
+          .select('id, artistId, releaseDate')
+          .eq('isVisible', true)
+          .in('artistId', artistIds)
+      : { data: [] };
+
+    const artistToRelease = new Map<string, string>();
+    for (const release of releases ?? []) {
+      const existingId = artistToRelease.get(release.artistId);
+      if (!existingId) {
+        artistToRelease.set(release.artistId, release.id);
+        continue;
+      }
+      const existing = (releases ?? []).find((r) => r.id === existingId);
+      if (
+        existing &&
+        new Date(release.releaseDate) > new Date(existing.releaseDate)
+      ) {
+        artistToRelease.set(release.artistId, release.id);
       }
     }
 
-    // Aggregate metrics per release
-    const releaseMetrics = new Map<string, { fanScore: number; expertScore: number }>();
+    const releaseMetrics = new Map<string, ReleaseMetrics>();
 
+    const ensureMetrics = (releaseId: string): ReleaseMetrics => {
+      const current = releaseMetrics.get(releaseId);
+      if (current) return current;
+      const fresh = { fanScore: 0, expertScore: 0, streamingScore: 0 };
+      releaseMetrics.set(releaseId, fresh);
+      return fresh;
+    };
+
+    const fanVotesByRelease = new Map<string, { fanId: string; cost: number }[]>();
     for (const vote of fanVotes ?? []) {
-      const current = releaseMetrics.get(vote.releaseId) || { fanScore: 0, expertScore: 0 };
-      current.fanScore += vote.allocatedVotes; // Aggregating allocated votes as fanScore
-      releaseMetrics.set(vote.releaseId, current);
+      const list = fanVotesByRelease.get(vote.releaseId) ?? [];
+      list.push({ fanId: vote.fanId, cost: vote.cost ?? 0 });
+      fanVotesByRelease.set(vote.releaseId, list);
+    }
+
+    for (const [releaseId, votes] of fanVotesByRelease) {
+      const metrics = ensureMetrics(releaseId);
+      metrics.fanScore = calculateFanScore(votes);
     }
 
     for (const expertVote of expertVotes ?? []) {
-      const current = releaseMetrics.get(expertVote.releaseId) || { fanScore: 0, expertScore: 0 };
-      const expertPoints = calculateExpertPoints(expertVote.rank, expertVote.dj?.reputationScore ?? 0);
-      current.expertScore += expertPoints;
-      releaseMetrics.set(expertVote.releaseId, current);
+      const dj = expertVote.dj as
+        | { reputationScore: number; expertStatus: boolean }
+        | null
+        | undefined;
+      if (!dj?.expertStatus) continue;
+
+      const reputation = Math.max(1, Number(dj.reputationScore ?? 1));
+      const metrics = ensureMetrics(expertVote.releaseId);
+      metrics.expertScore += calculateExpertPoints(expertVote.rank, reputation);
     }
 
-    const entries = Array.from(releaseMetrics.entries()).map(([releaseId, metrics]) => {
-      // Weighting: 50% Fans, 35% Experts
-      const weightedScore = (metrics.fanScore * 0.5) + (metrics.expertScore * 0.35);
+    for (const snapshot of snapshots ?? []) {
+      const releaseId = artistToRelease.get(snapshot.artistId);
+      if (!releaseId) continue;
 
-      return {
-        releaseId,
-        fanScore: metrics.fanScore,
-        expertScore: metrics.expertScore,
-        score: weightedScore,
-      };
+      const prev = prevSnapshotByArtist.get(snapshot.artistId) ?? null;
+      const score = calculateStreamingScore(snapshot, prev);
+      const metrics = ensureMetrics(releaseId);
+      metrics.streamingScore = Math.max(metrics.streamingScore, score);
+    }
+
+    const allReleaseIds = Array.from(releaseMetrics.keys());
+    if (allReleaseIds.length === 0) {
+      await this.resetFanCredits(supabase, settings.voiceCreditsBudget);
+      return [];
+    }
+
+    const maxFan = Math.max(...allReleaseIds.map((id) => releaseMetrics.get(id)!.fanScore), 1);
+    const maxExpert = Math.max(
+      ...allReleaseIds.map((id) => releaseMetrics.get(id)!.expertScore),
+      1
+    );
+    const maxStreaming = Math.max(
+      ...allReleaseIds.map((id) => releaseMetrics.get(id)!.streamingScore),
+      1
+    );
+
+    const totalFanScore = allReleaseIds.reduce(
+      (sum, id) => sum + releaseMetrics.get(id)!.fanScore,
+      0
+    );
+
+    const combinedScores = allReleaseIds.map((releaseId) => {
+      const m = releaseMetrics.get(releaseId)!;
+      const weightedScore =
+        normalizeScore(m.fanScore, maxFan) * weights.fan +
+        normalizeScore(m.expertScore, maxExpert) * weights.expert +
+        normalizeScore(m.streamingScore, maxStreaming) * weights.streaming;
+
+      const communityPower = calculateCommunityPowerPercent(m.fanScore, totalFanScore);
+
+      return { releaseId, ...m, weightedScore, communityPower };
     });
 
-    // Sort to assign placement based on weighted score
-    entries.sort((a, b) => b.score - a.score);
+    const chartTypes: ChartTypeKey[] = ['fan', 'expert', 'streaming', 'combined'];
+    const lastWeekPlacements = new Map<ChartTypeKey, Map<string, number>>();
 
-    for (let i = 0; i < entries.length; i++) {
-      const entry = entries[i];
-      const currentPlacement = i + 1;
+    for (const chartType of chartTypes) {
+      const { data: lastWeekEntries } = await supabase
+        .from('chart_entries')
+        .select('releaseId, placement')
+        .eq('weekStart', lastWeekStartIso)
+        .eq('chartType', chartType);
 
-      let movement = 0;
-      const lastPlacement = lastWeekPlacements.get(entry.releaseId);
-      if (lastPlacement !== undefined) {
-        movement = lastPlacement - currentPlacement; // Positive means moved up
-      } else {
-        // If it wasn't in the chart last week, it's new. Movement could be considered 0 or positive.
-        // The prompt says "Speichere den Trend als Integer im Feld movement ab. Positiv für Aufsteiger und negativ für Absteiger."
-        movement = 0;
+      const placements = new Map<string, number>();
+      for (const entry of lastWeekEntries ?? []) {
+        if (entry.releaseId) {
+          placements.set(entry.releaseId, entry.placement);
+        }
       }
-
-      const { error: insertError } = await supabase.from('chart_entries').insert({
-        releaseId: entry.releaseId,
-        chartType: 'combined',
-        weekStart: weekStart.toISOString(),
-        placement: currentPlacement,
-        score: entry.score,
-        fanScore: entry.fanScore,
-        expertScore: entry.expertScore,
-        communityPower: 0,
-        movement: movement,
-      })
-
-      if (insertError) {
-        throw new Error(`Failed to create chart entry: ${insertError.message}`)
-      }
+      lastWeekPlacements.set(chartType, placements);
     }
 
-    return entries;
+    const inserts: ChartEntryInsert[] = [];
+
+    const buildEntries = (
+      chartType: ChartTypeKey,
+      scoreFn: (item: (typeof combinedScores)[0]) => number
+    ) => {
+      const sorted = [...combinedScores].sort((a, b) => scoreFn(b) - scoreFn(a));
+      const placements = lastWeekPlacements.get(chartType)!;
+
+      sorted.forEach((item, index) => {
+        const placement = index + 1;
+        const lastPlacement = placements.get(item.releaseId);
+        const movement =
+          lastPlacement !== undefined ? lastPlacement - placement : 0;
+
+        inserts.push({
+          releaseId: item.releaseId,
+          chartType,
+          weekStart: weekStartIso,
+          placement,
+          score: scoreFn(item),
+          fanScore: item.fanScore,
+          expertScore: item.expertScore,
+          communityPower: chartType === 'combined' ? item.communityPower : 0,
+          movement,
+          weekNumber,
+          year,
+        });
+      });
+    };
+
+    buildEntries('fan', (i) => i.fanScore);
+    buildEntries('expert', (i) => i.expertScore);
+    buildEntries('streaming', (i) => i.streamingScore);
+    buildEntries('combined', (i) => i.weightedScore);
+
+    const { error: insertError } = await supabase.from('chart_entries').insert(inserts);
+    if (insertError) {
+      throw new Error(`Failed to create chart entries: ${insertError.message}`);
+    }
+
+    await this.resetFanCredits(supabase, settings.voiceCreditsBudget);
+
+    return combinedScores;
+  }
+
+  private async resetFanCredits(
+    supabase: ReturnType<typeof createServiceRoleSupabaseClient>,
+    budget: number
+  ) {
+    const { error } = await supabase
+      .from('fan_profiles')
+      .update({ remainingCredits: budget, updatedAt: new Date().toISOString() });
+
+    if (error) {
+      throw new Error(`Failed to reset fan credits: ${error.message}`);
+    }
   }
 }
 

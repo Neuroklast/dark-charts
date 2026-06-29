@@ -10,7 +10,7 @@ interface ErrorFallbackProps {
 }
 
 export const ErrorFallback = ({ error, resetErrorBoundary }: ErrorFallbackProps) => {
-  if (import.meta.env.DEV) {
+  if (process.env.NODE_ENV === 'development') {
     throw error;
   } else {
     logger.error('Uncaught error in ErrorFallback', { error });

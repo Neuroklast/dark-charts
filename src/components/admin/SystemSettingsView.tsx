@@ -62,13 +62,13 @@ export function SystemSettingsView({ settings, isLoading, onSave }: SystemSettin
 
       <div className="space-y-6">
         <div className="space-y-2">
-          <Label>Voice Credits Monthly Budget</Label>
+          <Label>Voice Credits Weekly Budget</Label>
           <Input
             type="number"
             value={formData.voiceCreditsBudget}
             onChange={(e) => setFormData(p => ({ ...p, voiceCreditsBudget: Number(e.target.value) }))}
           />
-          <p className="text-xs text-muted-foreground font-ui">Global budget allocation for fans. Resets monthly.</p>
+          <p className="text-xs text-muted-foreground font-ui">Global budget allocation for fans. Resets weekly after chart publication.</p>
         </div>
 
         <div className="pt-4 border-t border-border">
