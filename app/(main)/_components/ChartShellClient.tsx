@@ -37,7 +37,6 @@ function shouldShowSpotlight(pathname: string): boolean {
 export interface ChartShellContextValue {
   fanCharts: Track[];
   expertCharts: Track[];
-  streamingCharts: Track[];
   isLoading: boolean;
   currentTrack: Track | null;
   setCurrentTrack: (track: Track | null) => void;
@@ -45,7 +44,6 @@ export interface ChartShellContextValue {
   setSelectedGenres: React.Dispatch<React.SetStateAction<Genre[]>>;
   filteredFanCharts: Track[];
   filteredExpertCharts: Track[];
-  filteredStreamingCharts: Track[];
   overallChart: Track[];
   activePromotion: { type?: string; name?: string; imageUrl?: string } | null;
   hasVoted: boolean;
@@ -107,7 +105,6 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
   const {
     fanCharts,
     expertCharts,
-    streamingCharts,
     isLoading,
     currentTrack,
     setCurrentTrack,
@@ -115,7 +112,6 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
     setSelectedGenres,
     filteredFanCharts,
     filteredExpertCharts,
-    filteredStreamingCharts,
     overallChart,
   } = useChartData();
 
@@ -211,7 +207,7 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
       }[] = [];
 
       const fanIndex = safeFindIndex(fanCharts, (t) => t?.id === track.id, -1);
-      if (fanIndex !== -1 && fanIndex < 10) {
+      if (fanIndex !== -1 && fanIndex < 20) {
         positions.push({ chartName: 'Fan Charts', position: fanIndex + 1, chartType: 'fan' });
       }
       const expertIndex = safeFindIndex(expertCharts, (t) => t?.id === track.id, -1);
@@ -233,7 +229,7 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
           (t) => t && Array.isArray(t.genres) && t.genres.some((g) => subGenres.includes(g))
         );
         const mainGenreIndex = safeFindIndex(mainGenreTracks, (t) => t?.id === track.id, -1);
-        if (mainGenreIndex !== -1 && mainGenreIndex < 10) {
+        if (mainGenreIndex !== -1 && mainGenreIndex < 20) {
           positions.push({
             chartName: `${mainGenre} Charts`,
             position: mainGenreIndex + 1,
@@ -244,7 +240,7 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
           if (subGenres.includes(genre)) {
             const subGenreTracks = safeFilter(mainGenreTracks, (t) => t?.genres?.includes(genre));
             const subGenreIndex = safeFindIndex(subGenreTracks, (t) => t?.id === track.id, -1);
-            if (subGenreIndex !== -1 && subGenreIndex < 10) {
+            if (subGenreIndex !== -1 && subGenreIndex < 20) {
               positions.push({
                 chartName: genre,
                 position: subGenreIndex + 1,
@@ -258,7 +254,7 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
 
       return positions;
     },
-    [fanCharts, expertCharts, streamingCharts, overallChart]
+    [fanCharts, expertCharts, overallChart]
   );
 
   const handleNavigateToChart = useCallback(
@@ -290,7 +286,6 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
     () => ({
       fanCharts,
       expertCharts,
-      streamingCharts,
       isLoading,
       currentTrack,
       setCurrentTrack,
@@ -298,7 +293,6 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
       setSelectedGenres,
       filteredFanCharts,
       filteredExpertCharts,
-      filteredStreamingCharts,
       overallChart,
       activePromotion,
       hasVoted,
@@ -312,7 +306,6 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
     [
       fanCharts,
       expertCharts,
-      streamingCharts,
       isLoading,
       currentTrack,
       setCurrentTrack,
@@ -320,7 +313,6 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
       setSelectedGenres,
       filteredFanCharts,
       filteredExpertCharts,
-      filteredStreamingCharts,
       overallChart,
       activePromotion,
       hasVoted,
@@ -348,7 +340,7 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
           currentTrack={currentTrack}
           onNext={handleNext}
           onPrevious={handlePrevious}
-          allTracks={[...(fanCharts || []), ...(expertCharts || []), ...(streamingCharts || [])]}
+          allTracks={[...(fanCharts || []), ...(expertCharts || [])]}
         />
       </ErrorBoundary>
       <ErrorBoundary level="component">

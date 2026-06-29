@@ -33,7 +33,6 @@ export function formatHybridWeightsPercent(weights: ChartWeights): { fan: number
 export function calculateOverallChart(
   fanCharts: Track[],
   expertCharts: Track[],
-  _streamingCharts: Track[],
   weights: ChartWeights
 ): Track[] {
   const { fan: wFan, expert: wExpert } = normalizeHybridWeights(weights);

@@ -7,13 +7,13 @@ import { Track } from '@/types';
 interface ChartHistorySeedProps {
   fanCharts: Track[];
   expertCharts: Track[];
-  streamingCharts: Track[];
+  overallCharts: Track[];
 }
 
-export function ChartHistorySeed({ fanCharts, expertCharts, streamingCharts }: ChartHistorySeedProps) {
+export function ChartHistorySeed({ fanCharts, expertCharts, overallCharts }: ChartHistorySeedProps) {
   const handleSeedHistory = async () => {
     try {
-      await chartHistoryService.saveSnapshot(fanCharts, expertCharts, streamingCharts);
+      await chartHistoryService.saveSnapshot(fanCharts, expertCharts, overallCharts);
       toast.success('Chart snapshot saved successfully!', {
         description: 'Historical data updated for this week'
       });

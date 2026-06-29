@@ -1,7 +1,31 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ChartType, WeeklyMovement, ChartSnapshot } from '@/types';
+import { ChartType, WeeklyMovement, ChartSnapshot, Track } from '@/types';
+
+function mergeOverallFromSnapshot(snapshot: ChartSnapshot): Track[] {
+  const allTracks = [...snapshot.fanCharts, ...snapshot.expertCharts];
+  const uniqueTracksMap = new Map<string, Track>();
+
+  allTracks.forEach((track) => {
+    if (!uniqueTracksMap.has(track.id)) {
+      uniqueTracksMap.set(track.id, track);
+    }
+  });
+
+  const uniqueTracks = Array.from(uniqueTracksMap.values());
+  uniqueTracks.sort((a, b) => {
+    const scoreA = (a.fanScore || 0) + (a.expertScore || 0);
+    const scoreB = (b.fanScore || 0) + (b.expertScore || 0);
+    return scoreB - scoreA;
+  });
+
+  return uniqueTracks.slice(0, 20).map((track, index) => ({
+    ...track,
+    rank: index + 1,
+    chartType: 'overall' as const,
+  }));
+}
 import { chartHistoryService } from '@/services/chartHistoryService';
 import { TrendUp, TrendDown, ArrowUp, ArrowDown, Dot, ArrowsClockwise } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -53,9 +77,12 @@ export function ChartHistoryView() {
       case 'expert':
         return selectedSnapshot.expertCharts.slice(0, 20);
       case 'overall':
-        return selectedSnapshot.fanCharts.slice(0, 20);
+        if (selectedSnapshot.overallCharts?.length) {
+          return selectedSnapshot.overallCharts.slice(0, 20);
+        }
+        return mergeOverallFromSnapshot(selectedSnapshot);
       default:
-        return selectedSnapshot.fanCharts.slice(0, 20);
+        return mergeOverallFromSnapshot(selectedSnapshot);
     }
   }, [selectedSnapshot, activeChart]);
 

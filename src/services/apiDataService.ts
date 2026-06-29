@@ -64,7 +64,6 @@ export class ApiDataService implements IDataService {
   private fallback = new ComprehensiveDataService();
   private fanCharts: Track[] = [];
   private expertCharts: Track[] = [];
-  private streamingCharts: Track[] = [];
   private combinedCharts: Track[] = [];
   /** True when live API returned empty and mock data is shown. */
   isUsingMockData = false;
@@ -72,28 +71,25 @@ export class ApiDataService implements IDataService {
   private cacheCharts(data: ChartData) {
     this.fanCharts = data.fanCharts;
     this.expertCharts = data.expertCharts;
-    this.streamingCharts = data.streamingCharts;
     this.combinedCharts = data.combinedCharts ?? [];
   }
 
   async getAllCharts(): Promise<ChartData> {
     try {
-      const [fanCharts, expertCharts, streamingCharts, combinedCharts] = await Promise.all([
+      const [fanCharts, expertCharts, combinedCharts] = await Promise.all([
         fetchChartType('fan'),
         fetchChartType('expert'),
-        fetchChartType('streaming'),
         fetchChartType('combined'),
       ]);
 
       const hasApiData =
         fanCharts.length > 0 ||
         expertCharts.length > 0 ||
-        streamingCharts.length > 0 ||
         combinedCharts.length > 0;
 
       if (hasApiData) {
         this.isUsingMockData = false;
-        const data = { fanCharts, expertCharts, streamingCharts, combinedCharts };
+        const data = { fanCharts, expertCharts, streamingCharts: [], combinedCharts };
         this.cacheCharts(data);
         return data;
       }
@@ -123,7 +119,7 @@ export class ApiDataService implements IDataService {
       return this.combinedCharts;
     }
 
-    if (this.fanCharts.length === 0 && this.expertCharts.length === 0 && this.streamingCharts.length === 0) {
+    if (this.fanCharts.length === 0 && this.expertCharts.length === 0) {
       return this.fallback.calculateOverallChart();
     }
 

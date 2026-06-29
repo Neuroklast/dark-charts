@@ -346,7 +346,9 @@ export interface ChartSnapshot {
   date: number;
   fanCharts: Track[];
   expertCharts: Track[];
-  streamingCharts: Track[];
+  /** @deprecated Legacy field kept for older stored snapshots */
+  streamingCharts?: Track[];
+  overallCharts?: Track[];
 }
 
 export interface TrackHistory {

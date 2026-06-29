@@ -49,7 +49,7 @@ function mapEntryToTrack(
 }
 
 async function fetchGenreChart(
-  type: 'fan' | 'expert' | 'streaming' | 'combined',
+  type: 'fan' | 'expert' | 'combined',
   mainGenre: MainGenre,
   subGenre?: Genre | null
 ): Promise<Track[]> {
@@ -78,7 +78,6 @@ async function fetchGenreChart(
 export function useGenreChartData(mainGenre: MainGenre, subGenre?: Genre | null) {
   const [fanCharts, setFanCharts] = useState<Track[]>([]);
   const [expertCharts, setExpertCharts] = useState<Track[]>([]);
-  const [streamingCharts, setStreamingCharts] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasServerData, setHasServerData] = useState(false);
 
@@ -88,18 +87,16 @@ export function useGenreChartData(mainGenre: MainGenre, subGenre?: Genre | null)
     const load = async () => {
       setIsLoading(true);
       try {
-        const [fan, expert, streaming] = await Promise.all([
+        const [fan, expert] = await Promise.all([
           fetchGenreChart('fan', mainGenre, subGenre),
           fetchGenreChart('expert', mainGenre, subGenre),
-          fetchGenreChart('streaming', mainGenre, subGenre),
         ]);
 
         if (cancelled) return;
 
         setFanCharts(fan);
         setExpertCharts(expert);
-        setStreamingCharts(streaming);
-        setHasServerData(fan.length > 0 || expert.length > 0 || streaming.length > 0);
+        setHasServerData(fan.length > 0 || expert.length > 0);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -114,7 +111,6 @@ export function useGenreChartData(mainGenre: MainGenre, subGenre?: Genre | null)
   return {
     fanCharts,
     expertCharts,
-    streamingCharts,
     isLoading,
     hasServerData,
   };

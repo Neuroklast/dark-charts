@@ -14,7 +14,6 @@ interface GenreChartsProps {
   activePillar: ChartType | 'overview';
   fanCharts: Track[];
   expertCharts: Track[];
-  streamingCharts: Track[];
   isLoading: boolean;
   onTrackClick: (track: Track) => void;
 }
@@ -45,7 +44,6 @@ export function GenreCharts({
   activePillar,
   fanCharts, 
   expertCharts, 
-  streamingCharts, 
   isLoading,
   onTrackClick 
 }: GenreChartsProps) {
@@ -85,7 +83,6 @@ export function GenreCharts({
 
   const filteredFanCharts = useMemo(() => getFilteredCharts(fanCharts), [fanCharts, getFilteredCharts]);
   const filteredExpertCharts = useMemo(() => getFilteredCharts(expertCharts), [expertCharts, getFilteredCharts]);
-  const filteredStreamingCharts = useMemo(() => getFilteredCharts(streamingCharts), [streamingCharts, getFilteredCharts]);
 
   const filteredOverallCharts = useMemo(() => {
     const allTracks = [...fanCharts, ...expertCharts];

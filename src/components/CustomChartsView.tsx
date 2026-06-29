@@ -68,7 +68,7 @@ export function CustomChartsView() {
   
   const [chartName, setChartName] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
-  const [weights, setWeights] = useState<ChartWeights>({ fan: 33, expert: 33, streaming: 34 });
+  const [weights, setWeights] = useState<ChartWeights>({ fan: 55, expert: 45, streaming: 0 });
   const [isPublic, setIsPublic] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<MainGenre[]>(['Gothic']);
 
@@ -116,7 +116,7 @@ export function CustomChartsView() {
     setEditingChart(null);
     setChartName('');
     setSelectedGenres([]);
-    setWeights({ fan: 33, expert: 33, streaming: 34 });
+    setWeights({ fan: 55, expert: 45, streaming: 0 });
     setIsPublic(false);
   }, [chartName, selectedGenres, weights, isPublic, editingChart, setSavedCharts]);
 
@@ -141,7 +141,7 @@ export function CustomChartsView() {
     setEditingChart(null);
     setChartName('');
     setSelectedGenres([]);
-    setWeights({ fan: 33, expert: 33, streaming: 34 });
+    setWeights({ fan: 55, expert: 45, streaming: 0 });
     setIsPublic(false);
   }, []);
 
@@ -252,7 +252,7 @@ export function CustomChartsView() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
               <div>
                 <p className="font-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
                   Fan Weight
@@ -263,18 +263,10 @@ export function CustomChartsView() {
               </div>
               <div>
                 <p className="font-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
-                  Expert Weight
+                  Club Weight
                 </p>
                 <p className="data-font text-2xl text-accent font-bold">
                   {viewingChart.weights.expert}%
-                </p>
-              </div>
-              <div>
-                <p className="font-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
-                  Streaming Weight
-                </p>
-                <p className="data-font text-2xl text-foreground font-bold">
-                  {viewingChart.weights.streaming}%
                 </p>
               </div>
             </div>

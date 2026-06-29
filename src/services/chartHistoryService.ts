@@ -10,7 +10,7 @@ class ChartHistoryService {
     return stored || this.generateMockHistory();
   }
 
-  async saveSnapshot(fanCharts: Track[], expertCharts: Track[], streamingCharts: Track[]): Promise<void> {
+  async saveSnapshot(fanCharts: Track[], expertCharts: Track[], overallCharts: Track[]): Promise<void> {
     const snapshots = await this.getSnapshots();
     
     const newSnapshot: ChartSnapshot = {
@@ -18,7 +18,7 @@ class ChartHistoryService {
       date: Date.now(),
       fanCharts: this.normalizeTracksForSnapshot(fanCharts),
       expertCharts: this.normalizeTracksForSnapshot(expertCharts),
-      streamingCharts: this.normalizeTracksForSnapshot(streamingCharts)
+      overallCharts: this.normalizeTracksForSnapshot(overallCharts),
     };
 
     const updatedSnapshots = [newSnapshot, ...snapshots].slice(0, this.MAX_WEEKS);
@@ -26,11 +26,35 @@ class ChartHistoryService {
   }
 
   private normalizeTracksForSnapshot(tracks: Track[]): Track[] {
-    return tracks.slice(0, 10).map((track, index) => ({
+    return tracks.slice(0, 20).map((track, index) => ({
       ...track,
       rank: index + 1,
       previousRank: track.rank,
       movement: 0
+    }));
+  }
+
+  private computeOverallFromSnapshot(snapshot: ChartSnapshot): Track[] {
+    const allTracks = [...snapshot.fanCharts, ...snapshot.expertCharts];
+    const uniqueTracksMap = new Map<string, Track>();
+
+    allTracks.forEach((track) => {
+      if (!uniqueTracksMap.has(track.id)) {
+        uniqueTracksMap.set(track.id, track);
+      }
+    });
+
+    const uniqueTracks = Array.from(uniqueTracksMap.values());
+    uniqueTracks.sort((a, b) => {
+      const scoreA = (a.fanScore || 0) + (a.expertScore || 0);
+      const scoreB = (b.fanScore || 0) + (b.expertScore || 0);
+      return scoreB - scoreA;
+    });
+
+    return uniqueTracks.slice(0, 20).map((track, index) => ({
+      ...track,
+      rank: index + 1,
+      chartType: 'overall' as const,
     }));
   }
 
@@ -43,12 +67,12 @@ class ChartHistoryService {
       const allCharts = [
         { tracks: snapshot.fanCharts, type: 'fan' as ChartType },
         { tracks: snapshot.expertCharts, type: 'expert' as ChartType },
-        { tracks: snapshot.streamingCharts, type: 'streaming' as ChartType }
+        { tracks: this.getChartByType(snapshot, 'overall'), type: 'overall' as ChartType },
       ];
 
       for (const { tracks, type } of allCharts) {
         const trackIndex = tracks.findIndex(t => t.id === trackId);
-        if (trackIndex !== -1 && trackIndex < 10) {
+        if (trackIndex !== -1 && trackIndex < 20) {
           const track = tracks[trackIndex];
           const rank = trackIndex + 1;
           const prevEntry = history.find(h => h.chartType === type && h.week === snapshot.week - 1);
@@ -67,9 +91,10 @@ class ChartHistoryService {
 
     if (history.length === 0) return null;
 
-    const firstEntry = snapshots[snapshots.length - 1].fanCharts[0] || 
-                       snapshots[snapshots.length - 1].expertCharts[0] ||
-                       snapshots[snapshots.length - 1].streamingCharts[0];
+    const oldestSnapshot = snapshots[snapshots.length - 1];
+    const firstEntry = oldestSnapshot.fanCharts[0] ||
+                       oldestSnapshot.expertCharts[0] ||
+                       this.getChartByType(oldestSnapshot, 'overall')[0];
 
     return {
       trackId,
@@ -141,17 +166,19 @@ class ChartHistoryService {
         return snapshot.fanCharts;
       case 'expert':
         return snapshot.expertCharts;
+      case 'overall':
+        if (snapshot.overallCharts?.length) {
+          return snapshot.overallCharts;
+        }
+        return this.computeOverallFromSnapshot(snapshot);
       case 'streaming':
-        return snapshot.streamingCharts;
+        return snapshot.streamingCharts ?? [];
       default:
-        return snapshot.fanCharts;
+        return this.getChartByType(snapshot, 'overall');
     }
   }
 
   private generateMockHistory(): ChartSnapshot[] {
-    const baseDate = Date.now();
-    const oneWeek = 7 * 24 * 60 * 60 * 1000;
-    
     return [];
   }
 
