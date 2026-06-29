@@ -1,15 +1,36 @@
 'use client';
 
-import { Warning } from '@phosphor-icons/react';
+import { Info, Warning } from '@phosphor-icons/react';
 import { useDataService } from '@/contexts/DataContext';
 import { ApiDataService } from '@/services/apiDataService';
 
 export function DataSourceBanner() {
   const dataService = useDataService();
-  const isUsingMockData =
-    dataService instanceof ApiDataService && dataService.isUsingMockData;
 
-  if (!isUsingMockData) return null;
+  if (!(dataService instanceof ApiDataService)) return null;
+
+  if (dataService.isUsingItunesData) {
+    return (
+      <div
+        role="status"
+        className="mx-4 mb-4 flex items-start gap-3 rounded border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-primary-foreground"
+      >
+        <Info size={20} weight="fill" className="shrink-0 mt-0.5 text-primary" aria-hidden />
+        <div>
+          <p className="font-ui font-semibold uppercase tracking-wider text-xs text-primary">
+            iTunes-Vorschau
+          </p>
+          <p className="font-ui text-xs text-muted-foreground mt-1 leading-relaxed">
+            Die Charts werden aus den neuesten Releases der Dark-Charts-Künstlerliste per iTunes
+            geladen. Sobald die Datenbank konfiguriert ist, ersetzen Live-Abstimmungen diese
+            Vorschau.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dataService.isUsingMockData) return null;
 
   return (
     <div

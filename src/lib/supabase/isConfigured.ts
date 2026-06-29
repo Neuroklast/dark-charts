@@ -7,3 +7,13 @@ export function isSupabaseEnvConfigured(): boolean {
     '';
   return Boolean(url && anonKey && !url.includes('your-project'));
 }
+
+export function isSupabaseServiceConfigured(): boolean {
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ??
+    process.env.SUPABASE_URL ??
+    process.env.VITE_SUPABASE_URL ??
+    '';
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+  return Boolean(url && serviceRoleKey && !url.includes('your-project'));
+}

@@ -1,8 +1,14 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { ApiError } from '@/lib/errors';
 import type { AppSupabaseClient } from '@/types/supabase-client';
+import { isSupabaseServiceConfigured } from '@/lib/supabase/isConfigured';
 
 export type ServiceRoleSupabaseClient = AppSupabaseClient;
+
+export function tryCreateServiceRoleSupabaseClient(): AppSupabaseClient | null {
+  if (!isSupabaseServiceConfigured()) return null;
+  return createServiceRoleSupabaseClient();
+}
 
 export function createServiceRoleSupabaseClient(): AppSupabaseClient {
   const url =

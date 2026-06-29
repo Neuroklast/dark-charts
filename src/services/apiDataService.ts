@@ -47,17 +47,26 @@ function mapEntryToTrack(
   };
 }
 
+type ChartApiResponse = {
+  success: boolean;
+  entries: ChartApiEntry[];
+  source?: 'database' | 'itunes';
+};
+
 async function fetchChartType(
   type: 'fan' | 'expert' | 'streaming' | 'combined'
-): Promise<Track[]> {
+): Promise<{ tracks: Track[]; source?: 'database' | 'itunes' }> {
   const res = await fetch(`/api/charts?type=${type}&completed=true&limit=50`);
-  if (!res.ok) return [];
-  const data = await res.json();
+  if (!res.ok) return { tracks: [] };
+  const data = (await res.json()) as ChartApiResponse;
   if (!data.success || !Array.isArray(data.entries) || data.entries.length === 0) {
-    return [];
+    return { tracks: [], source: data.source };
   }
   const chartType = type === 'combined' ? 'overall' : type;
-  return data.entries.map((entry: ChartApiEntry) => mapEntryToTrack(entry, chartType));
+  return {
+    tracks: data.entries.map((entry: ChartApiEntry) => mapEntryToTrack(entry, chartType)),
+    source: data.source,
+  };
 }
 
 export class ApiDataService implements IDataService {
@@ -67,6 +76,8 @@ export class ApiDataService implements IDataService {
   private combinedCharts: Track[] = [];
   /** True when live API returned empty and mock data is shown. */
   isUsingMockData = false;
+  /** True when charts are populated from iTunes bootstrap (no DB/env). */
+  isUsingItunesData = false;
 
   private cacheCharts(data: ChartData) {
     this.fanCharts = data.fanCharts;
@@ -76,11 +87,15 @@ export class ApiDataService implements IDataService {
 
   async getAllCharts(): Promise<ChartData> {
     try {
-      const [fanCharts, expertCharts, combinedCharts] = await Promise.all([
+      const [fanResult, expertResult, combinedResult] = await Promise.all([
         fetchChartType('fan'),
         fetchChartType('expert'),
         fetchChartType('combined'),
       ]);
+
+      const fanCharts = fanResult.tracks;
+      const expertCharts = expertResult.tracks;
+      const combinedCharts = combinedResult.tracks;
 
       const hasApiData =
         fanCharts.length > 0 ||
@@ -89,6 +104,10 @@ export class ApiDataService implements IDataService {
 
       if (hasApiData) {
         this.isUsingMockData = false;
+        this.isUsingItunesData =
+          fanResult.source === 'itunes' ||
+          expertResult.source === 'itunes' ||
+          combinedResult.source === 'itunes';
         const data = { fanCharts, expertCharts, streamingCharts: [], combinedCharts };
         this.cacheCharts(data);
         return data;
@@ -96,12 +115,14 @@ export class ApiDataService implements IDataService {
 
       logger.warn('API charts empty — falling back to mock data');
       this.isUsingMockData = true;
+      this.isUsingItunesData = false;
       const data = await this.fallback.getAllCharts();
       this.cacheCharts(data);
       return data;
     } catch (error) {
       logger.error('Failed to fetch charts from API, using mock fallback', { error });
       this.isUsingMockData = true;
+      this.isUsingItunesData = false;
       const data = await this.fallback.getAllCharts();
       this.cacheCharts(data);
       return data;
@@ -109,7 +130,7 @@ export class ApiDataService implements IDataService {
   }
 
   async getChartByType(type: 'fan' | 'expert' | 'streaming'): Promise<Track[]> {
-    const tracks = await fetchChartType(type);
+    const { tracks } = await fetchChartType(type);
     if (tracks.length > 0) return tracks;
     return this.fallback.getChartByType(type);
   }

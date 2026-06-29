@@ -27,6 +27,14 @@
     {
       "path": "/api/cron/sync-itunes-artwork",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/sync/itunes/queue",
+      "schedule": "0 3 * * 1"
+    },
+    {
+      "path": "/api/sync/itunes",
+      "schedule": "*/10 * * * *"
     }
   ]
 }
