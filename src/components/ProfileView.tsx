@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   User, SignOut,
-  PencilSimple, FloppyDisk, X, Trophy, Link as LinkIcon,
-  MusicNotes, Users, Microphone, Buildings 
+  PencilSimple, FloppyDisk, X, Trophy,
+  MusicNotes, DownloadSimple, Trash
 } from '@phosphor-icons/react';
 import { FanProfile, BandProfile, DJProfile, LabelProfile, UserType } from '@/types';
 import { motion } from 'framer-motion';
@@ -39,6 +39,137 @@ function LoginView() {
         <div className="max-w-md mx-auto">
           <OAuthLoginButtons />
         </div>
+      </div>
+    </Card>
+  );
+}
+
+function AccountSettingsCard() {
+  const { logout, getToken } = useAuth();
+  const { t } = useLanguage();
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const token = await getToken();
+      const res = await fetch('/api/auth/export', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        throw new Error('Export failed');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `dark-charts-export-${Date.now()}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(t('profile.exportSuccess'));
+    } catch {
+      toast.error(t('profile.exportFailed'));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      toast.error(t('profile.deleteConfirmError'));
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const token = await getToken();
+      const res = await fetch('/api/auth/account', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        throw new Error('Delete failed');
+      }
+      toast.success(t('profile.deleteSuccess'));
+      await logout();
+    } catch {
+      toast.error(t('profile.deleteFailed'));
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+      setDeleteConfirmText('');
+    }
+  };
+
+  return (
+    <Card className="bg-card border border-border p-6">
+      <h3 className="display-font text-xl uppercase tracking-tight text-foreground font-semibold mb-4">
+        {t('profile.accountSettings')}
+      </h3>
+      <p className="font-ui text-sm text-muted-foreground mb-6">
+        {t('profile.accountSettingsDescription')}
+      </p>
+
+      <div className="flex flex-wrap gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExport}
+          disabled={isExporting}
+          className="font-ui text-[10px] uppercase"
+        >
+          <DownloadSimple weight="bold" className="w-4 h-4 mr-1" />
+          {isExporting ? t('profile.exporting') : t('profile.exportData')}
+        </Button>
+
+        {!showDeleteConfirm ? (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="font-ui text-[10px] uppercase"
+          >
+            <Trash weight="bold" className="w-4 h-4 mr-1" />
+            {t('profile.deleteAccount')}
+          </Button>
+        ) : (
+          <div className="flex flex-col gap-2 w-full max-w-md">
+            <p className="font-ui text-xs text-destructive uppercase tracking-wider">
+              {t('profile.deleteWarning')}
+            </p>
+            <Input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder={t('profile.deleteConfirmPlaceholder')}
+              className="bg-background border-border font-ui text-sm"
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="font-ui text-[10px] uppercase"
+              >
+                {isDeleting ? t('profile.deleting') : t('profile.confirmDelete')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteConfirmText('');
+                }}
+                className="font-ui text-[10px] uppercase"
+              >
+                {t('profile.cancel')}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </Card>
   );
@@ -220,6 +351,8 @@ function FanProfileView({ profile }: { profile: FanProfile }) {
           </div>
         </Card>
       )}
+
+      <AccountSettingsCard />
     </div>
   );
 }

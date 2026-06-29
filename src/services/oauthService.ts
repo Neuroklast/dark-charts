@@ -47,10 +47,6 @@ class OAuthService {
   private readonly SPOTIFY_SCOPES = [
     'user-read-email',
     'user-read-private',
-    'user-library-read',
-    'user-top-read',
-    'playlist-read-private',
-    'playlist-read-collaborative'
   ].join(' ');
 
   private readonly GOOGLE_SCOPES = [

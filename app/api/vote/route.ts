@@ -10,8 +10,9 @@ import {
 import { requireAuth, getStartOfWeek } from '@/lib/api-auth';
 import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import { getIsVotingPaused, getVoiceCreditsBudget } from '@/lib/system-settings';
-import { calculateVoteCost } from '@/lib/math/quadratic';
 import { logger } from '@/lib/logger';
+import { assertNoVoteConflicts } from '@/lib/vote-conflicts';
+import { submitFanBulkVotes } from '@/lib/api/fan-vote';
 
 const bodySchema = z.object({
   type: z.literal('bulk').optional(),
@@ -74,15 +75,6 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
       throw new ApiError(400, 'No votes provided');
     }
 
-    let totalCost = 0;
-    for (const [, v] of entries) {
-      totalCost += calculateVoteCost(v);
-    }
-
-    if (totalCost > creditBudget) {
-      throw new ApiError(400, 'Budget exceeded');
-    }
-
     const { data: fanProfile, error: fanError } = await supabase
       .from('fan_profiles')
       .select('*')
@@ -105,10 +97,6 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
       throw new ApiError(409, 'You have already submitted your vote this week', 'ALREADY_VOTED');
     }
 
-    if (fanProfile.remainingCredits < totalCost) {
-      throw new ApiError(400, 'Insufficient credits');
-    }
-
     const releaseIds = entries.map(([rId]) => rId);
     const { data: visibleReleases, error: releaseError } = await supabase
       .from('releases')
@@ -121,66 +109,19 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
       throw new ApiError(400, 'One or more releases are not available for voting');
     }
 
-    const updatedCredits = fanProfile.remainingCredits - totalCost;
-    const { error: creditError } = await supabase
-      .from('fan_profiles')
-      .update({ remainingCredits: updatedCredits, updatedAt: new Date().toISOString() })
-      .eq('id', fanProfile.id);
+    await assertNoVoteConflicts(supabase, userId, releaseIds);
 
-    if (creditError) throw new ApiError(500, creditError.message);
-
-    const now = new Date().toISOString();
-    const createdVotes = [];
-
-    for (const [rId, v] of entries) {
-      const cost = calculateVoteCost(v);
-      const { data: existingVote } = await supabase
-        .from('votes')
-        .select('*')
-        .eq('fanId', fanProfile.id)
-        .eq('releaseId', rId)
-        .maybeSingle();
-
-      if (existingVote) {
-        const { data: updatedVote, error } = await supabase
-          .from('votes')
-          .update({
-            allocatedVotes: v,
-            cost,
-            votes: v,
-            credits: cost,
-            createdAt: now,
-          })
-          .eq('id', existingVote.id)
-          .select()
-          .single();
-
-        if (error) throw new ApiError(500, error.message);
-        createdVotes.push(updatedVote);
-      } else {
-        const { data: createdVote, error } = await supabase
-          .from('votes')
-          .insert({
-            fanId: fanProfile.id,
-            releaseId: rId,
-            allocatedVotes: v,
-            cost,
-            votes: v,
-            credits: cost,
-            createdAt: now,
-          })
-          .select()
-          .single();
-
-        if (error) throw new ApiError(500, error.message);
-        createdVotes.push(createdVote);
-      }
-    }
+    const { votes: createdVotes, remainingCredits } = await submitFanBulkVotes({
+      supabase,
+      fanProfile,
+      votes,
+      creditBudget,
+    });
 
     const response = NextResponse.json({
       success: true,
       votes: createdVotes,
-      remainingCredits: updatedCredits,
+      remainingCredits,
       creditBudget,
     });
     return setRateLimitHeaders(applyCorsToResponse(response, 'POST,OPTIONS'), req, {
@@ -220,6 +161,8 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
     if ((visibleReleases ?? []).length !== releaseIds.length) {
       throw new ApiError(400, 'One or more releases are not available for voting');
     }
+
+    await assertNoVoteConflicts(supabase, userId, releaseIds);
 
     await supabase
       .from('expert_votes')
@@ -264,6 +207,8 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
 
   if (!release) throw new ApiError(404, 'Release not found');
   if (rank === undefined) throw new ApiError(400, 'rank is required for DJ role');
+
+  await assertNoVoteConflicts(supabase, userId, [releaseId]);
 
   const { data: existingExpertVoteWithRank } = await supabase
     .from('expert_votes')
