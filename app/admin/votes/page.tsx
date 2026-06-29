@@ -1,5 +1,5 @@
 import { AdminPageShell } from '../_components/AdminPageShell';
-import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder';
+import { VoteInspectorContainer } from '@/components/admin/VoteInspectorContainer';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,10 +9,7 @@ export default function AdminVotesPage() {
       title="Votes"
       description="Inspect individual votes and investigate voting activity."
     >
-      <AdminPlaceholder
-        title="Vote inspector"
-        description="Detailed vote lookup and filtering will be available in a future update."
-      />
+      <VoteInspectorContainer />
     </AdminPageShell>
   );
 }

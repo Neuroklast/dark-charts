@@ -1,5 +1,5 @@
 import { AdminPageShell } from '../_components/AdminPageShell';
-import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder';
+import { BadgeManagementContainer } from '@/components/admin/BadgeManagementContainer';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,10 +9,7 @@ export default function AdminBadgesPage() {
       title="Badges"
       description="Manage fan and DJ achievement badges."
     >
-      <AdminPlaceholder
-        title="Badge management"
-        description="Badge creation and assignment will be available in a future update."
-      />
+      <BadgeManagementContainer />
     </AdminPageShell>
   );
 }

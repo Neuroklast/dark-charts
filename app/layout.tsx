@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import type { CSSProperties } from 'react';
 import { Providers } from './providers';
 import { PublicEffects } from './_components/PublicEffects';
+import { ThemeLoader } from './_components/ThemeLoader';
 import { NavHidingWrapper } from './_components/NavHidingWrapper';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to main content
         </a>
         <Providers>
+          <ThemeLoader />
           <PublicEffects />
           <NavHidingWrapper>
             <SiteHeader />

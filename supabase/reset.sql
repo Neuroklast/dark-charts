@@ -240,6 +240,8 @@ CREATE TABLE IF NOT EXISTS system_settings (
   "isVotingPaused" BOOLEAN NOT NULL DEFAULT FALSE,
   "voiceCreditsBudget" INTEGER NOT NULL DEFAULT 150,
   "chartWeights" JSONB NOT NULL DEFAULT '{"fan":0.5,"expert":0.35,"streaming":0.15}'::jsonb,
+  "featureFlags" JSONB NOT NULL DEFAULT '{}'::jsonb,
+  "themeConfig" JSONB NOT NULL DEFAULT '{}'::jsonb,
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
