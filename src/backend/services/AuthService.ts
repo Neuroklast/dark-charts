@@ -81,35 +81,57 @@ export class AuthService {
       throw new Error('User with this email already exists')
     }
 
-    const passwordHash = await bcrypt.hash(userData.password, 10)
     const { token: verificationToken, tokenHash, expiresAt } =
       generateEmailVerificationToken()
 
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email: userData.email,
+      password: userData.password,
+      email_confirm: false,
+      user_metadata: {
+        role: userData.role,
+        nickname: userData.profileData?.nickname,
+      },
+    })
+
+    if (authError || !authUser.user) {
+      throw new Error(authError?.message || 'Failed to create auth user')
+    }
+
+    const userId = authUser.user.id
+
     const { data: user, error } = await supabase
       .from('users')
-      .insert({
-        email: userData.email,
-        passwordHash,
+      .update({
         role: userData.role,
         emailVerified: false,
         trustLevel: trustLevelForProvider('email', false),
         authProvider: 'email',
         emailVerificationToken: tokenHash,
         emailVerificationExpires: expiresAt.toISOString(),
+        updatedAt: new Date().toISOString(),
       })
+      .eq('id', userId)
       .select()
       .single()
 
     if (error || !user) {
-      throw new Error(error?.message || 'Failed to create user')
+      throw new Error(error?.message || 'Failed to create user profile')
     }
 
-    await this.createRoleProfile(
-      supabase,
-      user.id,
-      userData.role,
-      userData.profileData
-    )
+    if (userData.role !== 'FAN') {
+      await this.createRoleProfile(
+        supabase,
+        userId,
+        userData.role,
+        userData.profileData
+      )
+    } else if (userData.profileData?.nickname) {
+      await supabase
+        .from('fan_profiles')
+        .update({ nickname: userData.profileData.nickname })
+        .eq('userId', userId)
+    }
 
     try {
       await sendVerificationEmail(
@@ -299,39 +321,38 @@ export class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResult> {
     const supabase = await this.getSupabase()
 
-    const { data: user, error } = await supabase
+    const { data: legacyUser } = await supabase
       .from('users')
       .select('*')
       .eq('email', credentials.email)
       .maybeSingle()
 
-    if (error || !user || !user.passwordHash) {
+    if (!legacyUser?.passwordHash) {
       throw new Error('Invalid credentials')
     }
 
-    if (user.isSuspended) {
+    if (legacyUser.isSuspended) {
       throw new Error('Account suspended')
     }
 
     const isPasswordValid = await bcrypt.compare(
       credentials.password,
-      user.passwordHash
+      legacyUser.passwordHash
     )
 
     if (!isPasswordValid) {
       throw new Error('Invalid credentials')
     }
 
-    const token = this.generateToken(user.id, user.email, user.role)
-
+    const token = this.generateToken(legacyUser.id, legacyUser.email, legacyUser.role)
     return {
       token,
       user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        emailVerified: user.emailVerified ?? false,
-        trustLevel: user.trustLevel ?? 0,
+        id: legacyUser.id,
+        email: legacyUser.email,
+        role: legacyUser.role,
+        emailVerified: legacyUser.emailVerified ?? false,
+        trustLevel: legacyUser.trustLevel ?? 0,
       },
     }
   }
@@ -365,10 +386,25 @@ export class AuthService {
       throw new Error('User with this email already exists')
     }
 
-    const passwordHash = await bcrypt.hash(password, 10)
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { role: 'ADMIN' },
+    })
+
+    if (authError || !authUser.user) {
+      throw new Error(authError?.message || 'Failed to create admin auth user')
+    }
+
     const { data: user, error } = await supabase
       .from('users')
-      .insert({ email, passwordHash, role: 'ADMIN' })
+      .update({
+        role: 'ADMIN',
+        emailVerified: true,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', authUser.user.id)
       .select()
       .single()
 

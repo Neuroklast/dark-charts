@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { authFetch } from '@/lib/auth/client-fetch';
 import { AlbumArtwork } from './AlbumArtwork';
 import { CaretUp, CaretDown, Trash } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
@@ -20,7 +21,7 @@ interface ExpertVotingAreaProps {
 }
 
 export function ExpertVotingArea({ allTracks, onTrackClick, onVoteComplete }: ExpertVotingAreaProps) {
-  const { getAuthToken } = useAuth();
+  const { user } = useAuth();
   const { t } = useLanguage();
   const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -83,8 +84,7 @@ export function ExpertVotingArea({ allTracks, onTrackClick, onVoteComplete }: Ex
     if (selectedTracks.length !== 10) return;
 
     try {
-      const token = await getAuthToken();
-      if (!token) {
+      if (!user) {
         toast.error("Please login to submit votes");
         return;
       }
@@ -94,13 +94,10 @@ export function ExpertVotingArea({ allTracks, onTrackClick, onVoteComplete }: Ex
         votes[track.id] = index + 1; // rank 1 to 10
       });
 
-      const res = await fetch('/api/vote', {
+      const res = await authFetch('/api/vote', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ type: 'bulk', votes })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'bulk', votes }),
       });
 
       if (!res.ok) {

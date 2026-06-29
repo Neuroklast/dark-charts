@@ -14,7 +14,7 @@ export type Genre =
 
 export type ChartType = 'fan' | 'expert' | 'streaming' | 'overall';
 
-export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'voting-confirmation' | 'history' | 'admin' | 'admin-metrics' | 'admin-users' | 'admin-artists' | 'admin-charts' | 'admin-promotions' | 'admin-anomalies' | 'admin-settings' | 'oauth-callback' | 'profiles-demo' | 'privacy' | 'terms' | 'imprint' | 'archive';
+export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'voting-confirmation' | 'history' | 'admin' | 'admin-metrics' | 'admin-analytics' | 'admin-users' | 'admin-artists' | 'admin-charts' | 'admin-promotions' | 'admin-spotlight' | 'admin-anomalies' | 'admin-settings' | 'oauth-callback' | 'profiles-demo' | 'privacy' | 'terms' | 'imprint' | 'archive';
 
 export interface Track {
   id: string;
@@ -346,7 +346,9 @@ export interface ChartSnapshot {
   date: number;
   fanCharts: Track[];
   expertCharts: Track[];
-  streamingCharts: Track[];
+  /** @deprecated Legacy field kept for older stored snapshots */
+  streamingCharts?: Track[];
+  overallCharts?: Track[];
 }
 
 export interface TrackHistory {

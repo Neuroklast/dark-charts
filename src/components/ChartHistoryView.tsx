@@ -1,7 +1,31 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ChartType, WeeklyMovement, ChartSnapshot } from '@/types';
+import { ChartType, WeeklyMovement, ChartSnapshot, Track } from '@/types';
+
+function mergeOverallFromSnapshot(snapshot: ChartSnapshot): Track[] {
+  const allTracks = [...snapshot.fanCharts, ...snapshot.expertCharts];
+  const uniqueTracksMap = new Map<string, Track>();
+
+  allTracks.forEach((track) => {
+    if (!uniqueTracksMap.has(track.id)) {
+      uniqueTracksMap.set(track.id, track);
+    }
+  });
+
+  const uniqueTracks = Array.from(uniqueTracksMap.values());
+  uniqueTracks.sort((a, b) => {
+    const scoreA = (a.fanScore || 0) + (a.expertScore || 0);
+    const scoreB = (b.fanScore || 0) + (b.expertScore || 0);
+    return scoreB - scoreA;
+  });
+
+  return uniqueTracks.slice(0, 20).map((track, index) => ({
+    ...track,
+    rank: index + 1,
+    chartType: 'overall' as const,
+  }));
+}
 import { chartHistoryService } from '@/services/chartHistoryService';
 import { TrendUp, TrendDown, ArrowUp, ArrowDown, Dot, ArrowsClockwise } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,7 +33,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function ChartHistoryView() {
-  const [activeChart, setActiveChart] = useState<ChartType>('fan');
+  const [activeChart, setActiveChart] = useState<ChartType>('overall');
   const [weeklyMovement, setWeeklyMovement] = useState<WeeklyMovement | null>(null);
   const [snapshots, setSnapshots] = useState<ChartSnapshot[]>([]);
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
@@ -49,13 +73,16 @@ export function ChartHistoryView() {
     
     switch (activeChart) {
       case 'fan':
-        return selectedSnapshot.fanCharts.slice(0, 10);
+        return selectedSnapshot.fanCharts.slice(0, 20);
       case 'expert':
-        return selectedSnapshot.expertCharts.slice(0, 10);
-      case 'streaming':
-        return selectedSnapshot.streamingCharts.slice(0, 10);
+        return selectedSnapshot.expertCharts.slice(0, 20);
+      case 'overall':
+        if (selectedSnapshot.overallCharts?.length) {
+          return selectedSnapshot.overallCharts.slice(0, 20);
+        }
+        return mergeOverallFromSnapshot(selectedSnapshot);
       default:
-        return selectedSnapshot.fanCharts.slice(0, 10);
+        return mergeOverallFromSnapshot(selectedSnapshot);
     }
   }, [selectedSnapshot, activeChart]);
 
@@ -120,14 +147,14 @@ export function ChartHistoryView() {
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
           <Tabs value={activeChart} onValueChange={(v) => setActiveChart(v as ChartType)} className="w-full md:w-auto">
             <TabsList className="grid w-full md:w-auto grid-cols-3 bg-secondary border border-border">
+              <TabsTrigger value="overall" className="data-font text-xs uppercase">
+                Overall
+              </TabsTrigger>
               <TabsTrigger value="fan" className="data-font text-xs uppercase">
                 Fan Charts
               </TabsTrigger>
               <TabsTrigger value="expert" className="data-font text-xs uppercase">
-                Expert Charts
-              </TabsTrigger>
-              <TabsTrigger value="streaming" className="data-font text-xs uppercase">
-                Streaming
+                Club Charts
               </TabsTrigger>
             </TabsList>
           </Tabs>

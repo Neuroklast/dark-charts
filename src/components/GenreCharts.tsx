@@ -14,7 +14,6 @@ interface GenreChartsProps {
   activePillar: ChartType | 'overview';
   fanCharts: Track[];
   expertCharts: Track[];
-  streamingCharts: Track[];
   isLoading: boolean;
   onTrackClick: (track: Track) => void;
 }
@@ -45,7 +44,6 @@ export function GenreCharts({
   activePillar,
   fanCharts, 
   expertCharts, 
-  streamingCharts, 
   isLoading,
   onTrackClick 
 }: GenreChartsProps) {
@@ -80,48 +78,45 @@ export function GenreCharts({
   const getFilteredCharts = useCallback((tracks: Track[]) => {
     const mainGenreTracks = filterByMainGenre(tracks);
     const filtered = filterBySubGenre(mainGenreTracks);
-    return filtered.slice(0, 10);
+    return filtered.slice(0, 20);
   }, [filterByMainGenre, filterBySubGenre]);
 
   const filteredFanCharts = useMemo(() => getFilteredCharts(fanCharts), [fanCharts, getFilteredCharts]);
   const filteredExpertCharts = useMemo(() => getFilteredCharts(expertCharts), [expertCharts, getFilteredCharts]);
-  const filteredStreamingCharts = useMemo(() => getFilteredCharts(streamingCharts), [streamingCharts, getFilteredCharts]);
 
   const filteredOverallCharts = useMemo(() => {
-    const allTracks = [...fanCharts, ...expertCharts, ...streamingCharts];
+    const allTracks = [...fanCharts, ...expertCharts];
     const mainGenreTracks = filterByMainGenre(allTracks);
     const filtered = filterBySubGenre(mainGenreTracks);
-    
+
     const uniqueTracksMap = new Map<string, Track>();
-    filtered.forEach(track => {
+    filtered.forEach((track) => {
       if (!uniqueTracksMap.has(track.id)) {
         uniqueTracksMap.set(track.id, track);
       }
     });
-    
+
     const uniqueTracks = Array.from(uniqueTracksMap.values());
     uniqueTracks.sort((a, b) => {
-      const scoreA = (a.fanScore || 0) + (a.expertScore || 0) + (a.streamingScore || 0);
-      const scoreB = (b.fanScore || 0) + (b.expertScore || 0) + (b.streamingScore || 0);
+      const scoreA = (a.fanScore || 0) + (a.expertScore || 0);
+      const scoreB = (b.fanScore || 0) + (b.expertScore || 0);
       return scoreB - scoreA;
     });
-    
-    return uniqueTracks.slice(0, 10);
-  }, [fanCharts, expertCharts, streamingCharts, filterByMainGenre, filterBySubGenre]);
+
+    return uniqueTracks.slice(0, 20);
+  }, [fanCharts, expertCharts, filterByMainGenre, filterBySubGenre]);
 
   const currentChartTracks = useMemo(() => {
     if (activePillar === 'overview') return filteredOverallCharts;
     if (activePillar === 'fan') return filteredFanCharts;
     if (activePillar === 'expert') return filteredExpertCharts;
-    if (activePillar === 'streaming') return filteredStreamingCharts;
     return filteredOverallCharts;
-  }, [activePillar, filteredOverallCharts, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts]);
+  }, [activePillar, filteredOverallCharts, filteredFanCharts, filteredExpertCharts]);
 
   const chartTypeLabel = useMemo(() => {
     if (activePillar === 'overview') return 'Overall';
     if (activePillar === 'fan') return 'Fan';
-    if (activePillar === 'expert') return 'Expert';
-    if (activePillar === 'streaming') return 'Streaming';
+    if (activePillar === 'expert') return 'Club';
     return 'Overall';
   }, [activePillar]);
 

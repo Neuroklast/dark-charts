@@ -7,10 +7,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 interface MainGenreNavigationProps {
   activeGenre: MainGenre | 'overall';
-  onGenreChange: (genre: MainGenre | 'overall') => void;
+  onGenreChange: (genre: MainGenre) => void;
   className?: string;
   linkMode?: boolean;
-  getGenreHref?: (genre: MainGenre | 'overall') => string;
+  getGenreHref?: (genre: MainGenre) => string;
 }
 
 export function MainGenreNavigation({
@@ -25,7 +25,7 @@ export function MainGenreNavigation({
   const { t } = useLanguage();
 
   const renderGenre = (
-    genre: { value: MainGenre | 'overall'; label: string },
+    genre: { value: MainGenre; label: string },
     className: string,
     dataGenre?: string
   ) => {
@@ -49,8 +49,7 @@ export function MainGenreNavigation({
     );
   };
 
-  const genres: { value: MainGenre | 'overall'; label: string }[] = [
-    { value: 'overall', label: t('genre.overall') },
+  const genres: { value: MainGenre; label: string }[] = [
     { value: 'Gothic', label: t('genre.gothic') },
     { value: 'Metal', label: t('genre.metal') },
     { value: 'Dark Electro', label: t('genre.darkelectro') },

@@ -1,5 +1,5 @@
 import { Card } from '@/components/ui/card';
-import { Info, Skull, User as UserIcon, ChartBar, Broadcast } from '@phosphor-icons/react';
+import { Info, Skull, User as UserIcon, ChartBar, Scales } from '@phosphor-icons/react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export function AboutView() {
@@ -53,7 +53,7 @@ export function AboutView() {
         </div>
 
         <div className="p-6 space-y-6">
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary border border-primary flex items-center justify-center">
@@ -74,27 +74,27 @@ export function AboutView() {
                   <ChartBar weight="bold" className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <h3 className="font-ui text-sm uppercase tracking-[0.12em] font-bold text-foreground">
-                  {t('about.expertCharts')}
+                  {t('about.clubCharts')}
                 </h3>
               </div>
               <p className="font-ui text-xs text-muted-foreground leading-relaxed">
-                {t('about.expertChartsText')}
+                {t('about.clubChartsText')}
               </p>
             </div>
+          </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary border border-primary flex items-center justify-center">
-                  <Broadcast weight="bold" className="w-5 h-5 text-primary-foreground" />
-                </div>
-                <h3 className="font-ui text-sm uppercase tracking-[0.12em] font-bold text-foreground">
-                  {t('about.streamingCharts')}
-                </h3>
+          <div className="space-y-3 border-t border-border pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-accent/20 border border-accent flex items-center justify-center">
+                <Scales weight="bold" className="w-5 h-5 text-accent" />
               </div>
-              <p className="font-ui text-xs text-muted-foreground leading-relaxed">
-                {t('about.streamingChartsText')}
-              </p>
+              <h3 className="font-ui text-sm uppercase tracking-[0.12em] font-bold text-foreground">
+                {t('about.overallCharts')}
+              </h3>
             </div>
+            <p className="font-ui text-xs text-muted-foreground leading-relaxed">
+              {t('about.overallChartsText')}
+            </p>
           </div>
 
           <div className="border-t border-border pt-6">

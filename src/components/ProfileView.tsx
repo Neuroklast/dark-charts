@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { authFetch } from '@/lib/auth/client-fetch';
 import { 
   User, SignOut,
   PencilSimple, FloppyDisk, X, Trophy,
@@ -53,7 +54,7 @@ function EmailVerificationBanner({
   emailVerified?: boolean;
   authProvider?: string | null;
 }) {
-  const { getToken } = useAuth();
+  const { user } = useAuth();
   const { t } = useLanguage();
   const [isResending, setIsResending] = useState(false);
 
@@ -64,11 +65,7 @@ function EmailVerificationBanner({
   const handleResend = async () => {
     setIsResending(true);
     try {
-      const token = await getToken();
-      const res = await fetch('/api/auth/verify-email/resend', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await authFetch('/api/auth/verify-email/resend', { method: 'POST' });
       if (!res.ok) throw new Error('Resend failed');
       toast.success(t('profile.verificationResent'));
     } catch {
@@ -137,7 +134,7 @@ function TrustBoostCard({ trustLevel }: { trustLevel?: number }) {
 }
 
 function AccountSettingsCard() {
-  const { logout, getToken } = useAuth();
+  const { logout } = useAuth();
   const { t } = useLanguage();
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -147,10 +144,7 @@ function AccountSettingsCard() {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const token = await getToken();
-      const res = await fetch('/api/auth/export', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await authFetch('/api/auth/export');
       if (!res.ok) {
         throw new Error('Export failed');
       }
@@ -177,11 +171,7 @@ function AccountSettingsCard() {
 
     setIsDeleting(true);
     try {
-      const token = await getToken();
-      const res = await fetch('/api/auth/account', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await authFetch('/api/auth/account', { method: 'DELETE' });
       if (!res.ok) {
         throw new Error('Delete failed');
       }

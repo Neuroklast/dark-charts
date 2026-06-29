@@ -1,13 +1,15 @@
-'use client';
+import { AdminPageShell } from './_components/AdminPageShell';
+import { AdminOverview } from '@/components/admin/AdminOverview';
 
-import { AdminArtistManagement } from '@/components/AdminArtistManagement';
-import { ArtistDatabaseManager } from '@/components/ArtistDatabaseManager';
+export const dynamic = 'force-dynamic';
 
 export default function AdminDashboardPage() {
   return (
-    <div className="space-y-6">
-      <AdminArtistManagement />
-      <ArtistDatabaseManager />
-    </div>
+    <AdminPageShell
+      title="Dashboard"
+      description="Overview of platform activity and quick links to admin sections."
+    >
+      <AdminOverview />
+    </AdminPageShell>
   );
 }

@@ -7,10 +7,10 @@ export function SiteFooter() {
   const { t } = useLanguage();
 
   return (
-    <footer className="relative z-10 border-t border-border bg-background/80 backdrop-blur-sm mt-12">
+    <footer className="relative z-10 border-t border-border bg-card/50 backdrop-blur-sm mt-12">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-4">
         <nav
-          className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs uppercase tracking-wider font-ui"
+          className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs uppercase tracking-wider"
           aria-label={t('footer.legalNav') || 'Legal'}
         >
           <Link href="/imprint" className="text-muted-foreground hover:text-primary transition-colors">
@@ -32,11 +32,11 @@ export function SiteFooter() {
             {t('footer.spotlight') || 'Spotlight'}
           </Link>
         </nav>
-        <p className="text-center text-[10px] text-muted-foreground font-ui leading-relaxed max-w-2xl mx-auto">
+        <p className="text-center text-sm text-muted-foreground leading-relaxed max-w-2xl mx-auto">
           {t('footer.tagline') ||
             'Unabhängige Charts für die Metal- & Gothic-Szene. Rankings basieren auf Fan-Voting, Expertenbewertungen und Streaming-Daten — nicht auf Bezahlung.'}
         </p>
-        <p className="text-center text-[10px] text-muted-foreground/60 font-ui">
+        <p className="text-center text-xs text-muted-foreground/60">
           © {new Date().getFullYear()} Dark Charts
         </p>
       </div>

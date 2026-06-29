@@ -20,14 +20,15 @@ export function GenrePageClient({ mainGenre, subGenre = null }: GenrePageClientP
   const searchParams = useSearchParams();
   const pillarParam = searchParams.get('pillar');
   const activePillar: ChartType | 'overview' =
-    pillarParam === 'fan' || pillarParam === 'expert' || pillarParam === 'streaming'
-      ? pillarParam
+    pillarParam === 'fan' || pillarParam === 'expert' || pillarParam === 'club'
+      ? pillarParam === 'club'
+        ? 'expert'
+        : pillarParam
       : 'overview';
 
   const {
     fanCharts: shellFan,
     expertCharts: shellExpert,
-    streamingCharts: shellStreaming,
     isLoading: shellLoading,
     handleTrackClick,
   } = useChartShell();
@@ -35,7 +36,6 @@ export function GenrePageClient({ mainGenre, subGenre = null }: GenrePageClientP
   const {
     fanCharts: genreFan,
     expertCharts: genreExpert,
-    streamingCharts: genreStreaming,
     isLoading: genreLoading,
     hasServerData,
   } = useGenreChartData(mainGenre, subGenre);
@@ -45,7 +45,6 @@ export function GenrePageClient({ mainGenre, subGenre = null }: GenrePageClientP
       return {
         fanCharts: genreFan,
         expertCharts: genreExpert,
-        streamingCharts: genreStreaming,
       };
     }
 
@@ -57,17 +56,14 @@ export function GenrePageClient({ mainGenre, subGenre = null }: GenrePageClientP
     return {
       fanCharts: filterBySub(shellFan),
       expertCharts: filterBySub(shellExpert),
-      streamingCharts: filterBySub(shellStreaming),
     };
   }, [
     hasServerData,
     genreFan,
     genreExpert,
-    genreStreaming,
     subGenre,
     shellFan,
     shellExpert,
-    shellStreaming,
   ]);
 
   const isLoading = hasServerData ? genreLoading : shellLoading;
@@ -89,7 +85,6 @@ export function GenrePageClient({ mainGenre, subGenre = null }: GenrePageClientP
           activePillar={activePillar}
           fanCharts={filteredCharts.fanCharts}
           expertCharts={filteredCharts.expertCharts}
-          streamingCharts={filteredCharts.streamingCharts}
           isLoading={isLoading}
           onTrackClick={handleTrackClick}
         />

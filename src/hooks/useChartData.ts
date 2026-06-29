@@ -11,9 +11,8 @@ let nightlySyncInitialized = false;
 async function enrichTracksInBackground(
   fan: Track[],
   expert: Track[],
-  streaming: Track[],
   allTracks: Track[],
-  onUpdate: (fan: Track[], expert: Track[], streaming: Track[]) => void
+  onUpdate: (fan: Track[], expert: Track[]) => void
 ) {
   if (!trackEnrichmentService || allTracks.length === 0) return;
 
@@ -24,8 +23,7 @@ async function enrichTracksInBackground(
 
     onUpdate(
       fan.map((t) => enrichedMap.get(t.id) || t),
-      expert.map((t) => enrichedMap.get(t.id) || t),
-      streaming.map((t) => enrichedMap.get(t.id) || t)
+      expert.map((t) => enrichedMap.get(t.id) || t)
     );
   } catch (enrichmentError) {
     logger.error('Failed to enrich tracks in background:', enrichmentError);
@@ -36,7 +34,6 @@ export function useChartData() {
   const dataService = useDataService();
   const [fanCharts, setFanCharts] = useState<Track[]>([]);
   const [expertCharts, setExpertCharts] = useState<Track[]>([]);
-  const [streamingCharts, setStreamingCharts] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
@@ -59,24 +56,21 @@ export function useChartData() {
 
         const fan = Array.isArray(data.fanCharts) ? data.fanCharts : [];
         const expert = Array.isArray(data.expertCharts) ? data.expertCharts : [];
-        const streaming = Array.isArray(data.streamingCharts) ? data.streamingCharts : [];
 
         if (cancelled) return;
 
         setFanCharts(fan);
         setExpertCharts(expert);
-        setStreamingCharts(streaming);
 
         if (fan.length > 0) {
           setCurrentTrack(fan[0]);
         }
 
-        const allTracks = [...fan, ...expert, ...streaming];
-        void enrichTracksInBackground(fan, expert, streaming, allTracks, (ef, ee, es) => {
+        const allTracks = [...fan, ...expert];
+        void enrichTracksInBackground(fan, expert, allTracks, (ef, ee) => {
           if (!cancelled) {
             setFanCharts(ef);
             setExpertCharts(ee);
-            setStreamingCharts(es);
           }
         });
 
@@ -93,7 +87,6 @@ export function useChartData() {
         if (!cancelled) {
           setFanCharts([]);
           setExpertCharts([]);
-          setStreamingCharts([]);
         }
       } finally {
         if (!cancelled) {
@@ -111,7 +104,7 @@ export function useChartData() {
   const allGenres: Genre[] = useMemo(() => {
     try {
       const genreSet = new Set<Genre>();
-      const allTracks = [...fanCharts, ...expertCharts, ...streamingCharts];
+      const allTracks = [...fanCharts, ...expertCharts];
 
       allTracks.forEach(track => {
         if (track && Array.isArray(track.genres)) {
@@ -128,7 +121,7 @@ export function useChartData() {
       logger.error('Error computing all genres:', error);
       return [];
     }
-  }, [fanCharts, expertCharts, streamingCharts]);
+  }, [fanCharts, expertCharts]);
 
   const filterByGenre = useCallback((tracks: Track[]): Track[] => {
     try {
@@ -154,7 +147,7 @@ export function useChartData() {
 
   const filteredFanCharts = useMemo(() => {
     try {
-      return safeSlice(filterByGenre(fanCharts), 0, 10, []);
+      return safeSlice(filterByGenre(fanCharts), 0, 20, []);
     } catch (error) {
       logger.error('Error filtering fan charts:', error);
       return [];
@@ -163,21 +156,12 @@ export function useChartData() {
 
   const filteredExpertCharts = useMemo(() => {
     try {
-      return safeSlice(filterByGenre(expertCharts), 0, 10, []);
+      return safeSlice(filterByGenre(expertCharts), 0, 20, []);
     } catch (error) {
       logger.error('Error filtering expert charts:', error);
       return [];
     }
   }, [expertCharts, filterByGenre]);
-
-  const filteredStreamingCharts = useMemo(() => {
-    try {
-      return safeSlice(filterByGenre(streamingCharts), 0, 10, []);
-    } catch (error) {
-      logger.error('Error filtering streaming charts:', error);
-      return [];
-    }
-  }, [streamingCharts, filterByGenre]);
 
   const overallChart = useMemo(() => {
     try {
@@ -190,17 +174,16 @@ export function useChartData() {
         return [];
       }
 
-      return safeSlice(filterByGenre(chart), 0, 10, []);
+      return safeSlice(filterByGenre(chart), 0, 20, []);
     } catch (error) {
       logger.error('Error calculating overall chart:', error);
       return [];
     }
-  }, [fanCharts, expertCharts, streamingCharts, dataService, filterByGenre]);
+  }, [fanCharts, expertCharts, dataService, filterByGenre]);
 
   return {
     fanCharts,
     expertCharts,
-    streamingCharts,
     isLoading,
     currentTrack,
     setCurrentTrack,
@@ -210,7 +193,6 @@ export function useChartData() {
     filterByGenre,
     filteredFanCharts,
     filteredExpertCharts,
-    filteredStreamingCharts,
     overallChart,
     dataService,
   };

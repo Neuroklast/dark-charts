@@ -1,7 +1,6 @@
-'use client';
+import { redirect } from 'next/navigation';
+import { ROUTES } from '@/lib/routes';
 
-import { DashboardMetricsContainer } from '@/components/admin/DashboardMetricsContainer';
-
-export default function AdminMetricsPage() {
-  return <DashboardMetricsContainer />;
+export default function AdminMetricsRedirectPage() {
+  redirect(ROUTES.adminAnalytics);
 }

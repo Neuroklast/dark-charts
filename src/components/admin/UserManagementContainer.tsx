@@ -1,19 +1,17 @@
+'use client';
+
 import React, { useEffect, useState } from 'react';
 import { UserManagementView } from './UserManagementView';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { authFetch } from '@/lib/auth/client-fetch';
 
 export function UserManagementContainer() {
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { getToken } = useAuth();
 
   const fetchUsers = async () => {
     try {
-      const token = await getToken();
-      const res = await fetch('/api/admin/users?page=1&limit=50', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await authFetch('/api/admin/users?page=1&limit=50');
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users);
@@ -32,13 +30,9 @@ export function UserManagementContainer() {
   }, []);
 
   const postUserAction = async (body: Record<string, unknown>) => {
-    const token = await getToken();
-    const res = await fetch('/api/admin/users', {
+    const res = await authFetch('/api/admin/users', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     if (!res.ok) {

@@ -8,6 +8,7 @@ import {
 } from '@/lib/api-middleware';
 import { authService } from '@/backend/services/AuthService';
 import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
+import { createRouteHandlerSupabaseClient } from '@/lib/supabase/server-ssr';
 import { logger } from '@/lib/logger';
 
 export const POST = withErrorHandler(async (req: NextRequest) => {
@@ -25,17 +26,66 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
   }
 
   try {
+    let response = NextResponse.json({ success: true });
+    const supabase = createRouteHandlerSupabaseClient(req, response);
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (!authError && authData.user && authData.session) {
+      const serviceSupabase = createServiceRoleSupabaseClient();
+      const { data: user, error } = await serviceSupabase
+        .from('users')
+        .select(
+          '*, fanProfile:fan_profiles(*), djProfile:dj_profiles(*), bandProfile:band_profiles(*), labelProfile:label_profiles(*)'
+        )
+        .eq('id', authData.user.id)
+        .maybeSingle();
+
+      if (error) throw new ApiError(500, error.message);
+
+      response = NextResponse.json({
+        success: true,
+        token: authData.session.access_token,
+        user: {
+          id: authData.user.id,
+          email: authData.user.email,
+          role: user?.role,
+          emailVerified: user?.emailVerified,
+          trustLevel: user?.trustLevel,
+          fanProfile: user?.fanProfile ?? null,
+          djProfile: user?.djProfile ?? null,
+          bandProfile: user?.bandProfile ?? null,
+          labelProfile: user?.labelProfile ?? null,
+        },
+      });
+
+      const supabaseWithCookies = createRouteHandlerSupabaseClient(req, response);
+      await supabaseWithCookies.auth.setSession({
+        access_token: authData.session.access_token,
+        refresh_token: authData.session.refresh_token,
+      });
+
+      return setRateLimitHeaders(applyCorsToResponse(response, 'POST,OPTIONS'), req, {
+        windowMs: 60_000,
+        maxRequests: 10,
+      });
+    }
+
     const result = await authService.login({ email, password });
-    const supabase = createServiceRoleSupabaseClient();
-    const { data: user, error } = await supabase
+    const serviceSupabase = createServiceRoleSupabaseClient();
+    const { data: user, error } = await serviceSupabase
       .from('users')
-      .select('*, fanProfile:fan_profiles(*), djProfile:dj_profiles(*), bandProfile:band_profiles(*), labelProfile:label_profiles(*)')
+      .select(
+        '*, fanProfile:fan_profiles(*), djProfile:dj_profiles(*), bandProfile:band_profiles(*), labelProfile:label_profiles(*)'
+      )
       .eq('id', result.user.id)
       .maybeSingle();
 
     if (error) throw new ApiError(500, error.message);
 
-    const response = NextResponse.json({
+    const legacyResponse = NextResponse.json({
       success: true,
       token: result.token,
       user: {
@@ -47,7 +97,7 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
       },
     });
 
-    return setRateLimitHeaders(applyCorsToResponse(response, 'POST,OPTIONS'), req, {
+    return setRateLimitHeaders(applyCorsToResponse(legacyResponse, 'POST,OPTIONS'), req, {
       windowMs: 60_000,
       maxRequests: 10,
     });

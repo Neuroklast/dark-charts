@@ -1,27 +1,25 @@
+'use client';
+
 import React, { useEffect, useState } from 'react';
 import { ArtistBlacklistView } from './ArtistBlacklistView';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { authFetch } from '@/lib/auth/client-fetch';
 
 export function ArtistBlacklistContainer() {
   const [blacklist, setBlacklist] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { getToken } = useAuth();
 
   useEffect(() => {
     const fetchBlacklist = async () => {
       try {
-        const token = await getToken();
-        const res = await fetch('/api/admin/artists', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await authFetch('/api/admin/artists');
         if (res.ok) {
           const data = await res.json();
           setBlacklist(data.blacklist);
         } else {
           toast.error('Failed to load blacklist');
         }
-      } catch (error) {
+      } catch {
         toast.error('Network error loading blacklist');
       } finally {
         setIsLoading(false);
@@ -32,14 +30,13 @@ export function ArtistBlacklistContainer() {
 
   const handleUpdateStatus = async (artistId: string, status: string) => {
     const previous = [...blacklist];
-    setBlacklist(blacklist.map(a => a.id === artistId ? { ...a, status } : a));
+    setBlacklist(blacklist.map((a) => (a.id === artistId ? { ...a, status } : a)));
 
     try {
-      const token = await getToken();
-      const res = await fetch('/api/admin/artists', {
+      const res = await authFetch('/api/admin/artists', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ action: 'update_status', artistId, status })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_status', artistId, status }),
       });
       if (res.ok) {
         toast.success(`Artist status updated to ${status}`);
@@ -54,11 +51,10 @@ export function ArtistBlacklistContainer() {
 
   const handleForceSync = async () => {
     try {
-      const token = await getToken();
-      const res = await fetch('/api/admin/artists', {
+      const res = await authFetch('/api/admin/artists', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ action: 'force_sync' })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'force_sync' }),
       });
       if (res.ok) {
         toast.success('Sync triggered successfully');

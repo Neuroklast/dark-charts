@@ -5,9 +5,9 @@ import type { ChartWeights } from '@/types'
 export const GLOBAL_SETTINGS_ID = 'global'
 
 export const DEFAULT_CHART_WEIGHTS: ChartWeights = {
-  fan: 0.5,
-  expert: 0.35,
-  streaming: 0.15,
+  fan: 0.55,
+  expert: 0.45,
+  streaming: 0,
 }
 
 export interface SystemSettings {

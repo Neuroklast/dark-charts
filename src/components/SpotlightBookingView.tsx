@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
+import { authFetch } from '@/lib/auth/client-fetch';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   SPOTLIGHT_MAX_DAYS_AHEAD,
@@ -32,7 +33,7 @@ interface BookingRow {
 }
 
 export function SpotlightBookingView() {
-  const { user, getAuthToken, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const { t, language } = useLanguage();
   const [slotType, setSlotType] = useState<SpotlightSlotType>('BAND_OF_DAY');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -54,14 +55,11 @@ export function SpotlightBookingView() {
   }, []);
 
   const loadBookings = useCallback(async () => {
-    const token = await getAuthToken();
-    if (!token) return;
+    if (!user?.isAuthenticated) return;
 
     setIsLoadingBookings(true);
     try {
-      const res = await fetch('/api/spotlight/bookings', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await authFetch('/api/spotlight/bookings');
       const data = await res.json();
       if (res.ok) {
         setBookings(data.bookings ?? []);
@@ -72,7 +70,7 @@ export function SpotlightBookingView() {
     } finally {
       setIsLoadingBookings(false);
     }
-  }, [getAuthToken, t]);
+  }, [user?.isAuthenticated, t]);
 
   useEffect(() => {
     if (user?.isAuthenticated) {
@@ -116,20 +114,16 @@ export function SpotlightBookingView() {
       return;
     }
 
-    const token = await getAuthToken();
-    if (!token) {
+    if (!user?.isAuthenticated) {
       toast.error(t('spotlight.booking.loginRequired'));
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/spotlight/checkout', {
+      const res = await authFetch('/api/spotlight/checkout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           slotType,
           slotDate: selectedDate.toISOString(),

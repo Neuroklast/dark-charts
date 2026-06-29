@@ -29,7 +29,7 @@ export class ChartService {
   }
 
   static calculateOverallChart(weights: ChartWeights): Track[] {
-    return calculateOverallChart(mockFanCharts, mockExpertCharts, mockStreamingCharts, weights);
+    return calculateOverallChart(mockFanCharts, mockExpertCharts, weights);
   }
 
   static normalizeWeights(weights: ChartWeights): ChartWeights {

@@ -564,6 +564,8 @@ export type Database = {
           isVotingPaused: boolean
           voiceCreditsBudget: number
           chartWeights: Json
+          featureFlags: Json
+          themeConfig: Json
           createdAt: string
           updatedAt: string
         }
@@ -572,6 +574,8 @@ export type Database = {
           isVotingPaused?: boolean
           voiceCreditsBudget?: number
           chartWeights?: Json
+          featureFlags?: Json
+          themeConfig?: Json
           createdAt?: string
           updatedAt?: string
         }
@@ -580,6 +584,8 @@ export type Database = {
           isVotingPaused?: boolean
           voiceCreditsBudget?: number
           chartWeights?: Json
+          featureFlags?: Json
+          themeConfig?: Json
           createdAt?: string
           updatedAt?: string
         }

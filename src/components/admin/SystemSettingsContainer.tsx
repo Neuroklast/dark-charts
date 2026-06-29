@@ -1,27 +1,25 @@
+'use client';
+
 import React, { useEffect, useState } from 'react';
 import { SystemSettingsView } from './SystemSettingsView';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { authFetch } from '@/lib/auth/client-fetch';
 
 export function SystemSettingsContainer() {
   const [settings, setSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { getToken } = useAuth();
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const token = await getToken();
-        const res = await fetch('/api/admin/settings', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await authFetch('/api/admin/settings');
         if (res.ok) {
           const data = await res.json();
           setSettings(data.settings);
         } else {
           toast.error('Failed to load settings');
         }
-      } catch (error) {
+      } catch {
         toast.error('Network error loading settings');
       } finally {
         setIsLoading(false);
@@ -32,11 +30,10 @@ export function SystemSettingsContainer() {
 
   const handleSave = async (newSettings: any) => {
     try {
-      const token = await getToken();
-      const res = await fetch('/api/admin/settings', {
+      const res = await authFetch('/api/admin/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(newSettings)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings),
       });
       if (res.ok) {
         const data = await res.json();
@@ -51,10 +48,6 @@ export function SystemSettingsContainer() {
   };
 
   return (
-    <SystemSettingsView
-      settings={settings}
-      isLoading={isLoading}
-      onSave={handleSave}
-    />
+    <SystemSettingsView settings={settings} isLoading={isLoading} onSave={handleSave} />
   );
 }

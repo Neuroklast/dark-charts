@@ -1,51 +1,31 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { CircleNotch } from '@phosphor-icons/react';
+import { ROUTES } from '@/lib/routes';
+
+const ADMIN_ROLES = new Set(['ADMIN', 'admin']);
 
 export function AdminAuthGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { isLoading, getAuthToken } = useAuth();
-  const [verified, setVerified] = useState(false);
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     if (isLoading) return;
 
-    const verifyAdmin = async () => {
-      const token = await getAuthToken();
-      if (!token) {
-        router.replace('/');
-        return;
-      }
+    if (!user?.isAuthenticated) {
+      router.replace(`/login?returnTo=${encodeURIComponent(ROUTES.admin)}`);
+      return;
+    }
 
-      try {
-        const res = await fetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+    if (!user.role || !ADMIN_ROLES.has(user.role)) {
+      router.replace('/login?error=unauthorized');
+    }
+  }, [isLoading, user, router]);
 
-        if (!res.ok) {
-          router.replace('/');
-          return;
-        }
-
-        const data = await res.json();
-        if (data.user?.role !== 'ADMIN') {
-          router.replace('/');
-          return;
-        }
-
-        setVerified(true);
-      } catch {
-        router.replace('/');
-      }
-    };
-
-    verifyAdmin();
-  }, [isLoading, getAuthToken, router]);
-
-  if (isLoading || !verified) {
+  if (isLoading || !user?.isAuthenticated || !user.role || !ADMIN_ROLES.has(user.role)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <CircleNotch className="w-8 h-8 animate-spin text-primary" />

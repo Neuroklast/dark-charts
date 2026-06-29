@@ -1,63 +1,58 @@
 'use client';
 
-import { ChartCategory } from '@/components/ChartCategory';
+import { useEffect, useState } from 'react';
 import { ChartEntry } from '@/components/ChartEntry';
 import { Card } from '@/components/ui/card';
-
+import { HybridChartTable } from '@/components/HybridChartTable';
+import { ChartSidebar } from '@/components/ChartSidebar';
 import { ChartEntrySkeleton } from '@/components/skeletons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChartShell } from './ChartShellClient';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatHybridWeightsPercent } from '@/lib/math/normalization';
+import { DEFAULT_CHART_WEIGHTS } from '@/lib/api/systemSettings';
+import type { ChartWeights } from '@/types';
 
 export function HomeChartsView() {
-  const {
-    filteredFanCharts,
-    filteredExpertCharts,
-    filteredStreamingCharts,
-    isLoading,
-    handleTrackClick,
-  } = useChartShell();
+  const { overallChart, isLoading, handleTrackClick, hasVoted } = useChartShell();
+  const { t } = useLanguage();
+  const [weights, setWeights] = useState<ChartWeights>(DEFAULT_CHART_WEIGHTS);
+
+  useEffect(() => {
+    fetch('/api/charts/weights')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.weights) setWeights(data.weights);
+      })
+      .catch(() => {});
+  }, []);
+
+  const pct = formatHybridWeightsPercent(weights);
+  const weightsLabel = t('chart.weightsFormula')
+    .replace('{fan}', String(pct.fan))
+    .replace('{expert}', String(pct.expert));
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <ErrorBoundary level="component">
-          <ChartCategory
-            title="Fan Charts Top 3"
-            tracks={filteredFanCharts || []}
-            isLoading={isLoading}
-            onTrackClick={handleTrackClick}
-          />
-        </ErrorBoundary>
-        <ErrorBoundary level="component">
-          <ChartCategory
-            title="Expert Charts Top 3"
-            tracks={filteredExpertCharts || []}
-            isLoading={isLoading}
-            onTrackClick={handleTrackClick}
-          />
-        </ErrorBoundary>
-        <ErrorBoundary level="component">
-          <ChartCategory
-            title="Streaming Charts Top 3"
-            tracks={filteredStreamingCharts || []}
-            isLoading={isLoading}
-            onTrackClick={handleTrackClick}
-          />
-        </ErrorBoundary>
-      </div>
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+      <HybridChartTable
+        tracks={overallChart}
+        isLoading={isLoading}
+        onTrackClick={handleTrackClick}
+        weightsLabel={weightsLabel}
+      />
+      <ChartSidebar hasVoted={hasVoted} />
     </div>
   );
 }
 
 interface PillarChartListProps {
-  pillar: 'fan' | 'expert' | 'streaming';
+  pillar: 'fan' | 'club';
 }
 
 const PILLAR_CONFIG = {
   fan: { title: 'Fan Charts', tracksKey: 'filteredFanCharts' as const },
-  expert: { title: 'Expert Charts', tracksKey: 'filteredExpertCharts' as const },
-  streaming: { title: 'Streaming Charts', tracksKey: 'filteredStreamingCharts' as const },
+  club: { title: 'Club Charts', tracksKey: 'filteredExpertCharts' as const },
 };
 
 export function PillarChartList({ pillar }: PillarChartListProps) {
@@ -77,7 +72,7 @@ export function PillarChartList({ pillar }: PillarChartListProps) {
           </div>
           {isLoading ? (
             <div>
-              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((index) => (
+              {Array.from({ length: 20 }).map((_, index) => (
                 <ChartEntrySkeleton key={index} index={index} />
               ))}
             </div>
@@ -92,10 +87,6 @@ export function PillarChartList({ pillar }: PillarChartListProps) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    transition={{
-                      layout: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
-                      opacity: { duration: 0.15 },
-                    }}
                   >
                     <ChartEntry
                       track={track}

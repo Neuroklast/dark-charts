@@ -1,12 +1,12 @@
-'use client';
-
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { AdminClientLayout } from './_components/AdminClientLayout';
 import { AdminAuthGuard } from './_components/AdminAuthGuard';
+
+export const dynamic = 'force-dynamic';
 
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminAuthGuard>
-      <AdminLayout linkMode>{children}</AdminLayout>
+      <AdminClientLayout>{children}</AdminClientLayout>
     </AdminAuthGuard>
   );
 }

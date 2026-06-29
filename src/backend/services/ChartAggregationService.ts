@@ -293,29 +293,27 @@ export class ChartAggregationService {
       ...allReleaseIds.map((id) => releaseMetrics.get(id)!.expertScore),
       1
     );
-    const maxStreaming = Math.max(
-      ...allReleaseIds.map((id) => releaseMetrics.get(id)!.streamingScore),
-      1
-    );
-
     const totalFanScore = allReleaseIds.reduce(
       (sum, id) => sum + releaseMetrics.get(id)!.fanScore,
       0
     );
 
+    const weightTotal = weights.fan + weights.expert || 1;
+    const wFan = weights.fan / weightTotal;
+    const wExpert = weights.expert / weightTotal;
+
     const combinedScores = allReleaseIds.map((releaseId) => {
       const m = releaseMetrics.get(releaseId)!;
       const weightedScore =
-        normalizeScore(m.fanScore, maxFan) * weights.fan +
-        normalizeScore(m.expertScore, maxExpert) * weights.expert +
-        normalizeScore(m.streamingScore, maxStreaming) * weights.streaming;
+        normalizeScore(m.fanScore, maxFan) * wFan +
+        normalizeScore(m.expertScore, maxExpert) * wExpert;
 
       const communityPower = calculateCommunityPowerPercent(m.fanScore, totalFanScore);
 
       return { releaseId, ...m, weightedScore, communityPower };
     });
 
-    const chartTypes: ChartTypeKey[] = ['fan', 'expert', 'streaming', 'combined'];
+    const chartTypes: ChartTypeKey[] = ['fan', 'expert', 'combined'];
     const lastWeekPlacements = new Map<ChartTypeKey, Map<string, number>>();
 
     for (const chartType of chartTypes) {
@@ -368,7 +366,6 @@ export class ChartAggregationService {
 
     buildEntries('fan', (i) => i.fanScore);
     buildEntries('expert', (i) => i.expertScore);
-    buildEntries('streaming', (i) => i.streamingScore);
     buildEntries('combined', (i) => i.weightedScore);
 
     const { data: releaseGenreRows } = await supabase

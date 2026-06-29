@@ -1,15 +1,17 @@
 import Link from 'next/link';
-import { ChartType } from '@/types';
+import type { PillarSlug } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+export type PillarView = PillarSlug | 'overview';
+
 interface PillarNavigationProps {
-  activePillar: ChartType | 'overview';
-  onPillarChange: (pillar: ChartType | 'overview') => void;
+  activePillar: PillarView;
+  onPillarChange: (pillar: PillarView) => void;
   className?: string;
   linkMode?: boolean;
-  getPillarHref?: (pillar: ChartType | 'overview') => string;
+  getPillarHref?: (pillar: PillarView) => string;
 }
 
 export function PillarNavigation({
@@ -23,7 +25,7 @@ export function PillarNavigation({
   const isMobile = useIsMobile();
   
   const renderPillar = (
-    pillar: { value: ChartType | 'overview'; label: string },
+    pillar: { value: PillarView; label: string },
     className: string
   ) => {
     if (linkMode && getPillarHref) {
@@ -49,11 +51,10 @@ export function PillarNavigation({
     );
   };
 
-  const pillars: { value: ChartType | 'overview'; label: string }[] = [
-    { value: 'overview', label: t('pillar.overview') },
+  const pillars: { value: PillarView; label: string }[] = [
+    { value: 'overview', label: t('pillar.overall') },
+    { value: 'club', label: t('pillar.club') },
     { value: 'fan', label: t('pillar.fan') },
-    { value: 'expert', label: t('pillar.expert') },
-    { value: 'streaming', label: t('pillar.streaming') },
   ];
 
   return (
