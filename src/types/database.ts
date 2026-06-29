@@ -478,6 +478,10 @@ export type Database = {
           slotDate: string
           slotType: string
           status: string
+          stripeSessionId: string | null
+          stripePaymentId: string | null
+          amountCents: number | null
+          currency: string | null
           createdAt: string
           updatedAt: string
         }
@@ -487,6 +491,10 @@ export type Database = {
           slotDate: string
           slotType: string
           status?: string
+          stripeSessionId?: string | null
+          stripePaymentId?: string | null
+          amountCents?: number | null
+          currency?: string | null
           createdAt?: string
           updatedAt?: string
         }
@@ -496,6 +504,10 @@ export type Database = {
           slotDate?: string
           slotType?: string
           status?: string
+          stripeSessionId?: string | null
+          stripePaymentId?: string | null
+          amountCents?: number | null
+          currency?: string | null
           createdAt?: string
           updatedAt?: string
         }

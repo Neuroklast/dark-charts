@@ -12,6 +12,7 @@ import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import { getIsVotingPaused, getVoiceCreditsBudget } from '@/lib/system-settings';
 import { logger } from '@/lib/logger';
 import { assertNoVoteConflicts } from '@/lib/vote-conflicts';
+import { assertReleasesNotVoteBlocked } from '@/lib/vote-anomaly-guard';
 import { submitFanBulkVotes } from '@/lib/api/fan-vote';
 
 const bodySchema = z.object({
@@ -112,6 +113,7 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
     }
 
     await assertNoVoteConflicts(supabase, userId, releaseIds);
+    await assertReleasesNotVoteBlocked(supabase, releaseIds, startOfWeek.toISOString());
 
     const { votes: createdVotes, remainingCredits } = await submitFanBulkVotes({
       supabase,
@@ -165,6 +167,7 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
     }
 
     await assertNoVoteConflicts(supabase, userId, releaseIds);
+    await assertReleasesNotVoteBlocked(supabase, releaseIds, startOfWeek.toISOString());
 
     await supabase
       .from('expert_votes')
@@ -211,6 +214,7 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
   if (rank === undefined) throw new ApiError(400, 'rank is required for DJ role');
 
   await assertNoVoteConflicts(supabase, userId, [releaseId]);
+  await assertReleasesNotVoteBlocked(supabase, [releaseId], startOfWeek.toISOString());
 
   const { data: existingExpertVoteWithRank } = await supabase
     .from('expert_votes')

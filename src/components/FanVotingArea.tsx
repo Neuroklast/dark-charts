@@ -477,7 +477,11 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                       if (onVoteComplete) onVoteComplete();
                       return;
                     }
-                    throw new Error(errData.message || 'Failed to submit votes');
+                    if (res.status === 403 && errData.code === 'RELEASE_VOTE_SUSPENDED') {
+                      toast.error('Abstimmung für mindestens einen Track ist vorübergehend gesperrt (Integritätsprüfung).');
+                      return;
+                    }
+                    throw new Error(errData.error || errData.message || 'Failed to submit votes');
                   }
 
                   const result = await res.json();

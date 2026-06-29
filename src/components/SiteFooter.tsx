@@ -28,6 +28,9 @@ export function SiteFooter() {
           <Link href="/methodology" className="text-muted-foreground hover:text-primary transition-colors">
             {t('footer.methodology') || 'Methodik'}
           </Link>
+          <Link href="/spotlight" className="text-muted-foreground hover:text-primary transition-colors">
+            {t('footer.spotlight') || 'Spotlight'}
+          </Link>
         </nav>
         <p className="text-center text-[10px] text-muted-foreground font-ui leading-relaxed max-w-2xl mx-auto">
           {t('footer.tagline') ||

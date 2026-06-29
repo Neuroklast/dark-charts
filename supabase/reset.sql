@@ -210,6 +210,10 @@ CREATE TABLE IF NOT EXISTS bookings (
   "slotDate" TIMESTAMPTZ NOT NULL,
   "slotType" TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
+  "stripeSessionId" TEXT,
+  "stripePaymentId" TEXT,
+  "amountCents" INTEGER,
+  currency TEXT DEFAULT 'eur',
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
