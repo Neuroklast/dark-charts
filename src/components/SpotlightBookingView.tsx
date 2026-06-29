@@ -40,6 +40,7 @@ export function SpotlightBookingView() {
   const [prices, setPrices] = useState<Record<SpotlightSlotType, { amountCents: number; currency: string }> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
+  const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
 
   const locale = language === 'en' ? 'en' : 'de';
   const role = user?.role?.toUpperCase();
@@ -78,6 +79,21 @@ export function SpotlightBookingView() {
       void loadBookings();
     }
   }, [user?.isAuthenticated, loadBookings]);
+
+  useEffect(() => {
+    const loadAvailability = async () => {
+      try {
+        const res = await fetch(`/api/spotlight/availability?slotType=${slotType}`);
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.bookedDates)) {
+          setBookedDates(new Set(data.bookedDates));
+        }
+      } catch {
+        setBookedDates(new Set());
+      }
+    };
+    void loadAvailability();
+  }, [slotType]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -188,7 +204,13 @@ export function SpotlightBookingView() {
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                disabled={{ before: new Date(), after: maxDate }}
+                disabled={(date) => {
+                  const dayKey = date.toISOString().slice(0, 10);
+                  if (bookedDates.has(dayKey)) return true;
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  return date < today || date > maxDate;
+                }}
                 className="rounded-md border border-border p-3"
               />
             </div>

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { 
   User, SignOut,
   PencilSimple, FloppyDisk, X, Trophy,
-  MusicNotes, DownloadSimple, Trash
+  MusicNotes, DownloadSimple, Trash, Megaphone
 } from '@phosphor-icons/react';
 import { FanProfile, BandProfile, DJProfile, LabelProfile, UserType } from '@/types';
 import { motion } from 'framer-motion';
@@ -463,6 +464,52 @@ function FanProfileView({
   );
 }
 
+function BandLabelProfileView({ userType }: { userType: 'band' | 'label' }) {
+  const { user, logout } = useAuth();
+  const { t } = useLanguage();
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-card border border-border p-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <p className="font-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
+              {t('profile.profileType')}
+            </p>
+            <h2 className="display-font text-2xl uppercase tracking-tight text-foreground font-semibold">
+              {userType === 'band' ? 'Band' : 'Label'}
+            </h2>
+            <p className="font-ui text-sm text-muted-foreground mt-2">{user?.email}</p>
+          </div>
+          <Button variant="outline" onClick={() => logout()} className="font-ui text-[10px] uppercase">
+            <SignOut weight="bold" className="w-4 h-4 mr-1" />
+            {t('profile.signOut') || 'Sign out'}
+          </Button>
+        </div>
+      </Card>
+
+      <Card className="bg-card border border-border p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 border border-accent bg-accent/10 flex items-center justify-center shrink-0">
+            <Megaphone weight="fill" className="w-6 h-6 text-accent" />
+          </div>
+          <div className="space-y-3 flex-1">
+            <h3 className="display-font text-xl uppercase tracking-tight text-foreground font-semibold">
+              {t('spotlight.booking.title')}
+            </h3>
+            <p className="font-ui text-sm text-muted-foreground">{t('spotlight.booking.subtitle')}</p>
+            <Button asChild className="font-ui text-[10px] uppercase">
+              <Link href="/spotlight">{t('spotlight.booking.checkout')}</Link>
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <AccountSettingsCard />
+    </div>
+  );
+}
+
 export function ProfileView() {
   const { user, isLoading } = useAuth();
   const { t } = useLanguage();
@@ -499,6 +546,8 @@ export function ProfileView() {
           authProvider={user.authProvider}
           trustLevel={user.trustLevel}
         />
+      ) : user.profile?.userType === 'band' || user.profile?.userType === 'label' ? (
+        <BandLabelProfileView userType={user.profile.userType} />
       ) : (
         <Card className="bg-card border border-border p-8">
           <div className="text-center">

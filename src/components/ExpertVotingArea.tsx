@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Track } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,8 +22,28 @@ export function ExpertVotingArea({ allTracks, onTrackClick, onVoteComplete }: Ex
   const { getAuthToken } = useAuth();
   const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [blockedReleaseIds, setBlockedReleaseIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const loadBlockedReleases = async () => {
+      try {
+        const res = await fetch('/api/vote/blocked-releases');
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.blockedReleaseIds)) {
+          setBlockedReleaseIds(new Set(data.blockedReleaseIds));
+        }
+      } catch (err) {
+        logger.error('Failed to load blocked releases', { error: err });
+      }
+    };
+    void loadBlockedReleases();
+  }, []);
 
   const handleAddToTop10 = useCallback((track: Track) => {
+    if (blockedReleaseIds.has(track.id)) {
+      toast.error('Dieser Track ist vorübergehend für Abstimmungen gesperrt (Integritätsprüfung).');
+      return;
+    }
     if (selectedTracks.length >= 10) {
       toast.error('Top 10 is already full');
       return;
@@ -32,7 +53,7 @@ export function ExpertVotingArea({ allTracks, onTrackClick, onVoteComplete }: Ex
       return;
     }
     setSelectedTracks(prev => [...prev, track]);
-  }, [selectedTracks]);
+  }, [selectedTracks, blockedReleaseIds]);
 
   const handleRemoveFromTop10 = useCallback((trackId: string) => {
     setSelectedTracks(prev => prev.filter(t => t.id !== trackId));
@@ -82,6 +103,10 @@ export function ExpertVotingArea({ allTracks, onTrackClick, onVoteComplete }: Ex
 
       if (!res.ok) {
         const errorData = await res.json();
+        if (res.status === 403 && errorData.code === 'RELEASE_VOTE_SUSPENDED') {
+          toast.error('Mindestens ein Track ist vorübergehend gesperrt (Integritätsprüfung).');
+          return;
+        }
         throw new Error(errorData.error || 'Failed to submit votes');
       }
 

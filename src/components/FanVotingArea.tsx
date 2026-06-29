@@ -44,6 +44,7 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
   const [hasVoted, setHasVoted] = useState(false);
   const [creditBudget, setCreditBudget] = useState(150);
   const [serverRemainingCredits, setServerRemainingCredits] = useState(150);
+  const [blockedReleaseIds, setBlockedReleaseIds] = useState<Set<string>>(new Set());
 
   const calculateTotalCost = useCallback((votes: Record<string, number>) => {
     return Object.values(votes).reduce((sum, v) => sum + calculateQuadraticCost(v), 0);
@@ -82,6 +83,21 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
     };
     checkVoteStatus();
   }, [getAuthToken, onVoteComplete]);
+
+  useEffect(() => {
+    const loadBlockedReleases = async () => {
+      try {
+        const res = await fetch('/api/vote/blocked-releases');
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.blockedReleaseIds)) {
+          setBlockedReleaseIds(new Set(data.blockedReleaseIds));
+        }
+      } catch (err) {
+        logger.error('Failed to load blocked releases', { error: err });
+      }
+    };
+    void loadBlockedReleases();
+  }, []);
 
   const [shuffledTracks, setShuffledTracks] = useState<Track[]>([]);
 
@@ -281,7 +297,8 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
           {filteredTracks.map((track) => {
             const currentVotes = allocatedVotes[track.id] || 0;
             const costForNext = calculateQuadraticCost(currentVotes + 1) - calculateQuadraticCost(currentVotes);
-            const canAffordNext = remainingCredits >= costForNext;
+            const isVoteBlocked = blockedReleaseIds.has(track.id);
+            const canAffordNext = !isVoteBlocked && remainingCredits >= costForNext;
 
             return (
               <motion.div
@@ -292,7 +309,10 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.15 }}
               >
-                <Card className="bg-card border border-border transition-all hover:border-primary/50">
+                <Card className={cn(
+                  'bg-card border border-border transition-all',
+                  isVoteBlocked ? 'opacity-60 border-amber-500/40' : 'hover:border-primary/50'
+                )}>
                   <div className="p-4">
                     <div className="flex flex-col md:flex-row items-center md:items-start gap-4">
 
@@ -328,6 +348,11 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                             {track.artist}
                           </div>
                           <div className="flex flex-wrap gap-1">
+                            {isVoteBlocked && (
+                              <Badge variant="outline" className="font-ui text-[9px] uppercase tracking-wider border-amber-500/50 text-amber-500">
+                                {t('voting.integrityReview') || 'Integritätsprüfung'}
+                              </Badge>
+                            )}
                             {track.genres.slice(0, 3).map(genre => (
                               <Badge
                                 key={genre}
@@ -346,7 +371,7 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                               variant="outline"
                               size="icon"
                               className="h-10 w-10 shrink-0 rounded-none border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-colors"
-                              disabled={currentVotes <= 0}
+                              disabled={isVoteBlocked || currentVotes <= 0}
                               onClick={() => {
                                 setAllocatedVotes(prev => ({
                                   ...prev,

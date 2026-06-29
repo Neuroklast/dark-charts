@@ -73,8 +73,9 @@ export function MethodologyView() {
           </h2>
           <p>
             {isEn
-              ? 'Paid Spotlight slots appear above chart content, clearly labeled as advertising. They never affect rankings.'
-              : 'Bezahlte Spotlight-Slots erscheinen oberhalb der Charts, klar als Anzeige gekennzeichnet. Sie beeinflussen Rankings nicht.'}
+              ? 'Paid Spotlight slots appear above chart content, clearly labeled as advertising. They never affect rankings. Bands and Labels can book slots via self-service checkout on'
+              : 'Bezahlte Spotlight-Slots erscheinen oberhalb der Charts, klar als Anzeige gekennzeichnet. Sie beeinflussen Rankings nicht. Bands und Labels buchen Slots per Selbstbuchung unter'}{' '}
+            <Link href="/spotlight" className="text-accent underline">/spotlight</Link>.
           </p>
         </section>
 
@@ -86,8 +87,8 @@ export function MethodologyView() {
           </h2>
           <p>
             {isEn
-              ? 'Weekly aggregation flags suspicious vote patterns (e.g. low-trust clusters, new-account surges) for admin review.'
-              : 'Die Wochenaggregation markiert verdächtige Vote-Muster (z. B. Low-Trust-Cluster, New-Account-Spikes) zur Admin-Prüfung.'}
+              ? 'Weekly aggregation flags suspicious vote patterns (e.g. low-trust clusters, new-account surges) for admin review. Unresolved high-severity anomalies automatically suspend voting on affected releases until moderators resolve the case.'
+              : 'Die Wochenaggregation markiert verdächtige Vote-Muster (z. B. Low-Trust-Cluster, New-Account-Spikes) zur Admin-Prüfung. Ungeklärte Anomalien mit hoher Schwere setzen Abstimmungen auf betroffene Releases automatisch aus, bis Moderatoren den Fall schließen.'}
           </p>
         </section>
 
