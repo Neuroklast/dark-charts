@@ -21,22 +21,11 @@ import { Slider } from '@/components/ui/slider';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { VotingAreaSkeleton } from '@/components/skeletons';
 import { AlbumArtwork } from './AlbumArtwork';
+import { getNextMonday } from '@/lib/week';
 
 interface VotingAreaProps {
   allTracks: Track[];
   onTrackClick: (track: Track) => void;
-}
-
-const MAX_CREDITS = 150;
-
-function getNextMonday(): Date {
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-  const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
-  const nextMonday = new Date(today);
-  nextMonday.setDate(today.getDate() + daysUntilMonday);
-  nextMonday.setHours(0, 0, 0, 0);
-  return nextMonday;
 }
 
 function calculateQuadraticCost(credits: number): number {
@@ -52,13 +41,17 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
   const [allocatedVotes, setAllocatedVotes] = useState<Record<string, number>>({});
   const [nextPublishDate] = useState<Date>(getNextMonday());
   const [isLoading, setIsLoading] = useState(true);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [creditBudget, setCreditBudget] = useState(150);
+  const [serverRemainingCredits, setServerRemainingCredits] = useState(150);
+  const [blockedReleaseIds, setBlockedReleaseIds] = useState<Set<string>>(new Set());
 
   const calculateTotalCost = useCallback((votes: Record<string, number>) => {
     return Object.values(votes).reduce((sum, v) => sum + calculateQuadraticCost(v), 0);
   }, []);
 
   const totalCost = calculateTotalCost(allocatedVotes);
-  const remainingCredits = MAX_CREDITS - totalCost;
+  const remainingCredits = serverRemainingCredits - totalCost;
 
   useEffect(() => {
     const checkVoteStatus = async () => {
@@ -72,17 +65,39 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
           }
         });
         const data = await res.json();
-        if (data.hasVoted && onVoteComplete) {
-          onVoteComplete();
+        if (data.creditBudget) setCreditBudget(data.creditBudget);
+        if (typeof data.remainingCredits === 'number') {
+          setServerRemainingCredits(data.remainingCredits);
+        }
+        if (data.hasVoted) {
+          setHasVoted(true);
+          if (onVoteComplete) {
+            onVoteComplete();
+          }
         }
       } catch (err) {
-        logger.error('Failed to check vote status', err);
+        logger.error('Failed to check vote status', { error: err });
       } finally {
         setIsLoading(false);
       }
     };
     checkVoteStatus();
   }, [getAuthToken, onVoteComplete]);
+
+  useEffect(() => {
+    const loadBlockedReleases = async () => {
+      try {
+        const res = await fetch('/api/vote/blocked-releases');
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.blockedReleaseIds)) {
+          setBlockedReleaseIds(new Set(data.blockedReleaseIds));
+        }
+      } catch (err) {
+        logger.error('Failed to load blocked releases', { error: err });
+      }
+    };
+    void loadBlockedReleases();
+  }, []);
 
   const [shuffledTracks, setShuffledTracks] = useState<Track[]>([]);
 
@@ -144,6 +159,16 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
     return <VotingAreaSkeleton />;
   }
 
+  if (hasVoted) {
+    return (
+      <Card className="bg-card border border-border p-12 text-center">
+        <p className="font-ui text-sm uppercase tracking-[0.2em] text-muted-foreground">
+          {t?.('voting.alreadyVoted') || 'You have already submitted your vote this week.'}
+        </p>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
@@ -166,7 +191,7 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
               <TooltipContent className="max-w-sm" side="left">
                 <p className="font-ui text-xs leading-relaxed whitespace-pre-line">
                   <strong>{t?.('voting.quadraticVoting') || 'Quadratic Voting'}:</strong><br/>
-                  {t?.('voting.quadraticInfo') || 'You have 150 credits to allocate'}
+                  {t?.('voting.quadraticInfo') || `You have ${creditBudget} credits to allocate`}
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -272,7 +297,8 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
           {filteredTracks.map((track) => {
             const currentVotes = allocatedVotes[track.id] || 0;
             const costForNext = calculateQuadraticCost(currentVotes + 1) - calculateQuadraticCost(currentVotes);
-            const canAffordNext = remainingCredits >= costForNext;
+            const isVoteBlocked = blockedReleaseIds.has(track.id);
+            const canAffordNext = !isVoteBlocked && remainingCredits >= costForNext;
 
             return (
               <motion.div
@@ -283,7 +309,10 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.15 }}
               >
-                <Card className="bg-card border border-border transition-all hover:border-primary/50">
+                <Card className={cn(
+                  'bg-card border border-border transition-all',
+                  isVoteBlocked ? 'opacity-60 border-amber-500/40' : 'hover:border-primary/50'
+                )}>
                   <div className="p-4">
                     <div className="flex flex-col md:flex-row items-center md:items-start gap-4">
 
@@ -319,6 +348,11 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                             {track.artist}
                           </div>
                           <div className="flex flex-wrap gap-1">
+                            {isVoteBlocked && (
+                              <Badge variant="outline" className="font-ui text-[9px] uppercase tracking-wider border-amber-500/50 text-amber-500">
+                                {t('voting.integrityReview') || 'Integritätsprüfung'}
+                              </Badge>
+                            )}
                             {track.genres.slice(0, 3).map(genre => (
                               <Badge
                                 key={genre}
@@ -337,7 +371,7 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                               variant="outline"
                               size="icon"
                               className="h-10 w-10 shrink-0 rounded-none border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-colors"
-                              disabled={currentVotes <= 0}
+                              disabled={isVoteBlocked || currentVotes <= 0}
                               onClick={() => {
                                 setAllocatedVotes(prev => ({
                                   ...prev,
@@ -412,7 +446,7 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                 "data-font text-3xl font-bold transition-colors",
                 remainingCredits === 0 ? "text-destructive" : "text-primary"
               )}>
-                {remainingCredits} <span className="text-sm text-muted-foreground">/ 150</span>
+                {remainingCredits} <span className="text-sm text-muted-foreground">/ {creditBudget}</span>
               </span>
             </div>
             <div className="h-10 w-px bg-border hidden md:block" />
@@ -446,19 +480,11 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                     return;
                   }
 
-                  // Filter out 0 votes
                   const validVotes = Object.entries(allocatedVotes).reduce((acc, [releaseId, votes]) => {
                     if (votes > 0) acc[releaseId] = votes;
                     return acc;
                   }, {} as Record<string, number>);
 
-                  // Optimistic UI update
-                  if (onVoteComplete) {
-                    onVoteComplete();
-                  }
-                  toast.success("Abstimmung erfolgreich eingereicht");
-
-                  // Submit all votes as a bulk transaction
                   const res = await fetch('/api/vote', {
                     method: 'POST',
                     headers: {
@@ -469,7 +495,28 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                   });
 
                   if (!res.ok) {
-                    throw new Error('Failed to submit votes');
+                    const errData = await res.json().catch(() => ({}));
+                    if (res.status === 409) {
+                      setHasVoted(true);
+                      toast.error('Du hast diese Woche bereits abgestimmt.');
+                      if (onVoteComplete) onVoteComplete();
+                      return;
+                    }
+                    if (res.status === 403 && errData.code === 'RELEASE_VOTE_SUSPENDED') {
+                      toast.error('Abstimmung für mindestens einen Track ist vorübergehend gesperrt (Integritätsprüfung).');
+                      return;
+                    }
+                    throw new Error(errData.error || errData.message || 'Failed to submit votes');
+                  }
+
+                  const result = await res.json();
+                  if (typeof result.remainingCredits === 'number') {
+                    setServerRemainingCredits(result.remainingCredits);
+                  }
+                  setHasVoted(true);
+                  toast.success("Abstimmung erfolgreich eingereicht");
+                  if (onVoteComplete) {
+                    onVoteComplete();
                   }
 
                 } catch (error) {

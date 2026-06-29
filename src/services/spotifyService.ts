@@ -38,7 +38,13 @@ interface SpotifyArtist {
 
 class SpotifyService {
   private readonly CLIENT_ID = 'YOUR_SPOTIFY_CLIENT_ID';
-  private readonly REDIRECT_URI = `${window.location.origin}/spotify-callback`;
+
+  private getRedirectUri(): string {
+    if (typeof window === 'undefined') {
+      return 'http://localhost:3000/spotify-callback';
+    }
+    return `${window.location.origin}/spotify-callback`;
+  }
   private readonly SCOPES = [
     'user-read-email',
     'user-read-private',
@@ -59,7 +65,7 @@ class SpotifyService {
     const params = new URLSearchParams({
       client_id: this.CLIENT_ID,
       response_type: 'code',
-      redirect_uri: this.REDIRECT_URI,
+      redirect_uri: this.getRedirectUri(),
       state: state,
       scope: this.SCOPES,
     });
@@ -94,7 +100,7 @@ class SpotifyService {
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: this.REDIRECT_URI,
+        redirect_uri: this.getRedirectUri(),
         client_id: this.CLIENT_ID,
       }),
     });

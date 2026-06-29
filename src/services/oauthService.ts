@@ -22,20 +22,37 @@ export interface OAuthUser {
   provider: 'spotify' | 'google';
 }
 
+function readPublicEnv(key: string): string {
+  if (typeof process !== 'undefined' && process.env[key]) {
+    return process.env[key] ?? '';
+  }
+  return '';
+}
+
 class OAuthService {
-  private readonly SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '';
-  private readonly SPOTIFY_CLIENT_SECRET = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET || '';
-  private readonly GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
-  private readonly GOOGLE_CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET || '';
-  private readonly REDIRECT_URI = `${window.location.origin}/oauth/callback`;
+  private readonly SPOTIFY_CLIENT_ID =
+    readPublicEnv('NEXT_PUBLIC_SPOTIFY_CLIENT_ID') ||
+    readPublicEnv('VITE_SPOTIFY_CLIENT_ID');
+  private readonly GOOGLE_CLIENT_ID =
+    readPublicEnv('NEXT_PUBLIC_GOOGLE_CLIENT_ID') ||
+    readPublicEnv('VITE_GOOGLE_CLIENT_ID');
+
+  private getRedirectUri(): string {
+    if (typeof window === 'undefined') {
+      return 'http://localhost:3000/oauth/callback';
+    }
+    return `${window.location.origin}/oauth/callback`;
+  }
 
   private readonly SPOTIFY_SCOPES = [
     'user-read-email',
     'user-read-private',
-    'user-library-read',
+  ].join(' ');
+
+  private readonly SPOTIFY_TRUST_SCOPES = [
+    'user-read-email',
+    'user-read-private',
     'user-top-read',
-    'playlist-read-private',
-    'playlist-read-collaborative'
   ].join(' ');
 
   private readonly GOOGLE_SCOPES = [
@@ -43,6 +60,43 @@ class OAuthService {
     'https://www.googleapis.com/auth/userinfo.profile',
     'openid'
   ].join(' ');
+
+  async initiateSpotifyTrustBoost(): Promise<void> {
+    const state = this.generateRandomString(16);
+    const codeVerifier = this.generateRandomString(128);
+    const codeChallenge = await this.generateCodeChallenge(codeVerifier);
+
+    await kv.set('oauth-state', { state, codeVerifier, provider: 'spotify', mode: 'trust-boost' });
+
+    const params = new URLSearchParams({
+      client_id: this.SPOTIFY_CLIENT_ID,
+      response_type: 'code',
+      redirect_uri: this.getRedirectUri(),
+      state: state,
+      scope: this.SPOTIFY_TRUST_SCOPES,
+      code_challenge_method: 'S256',
+      code_challenge: codeChallenge,
+    });
+
+    window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
+  }
+
+  async submitSpotifyTrustBoost(): Promise<boolean> {
+    try {
+      const accessToken = await this.getAccessToken('spotify');
+      const res = await fetch('/api/auth/trust/spotify-listening', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${(await asyncStorage.get<string>('auth-token')) ?? ''}`,
+        },
+        body: JSON.stringify({ accessToken }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
 
   async initiateSpotifyAuth(): Promise<void> {
     const state = this.generateRandomString(16);
@@ -54,7 +108,7 @@ class OAuthService {
     const params = new URLSearchParams({
       client_id: this.SPOTIFY_CLIENT_ID,
       response_type: 'code',
-      redirect_uri: this.REDIRECT_URI,
+      redirect_uri: this.getRedirectUri(),
       state: state,
       scope: this.SPOTIFY_SCOPES,
       code_challenge_method: 'S256',
@@ -73,7 +127,7 @@ class OAuthService {
     const params = new URLSearchParams({
       client_id: this.GOOGLE_CLIENT_ID,
       response_type: 'code',
-      redirect_uri: this.REDIRECT_URI,
+      redirect_uri: this.getRedirectUri(),
       state: state,
       scope: this.GOOGLE_SCOPES,
       nonce: nonce,
@@ -106,7 +160,31 @@ class OAuthService {
       await this.saveTokens(provider, tokens);
       await this.saveUser(user);
       await kv.delete('oauth-state');
-      
+
+      const sessionRes = await fetch('/api/auth/oauth/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider,
+          email: user.email,
+          name: user.name,
+          providerId: user.id,
+          picture: user.picture,
+        }),
+      });
+
+      if (!sessionRes.ok) {
+        throw new Error('Failed to create application session');
+      }
+
+      const session = await sessionRes.json();
+      if (session.token) {
+        await asyncStorage.set('auth-token', session.token);
+      }
+      if (session.user) {
+        await asyncStorage.set('auth-user', session.user);
+      }
+
       return true;
     } catch (error) {
       console.error('OAuth callback error:', error);
@@ -123,7 +201,7 @@ class OAuthService {
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: this.REDIRECT_URI,
+        redirect_uri: this.getRedirectUri(),
         client_id: this.SPOTIFY_CLIENT_ID,
         code_verifier: codeVerifier,
       }),
@@ -145,30 +223,28 @@ class OAuthService {
   }
 
   private async exchangeGoogleCode(code: string): Promise<OAuthTokens> {
-    const response = await fetch('https://oauth2.googleapis.com/token', {
+    const response = await fetch('/api/auth/oauth/google', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: this.REDIRECT_URI,
-        client_id: this.GOOGLE_CLIENT_ID,
-        client_secret: this.GOOGLE_CLIENT_SECRET,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        redirectUri: this.getRedirectUri(),
+        grantType: 'authorization_code',
       }),
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Google token exchange failed: ${error.error_description || error.error}`);
+      const error = await response.json().catch(() => ({}));
+      throw new Error(
+        `Google token exchange failed: ${error.error ?? response.statusText}`
+      );
     }
 
     const data = await response.json();
     return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresAt: Date.now() + (data.expires_in * 1000),
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      expiresAt: Date.now() + data.expiresIn * 1000,
       provider: 'google',
       scope: data.scope,
     };
@@ -255,16 +331,14 @@ class OAuthService {
       throw new Error('No refresh token available');
     }
 
-    const response = await fetch('https://oauth2.googleapis.com/token', {
+    const response = await fetch('/api/auth/oauth/google', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: tokens.refreshToken,
-        client_id: this.GOOGLE_CLIENT_ID,
-        client_secret: this.GOOGLE_CLIENT_SECRET,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grantType: 'refresh_token',
+        refreshToken: tokens.refreshToken,
+        redirectUri: this.getRedirectUri(),
+        code: '',
       }),
     });
 
@@ -275,8 +349,8 @@ class OAuthService {
     const data = await response.json();
     const newTokens: OAuthTokens = {
       ...tokens,
-      accessToken: data.access_token,
-      expiresAt: Date.now() + (data.expires_in * 1000),
+      accessToken: data.accessToken,
+      expiresAt: Date.now() + data.expiresIn * 1000,
     };
 
     await this.saveTokens('google', newTokens);

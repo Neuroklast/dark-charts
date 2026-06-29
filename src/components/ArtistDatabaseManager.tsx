@@ -6,13 +6,14 @@ import { Progress } from '@/components/ui/progress';
 import { Database, CheckCircle, XCircle, Download, Upload } from '@phosphor-icons/react';
 import { artistDatabaseService, type Artist } from '@/services/artistDatabaseService';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 export function ArtistDatabaseManager() {
   const [csvText, setCsvText] = useState('');
   const [artists, setArtists] = useState<Artist[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [corrections, setCorrections] = useState<any[]>([]);
+  const [corrections, setCorrections] = useState<{ artistName: string; oldId: string; newId: string }[]>([]);
 
   const handleLoadCSV = async () => {
     if (!csvText.trim()) {
@@ -33,7 +34,7 @@ export function ArtistDatabaseManager() {
       
       toast.success(`${loadedArtists.length} Artists geladen`);
     } catch (error) {
-      console.error('Error loading CSV:', error);
+      logger.error('Error loading CSV', { error });
       toast.error('Fehler beim Laden der CSV');
     } finally {
       setIsProcessing(false);
@@ -63,7 +64,7 @@ export function ArtistDatabaseManager() {
         toast.success('Alle Spotify IDs sind korrekt');
       }
     } catch (error) {
-      console.error('Error verifying artists:', error);
+      logger.error('Error verifying artists', { error });
       toast.error('Fehler bei der Verifizierung');
     } finally {
       setIsProcessing(false);
@@ -88,7 +89,7 @@ export function ArtistDatabaseManager() {
       
       toast.success('Releases erfolgreich geladen');
     } catch (error) {
-      console.error('Error enriching with releases:', error);
+      logger.error('Error enriching with releases', { error });
       toast.error('Fehler beim Laden der Releases');
     } finally {
       setIsProcessing(false);
@@ -107,7 +108,7 @@ export function ArtistDatabaseManager() {
       await artistDatabaseService.saveToSupabase();
       toast.success('Artists in Datenbank gespeichert');
     } catch (error) {
-      console.error('Error saving to database:', error);
+      logger.error('Error saving to database', { error });
       toast.error('Fehler beim Speichern');
     } finally {
       setIsProcessing(false);

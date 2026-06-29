@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { oauthService } from '@/services/oauthService';
+import { asyncStorage } from '@/lib/storage/asyncStorage';
+import { useAuth } from '@/contexts/AuthContext';
 import { CircleNotch } from '@phosphor-icons/react';
 import { Card } from '@/components/ui/card';
 
 export function OAuthCallback() {
+  const { refreshUser } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState<string>('');
 
@@ -13,18 +16,35 @@ export function OAuthCallback() {
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
         const state = params.get('state');
-        const provider = params.get('provider') as 'spotify' | 'google' | null;
 
-        if (!code || !state || !provider) {
+        if (!code || !state) {
           throw new Error('Ungültige Callback-Parameter');
         }
 
-        const success = await oauthService.handleCallback(code, state, provider);
-        
+        const savedState = await asyncStorage.get<{
+          state: string;
+          provider: 'spotify' | 'google';
+          mode?: 'trust-boost';
+        }>('oauth-state');
+
+        if (!savedState?.provider) {
+          throw new Error('OAuth-Sitzung abgelaufen — bitte erneut anmelden');
+        }
+
+        const success = await oauthService.handleCallback(code, state, savedState.provider);
+
         if (success) {
+          if (savedState.mode === 'trust-boost' && savedState.provider === 'spotify') {
+            const boosted = await oauthService.submitSpotifyTrustBoost();
+            if (!boosted) {
+              throw new Error('Trust-Boost fehlgeschlagen — bitte erneut versuchen');
+            }
+          }
+
+          await refreshUser();
           setStatus('success');
           setTimeout(() => {
-            window.location.href = '/';
+            window.location.href = savedState.mode === 'trust-boost' ? '/profile' : '/';
           }, 2000);
         } else {
           throw new Error('Authentifizierung fehlgeschlagen');
@@ -36,7 +56,7 @@ export function OAuthCallback() {
     };
 
     handleCallback();
-  }, []);
+  }, [refreshUser]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -48,7 +68,7 @@ export function OAuthCallback() {
             <p className="text-sm text-muted-foreground">Bitte warten Sie einen Moment.</p>
           </>
         )}
-        
+
         {status === 'success' && (
           <>
             <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -58,7 +78,7 @@ export function OAuthCallback() {
             <p className="text-sm text-muted-foreground">Sie werden weitergeleitet...</p>
           </>
         )}
-        
+
         {status === 'error' && (
           <>
             <div className="w-12 h-12 bg-destructive/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -66,8 +86,8 @@ export function OAuthCallback() {
             </div>
             <h2 className="display-font text-xl mb-2">Fehler</h2>
             <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <a 
-              href="/" 
+            <a
+              href="/"
               className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition"
             >
               Zurück zur Startseite

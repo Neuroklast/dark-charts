@@ -15,7 +15,14 @@ export type Database = {
           email: string
           passwordHash: string | null
           role: string
+          isSuspended: boolean
           isPublicProfile: boolean
+          emailVerified: boolean
+          emailVerificationToken: string | null
+          emailVerificationExpires: string | null
+          trustLevel: number
+          authProvider: string | null
+          oauthProviderId: string | null
           createdAt: string
           updatedAt: string
         }
@@ -24,7 +31,14 @@ export type Database = {
           email: string
           passwordHash?: string | null
           role?: string
+          isSuspended?: boolean
           isPublicProfile?: boolean
+          emailVerified?: boolean
+          emailVerificationToken?: string | null
+          emailVerificationExpires?: string | null
+          trustLevel?: number
+          authProvider?: string | null
+          oauthProviderId?: string | null
           createdAt?: string
           updatedAt?: string
         }
@@ -33,7 +47,14 @@ export type Database = {
           email?: string
           passwordHash?: string | null
           role?: string
+          isSuspended?: boolean
           isPublicProfile?: boolean
+          emailVerified?: boolean
+          emailVerificationToken?: string | null
+          emailVerificationExpires?: string | null
+          trustLevel?: number
+          authProvider?: string | null
+          oauthProviderId?: string | null
           createdAt?: string
           updatedAt?: string
         }
@@ -168,6 +189,7 @@ export type Database = {
           country: string | null
           foundedYear: number | null
           verified: boolean
+          isVisible: boolean
           socialLinks: Json | null
           createdAt: string
           updatedAt: string
@@ -185,6 +207,7 @@ export type Database = {
           country?: string | null
           foundedYear?: number | null
           verified?: boolean
+          isVisible?: boolean
           socialLinks?: Json | null
           createdAt?: string
           updatedAt?: string
@@ -202,6 +225,7 @@ export type Database = {
           country?: string | null
           foundedYear?: number | null
           verified?: boolean
+          isVisible?: boolean
           socialLinks?: Json | null
           createdAt?: string
           updatedAt?: string
@@ -217,6 +241,7 @@ export type Database = {
           odesliLinks: Json | null
           itunesArtworkUrl: string | null
           vercelBlobUrl: string | null
+          r2ArtworkUrl: string | null
           artistId: string
           albumType: 'album' | 'single' | 'ep' | 'compilation' | null
           totalTracks: number | null
@@ -226,6 +251,7 @@ export type Database = {
           platformLinks: Json | null
           genres: string[]
           label: string | null
+          isVisible: boolean
           createdAt: string
           updatedAt: string
         }
@@ -238,6 +264,7 @@ export type Database = {
           odesliLinks?: Json | null
           itunesArtworkUrl?: string | null
           vercelBlobUrl?: string | null
+          r2ArtworkUrl?: string | null
           artistId: string
           albumType?: 'album' | 'single' | 'ep' | 'compilation' | null
           totalTracks?: number | null
@@ -247,6 +274,7 @@ export type Database = {
           platformLinks?: Json | null
           genres?: string[]
           label?: string | null
+          isVisible?: boolean
           createdAt?: string
           updatedAt?: string
         }
@@ -259,6 +287,7 @@ export type Database = {
           odesliLinks?: Json | null
           itunesArtworkUrl?: string | null
           vercelBlobUrl?: string | null
+          r2ArtworkUrl?: string | null
           artistId?: string
           albumType?: 'album' | 'single' | 'ep' | 'compilation' | null
           totalTracks?: number | null
@@ -268,6 +297,7 @@ export type Database = {
           platformLinks?: Json | null
           genres?: string[]
           label?: string | null
+          isVisible?: boolean
           createdAt?: string
           updatedAt?: string
         }
@@ -282,6 +312,7 @@ export type Database = {
           communityPower: number
           releaseId: string | null
           chartType: string
+          genre: string | null
           weekStart: string
           movement: number
           trackId: string | null
@@ -299,6 +330,7 @@ export type Database = {
           communityPower?: number
           releaseId?: string | null
           chartType: string
+          genre?: string | null
           weekStart: string
           movement?: number
           trackId?: string | null
@@ -316,6 +348,7 @@ export type Database = {
           communityPower?: number
           releaseId?: string | null
           chartType?: string
+          genre?: string | null
           weekStart?: string
           movement?: number
           trackId?: string | null
@@ -388,6 +421,7 @@ export type Database = {
           id: string
           artistId: string
           spotifyPopularity: number
+          youtubePopularity: number
           followerCount: number
           topTrackPopularity: number
           weekStart: string
@@ -397,6 +431,7 @@ export type Database = {
           id?: string
           artistId: string
           spotifyPopularity?: number
+          youtubePopularity?: number
           followerCount?: number
           topTrackPopularity?: number
           weekStart: string
@@ -406,6 +441,7 @@ export type Database = {
           id?: string
           artistId?: string
           spotifyPopularity?: number
+          youtubePopularity?: number
           followerCount?: number
           topTrackPopularity?: number
           weekStart?: string
@@ -442,6 +478,10 @@ export type Database = {
           slotDate: string
           slotType: string
           status: string
+          stripeSessionId: string | null
+          stripePaymentId: string | null
+          amountCents: number | null
+          currency: string | null
           createdAt: string
           updatedAt: string
         }
@@ -451,6 +491,10 @@ export type Database = {
           slotDate: string
           slotType: string
           status?: string
+          stripeSessionId?: string | null
+          stripePaymentId?: string | null
+          amountCents?: number | null
+          currency?: string | null
           createdAt?: string
           updatedAt?: string
         }
@@ -460,6 +504,10 @@ export type Database = {
           slotDate?: string
           slotType?: string
           status?: string
+          stripeSessionId?: string | null
+          stripePaymentId?: string | null
+          amountCents?: number | null
+          currency?: string | null
           createdAt?: string
           updatedAt?: string
         }
@@ -508,6 +556,32 @@ export type Database = {
           userId?: string
           badgeId?: string
           earnedAt?: string
+        }
+      }
+      system_settings: {
+        Row: {
+          id: string
+          isVotingPaused: boolean
+          voiceCreditsBudget: number
+          chartWeights: Json
+          createdAt: string
+          updatedAt: string
+        }
+        Insert: {
+          id?: string
+          isVotingPaused?: boolean
+          voiceCreditsBudget?: number
+          chartWeights?: Json
+          createdAt?: string
+          updatedAt?: string
+        }
+        Update: {
+          id?: string
+          isVotingPaused?: boolean
+          voiceCreditsBudget?: number
+          chartWeights?: Json
+          createdAt?: string
+          updatedAt?: string
         }
       }
     }

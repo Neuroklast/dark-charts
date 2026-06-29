@@ -1,0 +1,8 @@
+.next
+node_modules
+agent-tools
+terminals
+mcps
+*.tsbuildinfo
+.spark-workbench-id
+test_db_for_verify.ts

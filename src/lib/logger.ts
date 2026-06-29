@@ -78,8 +78,14 @@ class Logger {
     }
   }
 
-  static error(message: string | Error, meta?: Record<string, any>) {
-    this.log('ERROR', message, meta);
+  static error(message: string | Error, meta?: Record<string, any> | unknown) {
+    const normalizedMeta =
+      meta && typeof meta === 'object' && !Array.isArray(meta)
+        ? (meta as Record<string, any>)
+        : meta !== undefined
+          ? { error: meta }
+          : undefined;
+    this.log('ERROR', message, normalizedMeta);
   }
 
   static warn(message: string, meta?: Record<string, any>) {

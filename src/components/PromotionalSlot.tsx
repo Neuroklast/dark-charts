@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Megaphone, Link as LinkIcon } from '@phosphor-icons/react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PromotionalSlotProps {
   type?: 'Band of the Day' | 'DJ of the Day' | string;
@@ -9,6 +10,8 @@ interface PromotionalSlotProps {
 }
 
 export function PromotionalSlot({ type = 'Band of the Day', name = 'Promoted Artist', imageUrl, link }: PromotionalSlotProps) {
+  const { t } = useLanguage();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -18,7 +21,7 @@ export function PromotionalSlot({ type = 'Band of the Day', name = 'Promoted Art
       <div className="absolute top-2 right-2">
         <div className="bg-background/80 backdrop-blur-sm border border-accent/50 px-2 py-1 rounded text-[10px] font-ui uppercase tracking-widest text-accent flex items-center gap-1.5">
           <Megaphone weight="duotone" className="w-3 h-3" />
-          Anzeige / Booking
+          {t('spotlight.adLabel')}
         </div>
       </div>
 
@@ -38,7 +41,7 @@ export function PromotionalSlot({ type = 'Band of the Day', name = 'Promoted Art
           <h3 className="font-ui text-xs uppercase tracking-[0.2em] text-accent mb-1">{type}</h3>
           <h2 className="display-font text-3xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">{name}</h2>
           <p className="font-ui text-sm text-muted-foreground max-w-md mb-2">
-            Discover the sound of today's featured artist. Support the underground.
+            {t('spotlight.description')}
           </p>
           {link && (
             <a
@@ -48,7 +51,7 @@ export function PromotionalSlot({ type = 'Band of the Day', name = 'Promoted Art
               className="inline-flex items-center gap-1 font-ui text-xs uppercase tracking-wider text-accent hover:text-accent/80 transition-colors"
             >
               <LinkIcon weight="bold" className="w-3 h-3" />
-              Visit Profile
+              {t('spotlight.visitProfile')}
             </a>
           )}
         </div>

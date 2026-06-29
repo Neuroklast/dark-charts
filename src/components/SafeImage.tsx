@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { MusicNote } from '@phosphor-icons/react';
-import fallbackImage from '@/assets/images/Gemini_Generated_Image_fa3defa3defa3def.png';
+import fallbackImageAsset from '@/assets/images/Gemini_Generated_Image_fa3defa3defa3def.png';
+
+const fallbackImage =
+  typeof fallbackImageAsset === 'string' ? fallbackImageAsset : fallbackImageAsset.src;
 
 interface SafeImageProps {
   src?: string;

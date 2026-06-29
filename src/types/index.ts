@@ -14,7 +14,7 @@ export type Genre =
 
 export type ChartType = 'fan' | 'expert' | 'streaming' | 'overall';
 
-export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'voting-confirmation' | 'history' | 'admin' | 'admin-metrics' | 'admin-users' | 'admin-artists' | 'admin-charts' | 'admin-promotions' | 'admin-settings' | 'oauth-callback' | 'profiles-demo' | 'privacy' | 'terms' | 'imprint' | 'archive';
+export type ViewType = 'home' | 'main-genre' | 'sub-genre' | 'profile' | 'custom-charts' | 'about' | 'voting' | 'voting-confirmation' | 'history' | 'admin' | 'admin-metrics' | 'admin-users' | 'admin-artists' | 'admin-charts' | 'admin-promotions' | 'admin-anomalies' | 'admin-settings' | 'oauth-callback' | 'profiles-demo' | 'privacy' | 'terms' | 'imprint' | 'archive';
 
 export interface Track {
   id: string;
@@ -108,6 +108,7 @@ export interface ChartData {
   fanCharts: Track[];
   expertCharts: Track[];
   streamingCharts: Track[];
+  combinedCharts?: Track[];
 }
 
 export interface Vote {
@@ -326,6 +327,9 @@ export interface AuthUser {
   isAuthenticated: boolean;
   isDemo?: boolean;
   role?: string;
+  emailVerified?: boolean;
+  trustLevel?: number;
+  authProvider?: string | null;
   profile?: UserProfile;
 }
 

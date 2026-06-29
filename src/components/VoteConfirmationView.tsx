@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Lightning, CheckCircle, WarningCircle, CaretRight, ArrowLeft } from '@phosphor-icons/react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ROUTES } from '@/lib/routes';
 import { AlbumArtwork } from './AlbumArtwork';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PromotionalSlot } from '@/components/PromotionalSlot';
@@ -25,8 +27,28 @@ interface VoteReceipt {
   };
 }
 
-export function VoteConfirmationView({ onNavigate }: { onNavigate?: (view: any) => void }) {
+export function VoteConfirmationView({
+  onNavigate,
+  linkMode = false,
+}: {
+  onNavigate?: (view: string) => void;
+  linkMode?: boolean;
+}) {
+  const router = useRouter();
   const { getAuthToken } = useAuth();
+
+  const navigate = (view: string) => {
+    if (linkMode) {
+      const paths: Record<string, string> = {
+        profile: ROUTES.profile,
+        history: ROUTES.history,
+        archive: ROUTES.archive,
+      };
+      router.push(paths[view] ?? ROUTES.home);
+      return;
+    }
+    onNavigate?.(view);
+  };
   const { t } = useLanguage();
   const [votes, setVotes] = useState<VoteReceipt[]>([]);
   const [remainingCredits, setRemainingCredits] = useState<number | null>(null);
@@ -103,7 +125,7 @@ export function VoteConfirmationView({ onNavigate }: { onNavigate?: (view: any) 
         <Button
           variant="outline"
           className="mt-6 uppercase tracking-wider font-ui"
-          onClick={() => onNavigate?.('profile')}
+          onClick={() => navigate('profile')}
         >
           Zurück zum Profil
         </Button>
@@ -198,7 +220,7 @@ export function VoteConfirmationView({ onNavigate }: { onNavigate?: (view: any) 
         <Button
           variant="outline"
           className="h-14 font-ui uppercase tracking-widest flex items-center justify-center gap-2"
-          onClick={() => onNavigate?.('profile')}
+          onClick={() => navigate('profile')}
         >
           <ArrowLeft size={16} />
           Zurück zum Profil
@@ -206,7 +228,7 @@ export function VoteConfirmationView({ onNavigate }: { onNavigate?: (view: any) 
         <Button
           variant="secondary"
           className="h-14 font-ui uppercase tracking-widest bg-secondary hover:bg-secondary/80 text-foreground border border-border"
-          onClick={() => onNavigate?.('history')}
+          onClick={() => navigate('history')}
         >
           Chart-Archiv ansehen
         </Button>

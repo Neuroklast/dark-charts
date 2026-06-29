@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
 import { Track, Genre, ChartType } from '@/types';
 import { ChartEntry } from '@/components/ChartEntry';
@@ -118,6 +120,8 @@ interface ArchiveRelease {
   odesliLinks: unknown;
   itunesArtworkUrl: string | null;
   vercelBlobUrl: string | null;
+  r2ArtworkUrl: string | null;
+  artworkUrl: string | null;
   artist: ArchiveArtist;
 }
 
@@ -146,7 +150,9 @@ function transformEntry(entry: ArchiveEntry): Track {
     genres: (entry.release?.artist.genres ?? []) as Genre[],
     movement: entry.movement,
     albumArt:
+      entry.release?.r2ArtworkUrl ??
       entry.release?.vercelBlobUrl ??
+      entry.release?.artworkUrl ??
       entry.release?.itunesArtworkUrl ??
       undefined,
     spotifyUri: entry.release?.spotifyId

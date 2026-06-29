@@ -1,85 +1,104 @@
-import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase/client';
+import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase/client'
 
 export interface Artist {
-  name: string;
-  members?: string;
-  country: string;
-  label: string;
-  spotifyId: string;
-  verified?: boolean;
+  name: string
+  members?: string
+  country: string
+  label: string
+  spotifyId: string
+  verified?: boolean
   latestRelease?: {
-    title: string;
-    releaseDate: string;
-    spotifyUrl: string;
-    popularity: number;
-  };
+    title: string
+    releaseDate: string
+    spotifyUrl: string
+    popularity: number
+  }
 }
 
-const SPOTIFY_CLIENT_ID = '4c8f5e4f0e4e4e4e4e4e4e4e4e4e4e4e';
-const SPOTIFY_CLIENT_SECRET = '4c8f5e4f0e4e4e4e4e4e4e4e4e4e4e4e';
-let accessToken: string | null = null;
-let tokenExpiry: number = 0;
+let accessToken: string | null = null
+let tokenExpiry = 0
 
 async function getSpotifyAccessToken(): Promise<string> {
   if (accessToken && Date.now() < tokenExpiry) {
-    return accessToken;
+    return accessToken
+  }
+
+  if (typeof window === 'undefined') {
+    throw new Error(
+      'getSpotifyAccessToken cannot be called server-side. Use api/_lib/spotify.ts for server operations.'
+    )
   }
 
   try {
-    const response = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`)
-      },
-      body: 'grant_type=client_credentials'
-    });
+    const response = await fetch('/api/spotify/token')
+    if (!response.ok) {
+      throw new Error(`Spotify token API returned ${response.status}`)
+    }
 
-    const data = await response.json();
-    accessToken = data.access_token;
-    tokenExpiry = Date.now() + data.expires_in * 1000;
-    return accessToken!;
+    const data = (await response.json()) as {
+      access_token: string
+      expires_in?: number
+    }
+
+    accessToken = data.access_token
+    tokenExpiry = Date.now() + (data.expires_in ?? 3600) * 1000
+    return accessToken
   } catch (error) {
-    console.error('Spotify Auth Error:', error);
-    throw new Error('Spotify Authentifizierung fehlgeschlagen');
+    console.error('Spotify Auth Error:', error)
+    throw new Error('Spotify Authentifizierung fehlgeschlagen')
   }
 }
 
-export async function getLatestAlbum(artistId: string): Promise<any> {
+export async function getLatestAlbum(artistId: string): Promise<{
+  name: string
+  release_date: string
+  external_urls?: { spotify?: string }
+} | null> {
   try {
-    const token = await getSpotifyAccessToken();
-    const response = await fetch(`https://api.spotify.com/v1/artists/${artistId}/albums?include_groups=album,single&limit=10`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const data = await response.json();
+    const token = await getSpotifyAccessToken()
+    const response = await fetch(
+      `https://api.spotify.com/v1/artists/${artistId}/albums?include_groups=album,single&limit=10`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    )
+    const data = (await response.json()) as {
+      items?: Array<{
+        name: string
+        release_date: string
+        external_urls?: { spotify?: string }
+      }>
+    }
 
     if (data.items && data.items.length > 0) {
-      const sortedAlbums = data.items.sort((a: any, b: any) =>
-        new Date(b.release_date).getTime() - new Date(a.release_date).getTime()
-      );
-      return sortedAlbums[0];
+      const sortedAlbums = data.items.sort(
+        (a, b) =>
+          new Date(b.release_date).getTime() -
+          new Date(a.release_date).getTime()
+      )
+      return sortedAlbums[0]
     }
-    return null;
+    return null
   } catch (error) {
-    console.error(`Error getting latest album for artist ${artistId}:`, error);
-    return null;
+    console.error(`Error getting latest album for artist ${artistId}:`, error)
+    return null
   }
 }
 
 export async function parseCSV(csvText: string): Promise<Artist[]> {
-  const lines = csvText.trim().split('\n');
-  const artists: Artist[] = [];
+  const lines = csvText.trim().split('\n')
+  const artists: Artist[] = []
 
   const cleanField = (field: string) => {
-    return (field || '').replace(/^"|"$/g, '').replace(/""/g, '"').trim();
-  };
+    return (field || '').replace(/^"|"$/g, '').replace(/""/g, '"').trim()
+  }
 
   for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    const matches = line.match(/("(?:[^"]|"")*"|[^,]*)/g);
+    const line = lines[i]
+    const matches = line.match(/("(?:[^"]|"")*"|[^,]*)/g)
 
-    if (!matches || matches.length < 5) continue;
+    if (!matches || matches.length < 5) continue
 
     artists.push({
       name: cleanField(matches[0]),
@@ -87,38 +106,43 @@ export async function parseCSV(csvText: string): Promise<Artist[]> {
       country: cleanField(matches[2]),
       label: cleanField(matches[3]),
       spotifyId: cleanField(matches[4]),
-      verified: false
-    });
+      verified: false,
+    })
   }
-  return artists;
+  return artists
 }
 
 export function generateCSV(artists: Artist[]): string {
-  const header = 'Artist Name,Members,Country,Label,Spotify ID\n';
+  const header = 'Artist Name,Members,Country,Label,Spotify ID\n'
   const escape = (text: string) => {
-    const clean = (text || '').replace(/"/g, '""');
-    return clean.includes(',') || clean.includes('"') ? `"${clean}"` : clean;
-  };
+    const clean = (text || '').replace(/"/g, '""')
+    return clean.includes(',') || clean.includes('"') ? `"${clean}"` : clean
+  }
 
-  const rows = artists.map(artist => [
-    escape(artist.name),
-    escape(artist.members || ''),
-    escape(artist.country),
-    escape(artist.label),
-    escape(artist.spotifyId)
-  ].join(','));
+  const rows = artists.map((artist) =>
+    [
+      escape(artist.name),
+      escape(artist.members || ''),
+      escape(artist.country),
+      escape(artist.label),
+      escape(artist.spotifyId),
+    ].join(',')
+  )
 
-  return header + rows.join('\n');
+  return header + rows.join('\n')
 }
 
 class ArtistDatabaseService {
-  private artists: Artist[] = [];
+  private artists: Artist[] = []
 
   async loadFromSupabase(): Promise<void> {
     try {
-      const { data, error } = await supabase.from('artists').select('*').order('name');
+      const { data, error } = await supabase
+        .from('artists')
+        .select('*')
+        .order('name')
       if (error) {
-        throw error;
+        throw error
       }
 
       this.artists = (data ?? []).map((artist) => ({
@@ -128,12 +152,12 @@ class ArtistDatabaseService {
         label: '',
         spotifyId: artist.spotifyId ?? '',
         verified: artist.verified ?? false,
-      }));
+      }))
 
-      toast.success(`${this.artists.length} Artists aus Datenbank geladen`);
+      toast.success(`${this.artists.length} Artists aus Datenbank geladen`)
     } catch (error) {
-      console.error('Error loading artists from Supabase:', error);
-      toast.error('Fehler beim Laden der Artists');
+      console.error('Error loading artists from Supabase:', error)
+      toast.error('Fehler beim Laden der Artists')
     }
   }
 
@@ -145,39 +169,43 @@ class ArtistDatabaseService {
         spotifyId: artist.spotifyId || null,
         verified: artist.verified ?? false,
         genres: [],
-      }));
+      }))
 
-      const { error } = await supabase.from('artists').upsert(rows, { onConflict: 'spotifyId' });
+      const { error } = await supabase
+        .from('artists')
+        .upsert(rows, { onConflict: 'spotifyId' })
       if (error) {
-        throw error;
+        throw error
       }
 
-      toast.success('Daten erfolgreich gespeichert');
+      toast.success('Daten erfolgreich gespeichert')
     } catch (error) {
-      console.error('Error saving artists to Supabase:', error);
-      toast.error('Fehler beim Speichern');
+      console.error('Error saving artists to Supabase:', error)
+      toast.error('Fehler beim Speichern')
     }
   }
 
   getArtists() {
-    return this.artists;
+    return this.artists
   }
 
   async loadFromCSV(csvText: string): Promise<void> {
-    this.artists = await parseCSV(csvText);
+    this.artists = await parseCSV(csvText)
   }
 
-  async verifyAndCorrect(): Promise<{ artistName: string; oldId: string; newId: string }[]> {
-    throw new Error('verifyAndCorrect() is not yet implemented');
+  async verifyAndCorrect(): Promise<
+    { artistName: string; oldId: string; newId: string }[]
+  > {
+    throw new Error('verifyAndCorrect() is not yet implemented')
   }
 
   async enrichWithReleases(): Promise<void> {
-    throw new Error('enrichWithReleases() is not yet implemented');
+    throw new Error('enrichWithReleases() is not yet implemented')
   }
 
   getCorrectedCSV(): string {
-    return generateCSV(this.artists);
+    return generateCSV(this.artists)
   }
 }
 
-export const artistDatabaseService = new ArtistDatabaseService();
+export const artistDatabaseService = new ArtistDatabaseService()

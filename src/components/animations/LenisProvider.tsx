@@ -1,0 +1,18 @@
+'use client';
+
+import { ReactLenis, useLenis } from 'lenis/react';
+import type { ReactNode } from 'react';
+
+interface LenisProviderProps {
+  children: ReactNode;
+}
+
+export function LenisProvider({ children }: LenisProviderProps) {
+  return (
+    <ReactLenis root options={{ lerp: 0.1, smoothWheel: true }}>
+      {children}
+    </ReactLenis>
+  );
+}
+
+export { useLenis };
