@@ -16,18 +16,16 @@ interface SystemSettingsViewProps {
 export function SystemSettingsView({ settings, isLoading, onSave }: SystemSettingsViewProps) {
   const [formData, setFormData] = useState({
     voiceCreditsBudget: 150,
-    fanWeight: 0.5,
-    expertWeight: 0.35,
-    streamingWeight: 0.15
+    fanWeight: 0.55,
+    expertWeight: 0.45,
   });
 
   useEffect(() => {
     if (settings) {
       setFormData({
         voiceCreditsBudget: settings.voiceCreditsBudget || 150,
-        fanWeight: settings.chartWeights?.fan || 0.5,
-        expertWeight: settings.chartWeights?.expert || 0.35,
-        streamingWeight: settings.chartWeights?.streaming || 0.15
+        fanWeight: settings.chartWeights?.fan ?? 0.55,
+        expertWeight: settings.chartWeights?.expert ?? 0.45,
       });
     }
   }, [settings]);
@@ -37,7 +35,6 @@ export function SystemSettingsView({ settings, isLoading, onSave }: SystemSettin
       <Card className="p-6 max-w-xl" data-testid="settings-loading">
         <Skeleton className="h-6 w-32 mb-6" />
         <div className="space-y-4">
-          <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
         </div>
@@ -51,12 +48,13 @@ export function SystemSettingsView({ settings, isLoading, onSave }: SystemSettin
       chartWeights: {
         fan: Number(formData.fanWeight),
         expert: Number(formData.expertWeight),
-        streaming: Number(formData.streamingWeight)
-      }
+        streaming: 0,
+      },
     });
   };
 
-  const isWeightValid = Math.abs(Number(formData.fanWeight) + Number(formData.expertWeight) + Number(formData.streamingWeight) - 1.0) < 0.01;
+  const isWeightValid =
+    Math.abs(Number(formData.fanWeight) + Number(formData.expertWeight) - 1.0) < 0.01;
 
   return (
     <Card className="p-6 max-w-xl">
@@ -68,44 +66,37 @@ export function SystemSettingsView({ settings, isLoading, onSave }: SystemSettin
           <Input
             type="number"
             value={formData.voiceCreditsBudget}
-            onChange={(e) => setFormData(p => ({ ...p, voiceCreditsBudget: Number(e.target.value) }))}
+            onChange={(e) => setFormData((p) => ({ ...p, voiceCreditsBudget: Number(e.target.value) }))}
           />
-          <p className="text-xs text-muted-foreground font-ui">Global budget allocation for fans. Resets weekly after chart publication.</p>
+          <p className="text-xs text-muted-foreground font-ui">
+            Global budget allocation for fans. Resets weekly after chart publication.
+          </p>
         </div>
 
         <div className="pt-4 border-t border-border">
-          <Label className="block mb-4">Chart Aggregation Weights (Must equal 1.0)</Label>
+          <Label className="block mb-4">Hybrid Chart Weights (fan + club = 1.0)</Label>
           <div className="space-y-4">
             <div className="flex items-center gap-4">
-              <Label className="w-24 text-muted-foreground text-xs uppercase tracking-wider">Fan Pool</Label>
+              <Label className="w-24 text-muted-foreground text-xs uppercase tracking-wider">Fan</Label>
               <Input
                 type="number"
                 step="0.05"
                 value={formData.fanWeight}
-                onChange={(e) => setFormData(p => ({ ...p, fanWeight: Number(e.target.value) }))}
+                onChange={(e) => setFormData((p) => ({ ...p, fanWeight: Number(e.target.value) }))}
               />
             </div>
             <div className="flex items-center gap-4">
-              <Label className="w-24 text-muted-foreground text-xs uppercase tracking-wider">Expert Pool</Label>
+              <Label className="w-24 text-muted-foreground text-xs uppercase tracking-wider">Club</Label>
               <Input
                 type="number"
                 step="0.05"
                 value={formData.expertWeight}
-                onChange={(e) => setFormData(p => ({ ...p, expertWeight: Number(e.target.value) }))}
-              />
-            </div>
-            <div className="flex items-center gap-4">
-              <Label className="w-24 text-muted-foreground text-xs uppercase tracking-wider">Streaming</Label>
-              <Input
-                type="number"
-                step="0.05"
-                value={formData.streamingWeight}
-                onChange={(e) => setFormData(p => ({ ...p, streamingWeight: Number(e.target.value) }))}
+                onChange={(e) => setFormData((p) => ({ ...p, expertWeight: Number(e.target.value) }))}
               />
             </div>
           </div>
           {!isWeightValid && (
-            <p className="text-xs text-red-500 mt-2 font-ui">Warning: Weights do not sum to 1.0</p>
+            <p className="text-xs text-red-500 mt-2 font-ui">Warning: Fan + Club weights must sum to 1.0</p>
           )}
         </div>
 

@@ -1,8 +1,8 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { ChartType, MainGenre } from '@/types';
-import { PillarNavigation } from '@/components/PillarNavigation';
+import { MainGenre } from '@/types';
+import { PillarNavigation, type PillarView } from '@/components/PillarNavigation';
 import { MainGenreNavigation } from '@/components/MainGenreNavigation';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
@@ -12,9 +12,9 @@ import {
   slugToMainGenre,
 } from '@/lib/routes';
 
-function getActivePillar(pathname: string): ChartType | 'overview' {
-  const match = pathname.match(/^\/charts\/(fan|expert|streaming)$/);
-  if (match) return match[1] as ChartType;
+function getActivePillar(pathname: string): PillarView {
+  if (pathname === '/charts/fan') return 'fan';
+  if (pathname === '/charts/club' || pathname === '/charts/expert') return 'club';
   return 'overview';
 }
 
@@ -61,15 +61,9 @@ export function ChartNavigation() {
           activeGenre={activeGenre}
           linkMode
           onGenreChange={(genre) => {
-            if (genre === 'overall') {
-              router.push(ROUTES.home);
-            } else {
-              router.push(mainGenrePath(genre));
-            }
+            router.push(mainGenrePath(genre));
           }}
-          getGenreHref={(genre) =>
-            genre === 'overall' ? ROUTES.home : mainGenrePath(genre)
-          }
+          getGenreHref={(genre) => mainGenrePath(genre)}
           className="mb-0"
         />
       </ErrorBoundary>

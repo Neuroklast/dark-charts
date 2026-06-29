@@ -20,8 +20,10 @@ export function GenrePageClient({ mainGenre, subGenre = null }: GenrePageClientP
   const searchParams = useSearchParams();
   const pillarParam = searchParams.get('pillar');
   const activePillar: ChartType | 'overview' =
-    pillarParam === 'fan' || pillarParam === 'expert' || pillarParam === 'streaming'
-      ? pillarParam
+    pillarParam === 'fan' || pillarParam === 'expert' || pillarParam === 'club'
+      ? pillarParam === 'club'
+        ? 'expert'
+        : pillarParam
       : 'overview';
 
   const {

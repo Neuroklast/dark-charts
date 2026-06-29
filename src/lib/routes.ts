@@ -45,7 +45,10 @@ const SLUG_TO_MAIN_GENRE = Object.fromEntries(
   Object.entries(MAIN_GENRE_SLUGS).map(([genre, slug]) => [slug, genre as MainGenre])
 ) as Record<string, MainGenre>;
 
-const PILLAR_SLUGS: ChartType[] = ['fan', 'expert', 'streaming'];
+/** Public chart mode slugs (URL). `club` maps to expert data internally. */
+export type PillarSlug = 'fan' | 'club';
+
+const PILLAR_SLUGS: PillarSlug[] = ['fan', 'club'];
 
 export function slugify(value: string): string {
   return value
@@ -74,14 +77,19 @@ export function slugToSubGenre(slug: string, mainGenre?: MainGenre): Genre | nul
   return subGenres.find((g) => subGenreToSlug(g) === slug) ?? null;
 }
 
-export function pillarChartPath(pillar: ChartType): string {
+export function pillarChartPath(pillar: PillarSlug | ChartType): string {
+  if (pillar === 'expert') return '/charts/club';
+  if (pillar === 'streaming' || pillar === 'overall') return ROUTES.home;
   return `/charts/${pillar}`;
 }
 
-export type PillarSlug = 'fan' | 'expert' | 'streaming';
-
 export function isValidPillarSlug(slug: string): slug is PillarSlug {
-  return PILLAR_SLUGS.includes(slug as ChartType);
+  return PILLAR_SLUGS.includes(slug as PillarSlug);
+}
+
+/** Map URL pillar slug to underlying chart data type */
+export function pillarSlugToChartType(slug: PillarSlug): ChartType {
+  return slug === 'club' ? 'expert' : 'fan';
 }
 
 export function mainGenrePath(mainGenre: MainGenre, subGenre?: Genre): string {
@@ -182,8 +190,12 @@ export function navigateToChart(
     router.push(mainGenrePath(mainGenre, subGenre));
     return;
   }
-  if (chartType && chartType !== 'overall') {
-    router.push(pillarChartPath(chartType));
+  if (chartType === 'fan') {
+    router.push(pillarChartPath('fan'));
+    return;
+  }
+  if (chartType === 'expert') {
+    router.push(pillarChartPath('club'));
     return;
   }
   router.push(ROUTES.home);

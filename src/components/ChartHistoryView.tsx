@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function ChartHistoryView() {
-  const [activeChart, setActiveChart] = useState<ChartType>('fan');
+  const [activeChart, setActiveChart] = useState<ChartType>('overall');
   const [weeklyMovement, setWeeklyMovement] = useState<WeeklyMovement | null>(null);
   const [snapshots, setSnapshots] = useState<ChartSnapshot[]>([]);
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
@@ -49,13 +49,13 @@ export function ChartHistoryView() {
     
     switch (activeChart) {
       case 'fan':
-        return selectedSnapshot.fanCharts.slice(0, 10);
+        return selectedSnapshot.fanCharts.slice(0, 20);
       case 'expert':
-        return selectedSnapshot.expertCharts.slice(0, 10);
-      case 'streaming':
-        return selectedSnapshot.streamingCharts.slice(0, 10);
+        return selectedSnapshot.expertCharts.slice(0, 20);
+      case 'overall':
+        return selectedSnapshot.fanCharts.slice(0, 20);
       default:
-        return selectedSnapshot.fanCharts.slice(0, 10);
+        return selectedSnapshot.fanCharts.slice(0, 20);
     }
   }, [selectedSnapshot, activeChart]);
 
@@ -120,14 +120,14 @@ export function ChartHistoryView() {
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
           <Tabs value={activeChart} onValueChange={(v) => setActiveChart(v as ChartType)} className="w-full md:w-auto">
             <TabsList className="grid w-full md:w-auto grid-cols-3 bg-secondary border border-border">
+              <TabsTrigger value="overall" className="data-font text-xs uppercase">
+                Overall
+              </TabsTrigger>
               <TabsTrigger value="fan" className="data-font text-xs uppercase">
                 Fan Charts
               </TabsTrigger>
               <TabsTrigger value="expert" className="data-font text-xs uppercase">
-                Expert Charts
-              </TabsTrigger>
-              <TabsTrigger value="streaming" className="data-font text-xs uppercase">
-                Streaming
+                Club Charts
               </TabsTrigger>
             </TabsList>
           </Tabs>

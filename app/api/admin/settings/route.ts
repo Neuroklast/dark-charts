@@ -6,9 +6,9 @@ import { ApiError } from '@/lib/errors';
 const DEFAULT_SETTINGS = {
   voiceCreditsBudget: 150,
   chartWeights: {
-    fan: 0.5,
-    expert: 0.35,
-    streaming: 0.15,
+    fan: 0.55,
+    expert: 0.45,
+    streaming: 0,
   },
 };
 

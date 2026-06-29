@@ -154,7 +154,7 @@ export function useChartData() {
 
   const filteredFanCharts = useMemo(() => {
     try {
-      return safeSlice(filterByGenre(fanCharts), 0, 10, []);
+      return safeSlice(filterByGenre(fanCharts), 0, 20, []);
     } catch (error) {
       logger.error('Error filtering fan charts:', error);
       return [];
@@ -163,7 +163,7 @@ export function useChartData() {
 
   const filteredExpertCharts = useMemo(() => {
     try {
-      return safeSlice(filterByGenre(expertCharts), 0, 10, []);
+      return safeSlice(filterByGenre(expertCharts), 0, 20, []);
     } catch (error) {
       logger.error('Error filtering expert charts:', error);
       return [];
@@ -190,7 +190,7 @@ export function useChartData() {
         return [];
       }
 
-      return safeSlice(filterByGenre(chart), 0, 10, []);
+      return safeSlice(filterByGenre(chart), 0, 20, []);
     } catch (error) {
       logger.error('Error calculating overall chart:', error);
       return [];

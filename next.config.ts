@@ -16,6 +16,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      { source: '/charts/expert', destination: '/charts/club', permanent: true },
+      { source: '/charts/streaming', destination: '/', permanent: true },
+    ];
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.r2.dev' },

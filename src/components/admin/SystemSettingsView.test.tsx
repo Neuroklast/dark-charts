@@ -12,7 +12,7 @@ describe('SystemSettingsView', () => {
   it('renders settings form and handles save', () => {
     const mockSettings = {
       voiceCreditsBudget: 200,
-      chartWeights: { fan: 0.6, expert: 0.3, streaming: 0.1 }
+      chartWeights: { fan: 0.6, expert: 0.4, streaming: 0 },
     };
     const mockSave = vi.fn();
 
@@ -26,7 +26,7 @@ describe('SystemSettingsView', () => {
 
     expect(mockSave).toHaveBeenCalledWith({
       voiceCreditsBudget: 200,
-      chartWeights: { fan: 0.6, expert: 0.3, streaming: 0.1 }
+      chartWeights: { fan: 0.6, expert: 0.4, streaming: 0 },
     });
   });
 });

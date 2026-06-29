@@ -1,14 +1,33 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { UNIQUE_VOTER_WEIGHT } from '@/lib/math/fan-scoring';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { formatHybridWeightsPercent } from '@/lib/math/normalization';
+import { DEFAULT_CHART_WEIGHTS } from '@/lib/api/systemSettings';
+import type { ChartWeights } from '@/types';
 
 export function MethodologyView() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEn = language === 'en';
+  const [weights, setWeights] = useState<ChartWeights>(DEFAULT_CHART_WEIGHTS);
+
+  useEffect(() => {
+    fetch('/api/charts/weights')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.weights) setWeights(data.weights);
+      })
+      .catch(() => {});
+  }, []);
+
+  const pct = formatHybridWeightsPercent(weights);
+  const formulaLine = isEn
+    ? `Overall Chart = ${pct.fan}% community votes + ${pct.expert}% verified club DJ rankings`
+    : `Gesamt-Chart = ${pct.fan}% Community-Votes + ${pct.expert}% Club-DJ-Rankings`;
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8 py-8 px-4">
@@ -23,16 +42,35 @@ export function MethodologyView() {
         </p>
       </div>
 
+      <Card className="p-6 bg-primary/10 border-primary/30">
+        <p className="text-lg font-semibold text-foreground">{formulaLine}</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          {isEn
+            ? 'Unlike legacy charts, our weighting is public and adjustable by admins — never pay-to-play.'
+            : 'Anders als bei Legacy-Charts ist unsere Gewichtung öffentlich und admin-konfigurierbar — kein Pay-to-Play.'}
+        </p>
+      </Card>
+
       <Card className="p-6 bg-card border-border space-y-8 text-sm text-muted-foreground leading-relaxed">
         <section>
           <h2 className="font-display text-xl uppercase text-foreground mb-3">
-            {isEn ? 'Three Pillars' : 'Drei Säulen'}
+            {isEn ? 'Two Sources + Hybrid' : 'Zwei Quellen + Hybrid'}
           </h2>
           <ul className="list-disc list-inside space-y-2 ml-2">
-            <li><strong className="text-foreground">Fan Charts</strong> — {isEn ? 'quadratic voting (QV), weekly' : 'quadratisches Voting (QV), wöchentlich'}</li>
-            <li><strong className="text-foreground">Expert Charts</strong> — {isEn ? 'weekly top-10 from verified DJs' : 'wöchentliche Top-10-Rankings verifizierter DJs'}</li>
-            <li><strong className="text-foreground">Streaming Charts</strong> — {isEn ? 'Spotify + YouTube signals (85/15 blend)' : 'Spotify + YouTube Signale (85/15 Blend)'}</li>
-            <li><strong className="text-foreground">Combined Chart</strong> — {isEn ? 'weighted merge of all pillars' : 'gewichtete Zusammenführung aller drei Säulen'}</li>
+            <li>
+              <strong className="text-foreground">{isEn ? 'Fan Charts' : 'Fan-Charts'}</strong> —{' '}
+              {isEn ? 'quadratic voting (QV), weekly community votes' : 'quadratisches Voting (QV), wöchentliche Community-Votes'}
+            </li>
+            <li>
+              <strong className="text-foreground">{isEn ? 'Club Charts' : 'Club-Charts'}</strong> —{' '}
+              {isEn ? 'weekly rankings from verified DJs only' : 'wöchentliche Rankings nur von verifizierten DJs'}
+            </li>
+            <li>
+              <strong className="text-foreground">{isEn ? 'Overall Chart' : 'Gesamt-Chart'}</strong> —{' '}
+              {t('chart.weightsFormula')
+                .replace('{fan}', String(pct.fan))
+                .replace('{expert}', String(pct.expert))}
+            </li>
           </ul>
         </section>
 
@@ -43,7 +81,7 @@ export function MethodologyView() {
             {isEn ? 'Fan Score (Sybil-resistant)' : 'Fan-Score (Sybil-resistent)'}
           </h2>
           <pre className="bg-secondary/40 border border-border p-4 text-xs font-mono text-foreground overflow-x-auto">
-{`fanScore = weightedUniqueVoters × ${UNIQUE_VOTER_WEIGHT} + Σ(√(costᵢ) × trustWeight)`}
+            {`fanScore = weightedUniqueVoters × ${UNIQUE_VOTER_WEIGHT} + Σ(√(costᵢ) × trustWeight)`}
           </pre>
           <p className="mt-3">
             {isEn
@@ -60,8 +98,8 @@ export function MethodologyView() {
           </h2>
           <p>
             {isEn
-              ? 'Subgenre and main-genre charts are aggregated server-side weekly. A subgenre chart requires at least 5 fan votes in that genre for the week.'
-              : 'Subgenre- und Main-Genre-Charts werden wöchentlich serverseitig aggregiert. Mindestens 5 Fan-Votes pro Genre und Woche.'}
+              ? 'Main-genre charts use four pillars: Gothic, Metal, Dark Electro, and Crossover. Subgenre drill-downs exist but are not shown in the main navigation.'
+              : 'Main-Genre-Charts nutzen vier Säulen: Gothic, Metal, Dark Electro und Crossover. Subgenre-Drilldowns existieren, sind aber nicht in der Hauptnavigation.'}
           </p>
         </section>
 
@@ -73,8 +111,8 @@ export function MethodologyView() {
           </h2>
           <p>
             {isEn
-              ? 'Paid Spotlight slots appear above chart content, clearly labeled as advertising. They never affect rankings. Bands and Labels can book slots via self-service checkout on'
-              : 'Bezahlte Spotlight-Slots erscheinen oberhalb der Charts, klar als Anzeige gekennzeichnet. Sie beeinflussen Rankings nicht. Bands und Labels buchen Slots per Selbstbuchung unter'}{' '}
+              ? 'Paid Spotlight slots appear above chart content, clearly labeled as advertising. They never affect rankings.'
+              : 'Bezahlte Spotlight-Slots erscheinen oberhalb der Charts, klar als Anzeige gekennzeichnet. Sie beeinflussen Rankings nicht.'}{' '}
             <Link href="/spotlight" className="text-accent underline">/spotlight</Link>.
           </p>
         </section>
@@ -87,25 +125,8 @@ export function MethodologyView() {
           </h2>
           <p>
             {isEn
-              ? 'Weekly aggregation flags suspicious vote patterns (e.g. low-trust clusters, new-account surges) for admin review. Unresolved high-severity anomalies automatically suspend voting on affected releases until moderators resolve the case.'
-              : 'Die Wochenaggregation markiert verdächtige Vote-Muster (z. B. Low-Trust-Cluster, New-Account-Spikes) zur Admin-Prüfung. Ungeklärte Anomalien mit hoher Schwere setzen Abstimmungen auf betroffene Releases automatisch aus, bis Moderatoren den Fall schließen.'}
-          </p>
-        </section>
-
-        <Separator />
-
-        <section>
-          <h2 className="font-display text-xl uppercase text-foreground mb-3">
-            {isEn ? 'Known Limitations' : 'Bekannte Limitierungen'}
-          </h2>
-          <ul className="list-disc list-inside ml-2 space-y-2 text-xs">
-            <li>{isEn ? 'Trust weights reduce but do not eliminate multi-accounting' : 'Trust-Gewichte reduzieren Multi-Accounting, beseitigen es aber nicht vollständig'}</li>
-            <li>{isEn ? 'YouTube metrics require YOUTUBE_API_KEY configuration' : 'YouTube-Metriken benötigen YOUTUBE_API_KEY Konfiguration'}</li>
-            <li>{isEn ? 'Streaming uses estimated popularity, not official stream counts' : 'Streaming nutzt geschätzte Popularität, keine offiziellen Stream-Zahlen'}</li>
-          </ul>
-          <p className="mt-4 text-xs">
-            {isEn ? 'Questions:' : 'Fragen:'}{' '}
-            <Link href="/imprint" className="text-accent underline">{isEn ? 'Imprint' : 'Impressum'}</Link>
+              ? 'Weekly aggregation flags suspicious vote patterns for admin review.'
+              : 'Die Wochenaggregation markiert verdächtige Vote-Muster zur Admin-Prüfung.'}
           </p>
         </section>
       </Card>

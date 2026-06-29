@@ -49,13 +49,12 @@ export class ComprehensiveDataService implements IDataService {
   calculateOverallChart(): Track[] {
     this.initialize();
 
-    const FIXED_WEIGHTS: ChartWeights = { fan: 50, expert: 35, streaming: 15 };
+    const FIXED_WEIGHTS: ChartWeights = { fan: 55, expert: 45, streaming: 0 };
 
     const allTracks = new Map<string, {
       track: Track;
       fanRank?: number;
       expertRank?: number;
-      streamingRank?: number;
     }>();
 
     this.fanCharts.forEach((track, index) => {
@@ -76,24 +75,14 @@ export class ComprehensiveDataService implements IDataService {
       }
     });
 
-    this.streamingCharts.forEach((track, index) => {
-      const key = `${track.artist}-${track.title}`;
-      if (!allTracks.has(key)) {
-        allTracks.set(key, { track: { ...track, chartType: 'overall' }, streamingRank: index + 1 });
-      } else {
-        allTracks.get(key)!.streamingRank = index + 1;
-      }
-    });
-
-    const tracksWithScores = Array.from(allTracks.values()).map(({ track, fanRank, expertRank, streamingRank }) => {
-      const poolsPresent = [fanRank, expertRank, streamingRank].filter(r => r !== undefined).length;
+    const tracksWithScores = Array.from(allTracks.values()).map(({ track, fanRank, expertRank }) => {
+      const poolsPresent = [fanRank, expertRank].filter((r) => r !== undefined).length;
       const bonus = calculateConsensusBonus(poolsPresent);
 
       const fanPoints = fanRank !== undefined ? rankToPoints(fanRank, this.fanCharts.length) : 0;
       const expertPoints = expertRank !== undefined ? rankToPoints(expertRank, this.expertCharts.length) : 0;
-      const streamingPoints = streamingRank !== undefined ? rankToPoints(streamingRank, this.streamingCharts.length) : 0;
 
-      const overallScore = calculateTotalScore(fanPoints, expertPoints, streamingPoints, FIXED_WEIGHTS) * bonus;
+      const overallScore = calculateTotalScore(fanPoints, expertPoints, 0, FIXED_WEIGHTS) * bonus;
 
       return { ...track, overallScore, movement: 0 };
     });

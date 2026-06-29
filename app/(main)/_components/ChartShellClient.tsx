@@ -82,9 +82,11 @@ interface ChartShellClientProps {
   visibleTracks?: Track[];
 }
 
-function resolveActivePillar(pathname: string): ChartType | 'overview' {
-  const match = pathname.match(/^\/charts\/(fan|expert|streaming)$/);
-  if (match) return match[1] as ChartType;
+type ActivePillarView = 'overview' | 'fan' | 'club';
+
+function resolveActivePillar(pathname: string): ActivePillarView {
+  if (pathname === '/charts/fan') return 'fan';
+  if (pathname === '/charts/club' || pathname === '/charts/expert') return 'club';
   return 'overview';
 }
 
@@ -150,33 +152,16 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
   const allTracksForPlayer = useMemo(() => {
     if (activePillar === 'overview') return overallChart;
     if (activePillar === 'fan') return filteredFanCharts;
-    if (activePillar === 'expert') return filteredExpertCharts;
-    if (activePillar === 'streaming') return filteredStreamingCharts;
-    return [...fanCharts, ...expertCharts, ...streamingCharts];
-  }, [
-    activePillar,
-    overallChart,
-    filteredFanCharts,
-    filteredExpertCharts,
-    filteredStreamingCharts,
-    fanCharts,
-    expertCharts,
-    streamingCharts,
-  ]);
+    if (activePillar === 'club') return filteredExpertCharts;
+    return overallChart;
+  }, [activePillar, overallChart, filteredFanCharts, filteredExpertCharts]);
 
   const defaultVisibleTracks = useMemo(() => {
-    if (activePillar === 'overview') {
-      return [
-        ...safeSlice(filteredFanCharts, 0, 3, []),
-        ...safeSlice(filteredExpertCharts, 0, 3, []),
-        ...safeSlice(filteredStreamingCharts, 0, 3, []),
-      ];
-    }
+    if (activePillar === 'overview') return overallChart;
     if (activePillar === 'fan') return filteredFanCharts;
-    if (activePillar === 'expert') return filteredExpertCharts;
-    if (activePillar === 'streaming') return filteredStreamingCharts;
-    return [];
-  }, [activePillar, filteredFanCharts, filteredExpertCharts, filteredStreamingCharts]);
+    if (activePillar === 'club') return filteredExpertCharts;
+    return overallChart;
+  }, [activePillar, overallChart, filteredFanCharts, filteredExpertCharts]);
 
   useUpcomingTrackPreloader(currentTrack, allTracksForPlayer, 5);
   useVisibleTracksPreloader(visibleTracks ?? defaultVisibleTracks, 10);
@@ -230,19 +215,11 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
         positions.push({ chartName: 'Fan Charts', position: fanIndex + 1, chartType: 'fan' });
       }
       const expertIndex = safeFindIndex(expertCharts, (t) => t?.id === track.id, -1);
-      if (expertIndex !== -1 && expertIndex < 10) {
+      if (expertIndex !== -1 && expertIndex < 20) {
         positions.push({
-          chartName: 'Expert Charts',
+          chartName: 'Club Charts',
           position: expertIndex + 1,
           chartType: 'expert',
-        });
-      }
-      const streamingIndex = safeFindIndex(streamingCharts, (t) => t?.id === track.id, -1);
-      if (streamingIndex !== -1 && streamingIndex < 10) {
-        positions.push({
-          chartName: 'Streaming Charts',
-          position: streamingIndex + 1,
-          chartType: 'streaming',
         });
       }
       const overallIndex = safeFindIndex(overallChart, (t) => t?.id === track.id, -1);
@@ -252,7 +229,7 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
 
       Object.entries(mainGenreMap).forEach(([mainGenre, subGenres]) => {
         const mainGenreTracks = safeFilter(
-          [...fanCharts, ...expertCharts, ...streamingCharts],
+          [...fanCharts, ...expertCharts],
           (t) => t && Array.isArray(t.genres) && t.genres.some((g) => subGenres.includes(g))
         );
         const mainGenreIndex = safeFindIndex(mainGenreTracks, (t) => t?.id === track.id, -1);
