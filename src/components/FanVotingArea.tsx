@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { MagnifyingGlass, Info, Lightning, Coins, Calendar } from '@phosphor-icons/react';
 import { useKV } from '@/hooks/useKV';
 import { useAuth } from '@/contexts/AuthContext';
+import { authFetch } from '@/lib/auth/client-fetch';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -33,7 +34,7 @@ function calculateQuadraticCost(credits: number): number {
 }
 
 export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: VotingAreaProps & { onVoteComplete?: () => void }) {
-  const { user, getAuthToken } = useAuth();
+  const { user } = useAuth();
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
@@ -56,14 +57,9 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
   useEffect(() => {
     const checkVoteStatus = async () => {
       try {
-        const token = await getAuthToken();
-        if (!token) return;
+        if (!user) return;
 
-        const res = await fetch('/api/vote/status', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const res = await authFetch('/api/vote/status');
         const data = await res.json();
         if (data.creditBudget) setCreditBudget(data.creditBudget);
         if (typeof data.remainingCredits === 'number') {
@@ -82,7 +78,7 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
       }
     };
     checkVoteStatus();
-  }, [getAuthToken, onVoteComplete]);
+  }, [user, onVoteComplete]);
 
   useEffect(() => {
     const loadBlockedReleases = async () => {
@@ -474,8 +470,7 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                 if (totalCost === 0 || remainingCredits < 0) return;
 
                 try {
-                  const token = await getAuthToken();
-                  if (!token) {
+                  if (!user) {
                     toast.error("Please login to submit votes");
                     return;
                   }
@@ -485,13 +480,10 @@ export function FanVotingArea({ allTracks, onTrackClick, onVoteComplete }: Votin
                     return acc;
                   }, {} as Record<string, number>);
 
-                  const res = await fetch('/api/vote', {
+                  const res = await authFetch('/api/vote', {
                     method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ type: 'bulk', votes: validVotes })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'bulk', votes: validVotes }),
                   });
 
                   if (!res.ok) {

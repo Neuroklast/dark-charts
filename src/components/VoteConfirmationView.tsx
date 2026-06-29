@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Lightning, CheckCircle, WarningCircle, CaretRight, ArrowLeft } from '@phosphor-icons/react';
 import { useAuth } from '@/contexts/AuthContext';
+import { authFetch } from '@/lib/auth/client-fetch';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ROUTES } from '@/lib/routes';
 import { AlbumArtwork } from './AlbumArtwork';
@@ -35,7 +36,7 @@ export function VoteConfirmationView({
   linkMode?: boolean;
 }) {
   const router = useRouter();
-  const { getAuthToken } = useAuth();
+  const { user } = useAuth();
 
   const navigate = (view: string) => {
     if (linkMode) {
@@ -75,17 +76,12 @@ export function VoteConfirmationView({
   useEffect(() => {
     const fetchReceipt = async () => {
       try {
-        const token = await getAuthToken();
-        if (!token) {
+        if (!user) {
           setError('Unauthorized');
           return;
         }
 
-        const res = await fetch('/api/vote/receipt', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const res = await authFetch('/api/vote/receipt');
 
         if (!res.ok) {
           throw new Error('Failed to fetch receipt');
@@ -103,7 +99,7 @@ export function VoteConfirmationView({
     };
 
     fetchReceipt();
-  }, [getAuthToken]);
+  }, [user]);
 
   const totalCost = votes.reduce((sum, v) => sum + v.cost, 0);
 

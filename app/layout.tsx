@@ -1,15 +1,34 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+import type { CSSProperties } from 'react';
 import { Providers } from './providers';
+import { PublicEffects } from './_components/PublicEffects';
+import { NavHidingWrapper } from './_components/NavHidingWrapper';
+import { SiteHeader } from '@/components/SiteHeader';
+import { SiteFooter } from '@/components/SiteFooter';
 import './globals.css';
+
+const fontVariables: CSSProperties = {
+  ['--font-sans' as string]:
+    'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  ['--font-mono' as string]:
+    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+};
 
 export const metadata: Metadata = {
   title: 'Dark Charts',
   description: 'Independent music charts for the dark scene',
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  interactiveWidget: 'resizes-visual',
+  themeColor: '#101010',
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de" suppressHydrationWarning>
+    <html lang="de" style={fontVariables} suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased" suppressHydrationWarning>
         <a
           href="#main-content"
@@ -17,7 +36,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Skip to main content
         </a>
-        <Providers>{children}</Providers>
+        <Providers>
+          <PublicEffects />
+          <NavHidingWrapper>
+            <SiteHeader />
+          </NavHidingWrapper>
+          {children}
+          <NavHidingWrapper>
+            <SiteFooter />
+          </NavHidingWrapper>
+        </Providers>
       </body>
     </html>
   );

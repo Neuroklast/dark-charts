@@ -1,7 +1,16 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from 'react';
 import { AuthUser, UserProfile } from '@/types';
 import { logger } from '@/lib/logger';
 import { asyncStorage } from '@/lib/storage/asyncStorage';
+import { createBrowserSupabaseClient } from '@/lib/supabase/client';
+import { authFetch } from '@/lib/auth/client-fetch';
 
 interface LoginCredentials {
   email: string;
@@ -25,10 +34,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function roleToUserType(role?: string): 'fan' | 'dj' | 'band' | 'label' {
   switch (role) {
-    case 'DJ': return 'dj';
-    case 'BAND': return 'band';
-    case 'LABEL': return 'label';
-    default: return 'fan';
+    case 'DJ':
+      return 'dj';
+    case 'BAND':
+      return 'band';
+    case 'LABEL':
+      return 'label';
+    default:
+      return 'fan';
   }
 }
 
@@ -120,7 +133,6 @@ function buildProfileFromRole(data: any): UserProfile | undefined {
   return undefined;
 }
 
-/** Map a raw server user response to the AuthUser shape the UI expects. */
 function buildAuthUser(data: any, provider: AuthUser['provider'] = 'email'): AuthUser {
   const user = data.user ?? data;
   return {
@@ -142,21 +154,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
-      const token = await asyncStorage.get<string>('auth-token');
-      if (!token) {
-        setUser(null);
-        return;
-      }
-
-      // Validate the token server-side and fetch fresh user data
-      const response = await fetch('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await authFetch('/api/auth/me');
 
       if (!response.ok) {
-        // Token is invalid or expired – clear stored credentials
         await asyncStorage.delete('auth-token');
         await asyncStorage.delete('auth-user');
         setUser(null);
@@ -169,16 +171,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(authUser);
       setError(null);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to refresh user');
-      logger.error('Failed to refresh user', { error });
-      setError(error);
-      // Do not clear user on network errors – keep last known state
+      const refreshError = err instanceof Error ? err : new Error('Failed to refresh user');
+      logger.error('Failed to refresh user', { error: refreshError });
+      setError(refreshError);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    const supabase = createBrowserSupabaseClient();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      void refreshUser();
+    });
+
     refreshUser().finally(() => setIsLoading(false));
-  }, []);
+
+    return () => subscription.unsubscribe();
+  }, [refreshUser]);
 
   const login = async (
     provider: 'spotify' | 'apple' | 'email',
@@ -191,36 +202,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email and password are required');
         }
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(credentials),
+
+        const supabase = createBrowserSupabaseClient();
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email: credentials.email,
+          password: credentials.password,
         });
 
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          throw new Error(data.error || 'Authentication failed');
+        if (signInError) {
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(credentials),
+          });
+
+          if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.error || 'Authentication failed');
+          }
+
+          const payload = await response.json();
+          if (payload.token) {
+            await asyncStorage.set('auth-token', payload.token);
+          }
+          const authUser = buildAuthUser(payload);
+          await asyncStorage.set('auth-user', authUser);
+          setUser(authUser);
+          return;
         }
 
-        const data = await response.json();
-        if (data.token) {
-          await asyncStorage.set('auth-token', data.token);
+        if (data.session?.access_token) {
+          await asyncStorage.set('auth-token', data.session.access_token);
         }
-        const authUser = buildAuthUser(data);
-        await asyncStorage.set('auth-user', authUser);
-        setUser(authUser);
+        await refreshUser();
         return;
       }
 
-      // OAuth providers (Spotify / Apple) – redirect handled externally
       if (provider === 'spotify' || provider === 'apple') {
         throw new Error(`OAuth for ${provider} is initiated via the OAuth buttons`);
       }
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Login failed');
-      logger.error('Login failed', { error });
-      setError(error);
-      throw error;
+      const loginError = err instanceof Error ? err : new Error('Login failed');
+      logger.error('Login failed', { error: loginError });
+      setError(loginError);
+      throw loginError;
     } finally {
       setIsLoading(false);
     }
@@ -233,6 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await fetch('/api/auth/demo-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ role }),
       });
 
@@ -248,10 +275,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await asyncStorage.set('auth-user', authUser);
       setUser(authUser);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Demo login failed');
-      logger.error('Demo login failed', { error });
-      setError(error);
-      throw error;
+      const demoError = err instanceof Error ? err : new Error('Demo login failed');
+      logger.error('Demo login failed', { error: demoError });
+      setError(demoError);
+      throw demoError;
     } finally {
       setIsLoading(false);
     }
@@ -261,14 +288,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
+      const supabase = createBrowserSupabaseClient();
+      await supabase.auth.signOut();
       await asyncStorage.delete('auth-token');
       await asyncStorage.delete('auth-user');
       setUser(null);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Logout failed');
-      logger.error('Logout failed', { error });
-      setError(error);
-      throw error;
+      const logoutError = err instanceof Error ? err : new Error('Logout failed');
+      logger.error('Logout failed', { error: logoutError });
+      setError(logoutError);
+      throw logoutError;
     } finally {
       setIsLoading(false);
     }
@@ -287,14 +316,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(updatedUser);
       setError(null);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Profile update failed');
-      logger.error('Profile update failed', { error });
-      setError(error);
-      throw error;
+      const updateError = err instanceof Error ? err : new Error('Profile update failed');
+      logger.error('Profile update failed', { error: updateError });
+      setError(updateError);
+      throw updateError;
     }
   };
 
   const getAuthToken = async (): Promise<string | null> => {
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.access_token) return session.access_token;
+    } catch {
+      // Fall through to legacy token
+    }
     return asyncStorage.get<string>('auth-token');
   };
 
@@ -302,7 +340,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, error, login, loginDemo, logout, updateProfile, refreshUser, getAuthToken, getToken }}
+      value={{
+        user,
+        isLoading,
+        error,
+        login,
+        loginDemo,
+        logout,
+        updateProfile,
+        refreshUser,
+        getAuthToken,
+        getToken,
+      }}
     >
       {children}
     </AuthContext.Provider>

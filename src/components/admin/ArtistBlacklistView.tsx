@@ -48,7 +48,7 @@ export function ArtistBlacklistView({ blacklist, isLoading, onUpdateStatus, onFo
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-display uppercase tracking-widest">Artist Blacklist</h2>
-        <Button onClick={onForceSync} variant="secondary" className="font-ui uppercase text-xs tracking-wider brutal-shadow">
+        <Button onClick={onForceSync} variant="secondary" className="text-xs tracking-wider">
           Force Odesli Sync
         </Button>
       </div>

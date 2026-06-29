@@ -84,7 +84,7 @@ export function AdminLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full bg-background overflow-hidden brutal-border">
+      <div className="flex h-screen w-full bg-background overflow-hidden border border-border">
         <Sidebar variant="sidebar" collapsible="icon">
           <SidebarHeader className="border-b border-border p-4 bg-primary text-primary-foreground font-display font-bold uppercase tracking-widest text-lg">
             Command Center
@@ -153,7 +153,7 @@ export function AdminLayout({
             <div>
               <button
                 onClick={() => setOpenCommand(true)}
-                className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary px-3 py-1.5 border border-border hover:bg-accent transition-colors brutal-shadow"
+                className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-3 py-1.5 rounded-md border border-border hover:bg-accent/10 transition-colors"
               >
                 <MagnifyingGlass />
                 <span className="font-ui uppercase text-xs">Search (Cmd+K)</span>
@@ -161,7 +161,7 @@ export function AdminLayout({
             </div>
           </header>
 
-          <div className="flex-1 overflow-auto p-6 brutal-bg-pattern">{children}</div>
+          <div className="flex-1 overflow-auto p-6">{children}</div>
         </main>
 
         <CommandDialog open={openCommand} onOpenChange={setOpenCommand}>

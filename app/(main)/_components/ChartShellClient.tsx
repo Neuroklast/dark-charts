@@ -12,6 +12,7 @@ import {
 import { usePathname, useRouter } from 'next/navigation';
 import { Track, ChartType, Genre, MainGenre } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { authFetch } from '@/lib/auth/client-fetch';
 import { logger } from '@/lib/logger';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { TrackDetailModal } from '@/components/TrackDetailModal';
@@ -91,7 +92,7 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
   const router = useRouter();
   const pathname = usePathname();
   const activePillar = resolveActivePillar(pathname);
-  const { user, getAuthToken } = useAuth();
+  const { user } = useAuth();
   const [activePromotion, setActivePromotion] = useState<{
     type?: string;
     name?: string;
@@ -136,10 +137,7 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
     if (!user) return;
     const checkVoteStatus = async () => {
       try {
-        const token = await getAuthToken();
-        const res = await fetch('/api/vote/status', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await authFetch('/api/vote/status');
         const data = await res.json();
         if (data.hasVoted) setHasVoted(true);
       } catch (err) {
@@ -147,7 +145,7 @@ export function ChartShellClient({ children, visibleTracks }: ChartShellClientPr
       }
     };
     checkVoteStatus();
-  }, [user, getAuthToken]);
+  }, [user]);
 
   const allTracksForPlayer = useMemo(() => {
     if (activePillar === 'overview') return overallChart;

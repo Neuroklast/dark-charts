@@ -1,46 +1,61 @@
-@import 'tailwindcss';
-@import "tw-animate-css";
-
-@layer base {
-  * {
-    @apply border-border
+@keyframes signal-static-noise {
+  0%,
+  100% {
+    opacity: 0.05;
+  }
+  50% {
+    opacity: 0.15;
   }
 }
 
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
-@keyframes signal-static-noise {
-  0%, 100% { opacity: 0.05; }
-  50% { opacity: 0.15; }
-}
-
 @keyframes signal-static-scanline {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
 }
 
 @keyframes signal-static-glitch {
-  0%, 90%, 100% { transform: translate(0); opacity: 0; }
-  91%, 94% { transform: translate(-2px, 2px); opacity: 0.7; }
-  92%, 96% { transform: translate(2px, -2px); opacity: 0.7; }
+  0%,
+  90%,
+  100% {
+    transform: translate(0);
+    opacity: 0;
+  }
+  91%,
+  94% {
+    transform: translate(-2px, 2px);
+    opacity: 0.7;
+  }
+  92%,
+  96% {
+    transform: translate(2px, -2px);
+    opacity: 0.7;
+  }
 }
 
 @keyframes signal-static-pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .signal-static-bg-scanlines {
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
   pointer-events: none;
   animation: signal-static-scanline 8s linear infinite;
   z-index: 0;
@@ -49,7 +64,13 @@
 .signal-static-bg-noise {
   position: absolute;
   inset: 0;
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.03) 2px,
+    rgba(255, 255, 255, 0.03) 4px
+  );
   opacity: 0.6;
   pointer-events: none;
   animation: signal-static-noise 0.3s infinite;
@@ -58,14 +79,15 @@
 
 .signal-static-card {
   position: relative;
-  background: rgba(20, 20, 20, 0.7);
-  border: 1px solid #2a2a2a;
+  background: color-mix(in oklch, var(--card) 85%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   transition: all 0.2s;
 }
 
 .signal-static-card:hover {
-  border-color: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
+  border-color: color-mix(in oklch, var(--primary) 50%, var(--border));
+  box-shadow: 0 0 15px color-mix(in oklch, var(--primary) 15%, transparent);
   transform: translateY(-2px);
 }
 
@@ -73,12 +95,12 @@
   position: absolute;
   width: 8px;
   height: 8px;
-  border: 1px solid #2a2a2a;
+  border: 1px solid var(--border);
   transition: border-color 0.3s;
 }
 
 .signal-static-card:hover .signal-static-card-corner {
-  border-color: rgba(255, 255, 255, 0.8);
+  border-color: color-mix(in oklch, var(--primary) 50%, var(--border));
 }
 
 .corner-tl {
@@ -109,29 +131,11 @@
   border-top: none;
 }
 
-.cyber-crt-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9998;
-  background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0.05) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 3px);
-  animation: cyber-crt-flicker 4s ease-in-out infinite;
-}
-
-.cyber-scanline {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.8;
-  background: repeating-linear-gradient(0deg, transparent 0px, rgba(255,255,255,0.05) 1px, transparent 2px, transparent 3px, rgba(0,0,0,0.1) 4px);
-  animation: cyber-scanline-drift 8s linear infinite;
-}
-
 .cyber-card {
   position: relative;
-  background: rgba(15, 15, 15, 0.8);
-  border: 1px solid #333;
+  background: color-mix(in oklch, var(--card) 90%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   transition: all 0.3s ease;
 }
 
@@ -148,20 +152,21 @@
 .cyber-card::before {
   top: -1px;
   left: -1px;
-  border-top: 2px solid rgba(255, 255, 255, 0.8);
-  border-left: 2px solid rgba(255, 255, 255, 0.8);
+  border-top: 2px solid color-mix(in oklch, var(--primary) 80%, transparent);
+  border-left: 2px solid color-mix(in oklch, var(--primary) 80%, transparent);
 }
 
 .cyber-card::after {
   bottom: -1px;
   right: -1px;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.8);
-  border-right: 2px solid rgba(255, 255, 255, 0.8);
+  border-bottom: 2px solid color-mix(in oklch, var(--primary) 80%, transparent);
+  border-right: 2px solid color-mix(in oklch, var(--primary) 80%, transparent);
 }
 
 .cyber-card:hover {
-  border-color: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.12), inset 0 0 15px rgba(255, 255, 255, 0.05);
+  border-color: color-mix(in oklch, var(--primary) 50%, var(--border));
+  box-shadow: 0 0 15px color-mix(in oklch, var(--primary) 12%, transparent),
+    inset 0 0 15px color-mix(in oklch, var(--primary) 5%, transparent);
 }
 
 .cyber-card:hover::before,
@@ -175,139 +180,17 @@
 }
 
 .cyber-hover-chromatic:hover {
-  text-shadow: 2px 0 0 rgba(220, 38, 38, 0.6), -2px 0 0 rgba(0, 255, 255, 0.4);
+  text-shadow: 2px 0 0 color-mix(in oklch, var(--secondary) 60%, transparent),
+    -2px 0 0 color-mix(in oklch, var(--accent) 40%, transparent);
 }
 
 .cyber-data-label {
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--font-data);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 2px;
-  color: #dc2626;
+  color: var(--secondary);
   opacity: 0.7;
-}
-
-@keyframes cyber-crt-flicker {
-  0% { opacity: 0.95; }
-  50% { opacity: 1; }
-  100% { opacity: 0.98; }
-}
-
-@keyframes cyber-scanline-drift {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(4px); }
-}
-
-:root {
-  --background: oklch(0.12 0 0);
-  --foreground: oklch(0.95 0 0);
-  
-  --card: oklch(0.16 0 0);
-  --card-foreground: oklch(0.90 0 0);
-  
-  --popover: oklch(0.16 0 0);
-  --popover-foreground: oklch(0.90 0 0);
-  
-  --primary: oklch(54.1% 0.281 293.009);
-  --primary-foreground: oklch(0.95 0 0);
-  
-  --secondary: oklch(0.18 0 0);
-  --secondary-foreground: oklch(0.85 0 0);
-  
-  --muted: oklch(0.14 0 0);
-  --muted-foreground: oklch(0.45 0 0);
-  
-  --accent: oklch(55.8% 0.288 302.321);
-  --accent-foreground: oklch(0.95 0 0);
-  
-  --destructive: oklch(0.45 0.15 25);
-  --destructive-foreground: oklch(0.95 0 0);
-  
-  --border: oklch(0.20 0 0);
-  --input: oklch(0.20 0 0);
-  --ring: oklch(0.55 0.18 293);
-  
-  --radius: 0rem;
-  
-  --glow-primary: 0 0 8px oklch(0.45 0.15 25 / 0.4), 0 0 16px oklch(0.45 0.15 25 / 0.2);
-  --glow-accent: 0 0 8px oklch(0.55 0.18 200 / 0.4), 0 0 16px oklch(0.55 0.18 200 / 0.2);
-  --spacing: 0.25rem;
-}
-
-@theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-
-  --radius-sm: 0;
-  --radius-md: 0;
-  --radius-lg: 0;
-  --radius-xl: 0;
-  --radius-2xl: 0;
-  --radius-full: 9999px;
-  
-  --font-display: 'Electrolize', sans-serif;
-  --font-data: 'Space Mono', monospace;
-  --font-ui: 'Electrolize', sans-serif;
-}
-
-body {
-  font-family: var(--font-ui);
-  cursor: default;
-}
-
-h1, h2, .display-font {
-  font-family: var(--font-display);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 600;
-}
-
-.data-font {
-  font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
-}
-
-*::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-*::-webkit-scrollbar-track {
-  background: var(--background);
-}
-
-*::-webkit-scrollbar-thumb {
-  background: var(--border);
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--primary);
-}
-
-@keyframes terminal-flicker {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.98;
-  }
 }
 
 .chromatic-hover {
@@ -349,7 +232,7 @@ h1, h2, .display-font {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse at center, transparent 0%, transparent 60%, oklch(0.04 0 0 / 0.7) 100%);
+  background: radial-gradient(ellipse at center, transparent 0%, transparent 60%, rgba(0, 0, 0, 0.7) 100%);
   z-index: 1;
 }
 
@@ -361,20 +244,16 @@ h1, h2, .display-font {
   box-shadow: var(--glow-accent);
 }
 
+.glow-violet {
+  box-shadow: var(--glow-accent);
+}
+
 .snap-transition {
   transition: all 150ms linear !important;
 }
 
 .instant-transition {
   transition: all 100ms linear !important;
-}
-
-.font-ui {
-  font-family: var(--font-ui);
-}
-
-.glow-violet {
-  box-shadow: 0 0 8px oklch(0.55 0.18 200 / 0.4), 0 0 16px oklch(0.55 0.18 200 / 0.2);
 }
 
 audio::-webkit-media-controls-panel {
@@ -396,12 +275,12 @@ audio::-webkit-media-controls-mute-button {
 
 audio::-webkit-media-controls-timeline {
   background-color: var(--muted);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
 }
 
 audio::-webkit-media-controls-volume-slider {
   background-color: var(--muted);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
 }
 
 audio {
@@ -409,5 +288,5 @@ audio {
   height: 48px;
   background-color: var(--secondary);
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
 }

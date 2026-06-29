@@ -1,7 +1,6 @@
-'use client';
+import { redirect } from 'next/navigation';
+import { ROUTES } from '@/lib/routes';
 
-import { PromotionApprovalContainer } from '@/components/admin/PromotionApprovalContainer';
-
-export default function AdminPromotionsPage() {
-  return <PromotionApprovalContainer />;
+export default function AdminPromotionsRedirectPage() {
+  redirect(ROUTES.adminSpotlight);
 }

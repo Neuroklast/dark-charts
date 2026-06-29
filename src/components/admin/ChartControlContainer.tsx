@@ -1,21 +1,19 @@
+'use client';
+
 import React, { useEffect, useState } from 'react';
 import { ChartControlView } from './ChartControlView';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { authFetch } from '@/lib/auth/client-fetch';
 
 export function ChartControlContainer() {
   const [charts, setCharts] = useState<any[]>([]);
   const [isVotingPaused, setIsVotingPaused] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const { getToken } = useAuth();
 
   useEffect(() => {
     const fetchCharts = async () => {
       try {
-        const token = await getToken();
-        const res = await fetch('/api/admin/charts', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await authFetch('/api/admin/charts');
         if (res.ok) {
           const data = await res.json();
           setCharts(data.charts);
@@ -23,7 +21,7 @@ export function ChartControlContainer() {
         } else {
           toast.error('Failed to load charts');
         }
-      } catch (error) {
+      } catch {
         toast.error('Network error loading charts');
       } finally {
         setIsLoading(false);
@@ -37,11 +35,10 @@ export function ChartControlContainer() {
     setIsVotingPaused(!isVotingPaused);
 
     try {
-      const token = await getToken();
-      const res = await fetch('/api/admin/charts', {
+      const res = await authFetch('/api/admin/charts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ action: 'toggle_pause' })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle_pause' }),
       });
       if (!res.ok) throw new Error();
       toast.success(isVotingPaused ? 'Voting active' : 'Voting paused');
@@ -53,11 +50,10 @@ export function ChartControlContainer() {
 
   const handleRecalculate = async (weekStart: string) => {
     try {
-      const token = await getToken();
-      const res = await fetch('/api/admin/charts', {
+      const res = await authFetch('/api/admin/charts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ action: 'recalculate_week', weekStart })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'recalculate_week', weekStart }),
       });
       if (res.ok) {
         toast.success(`Recalculation started for week: ${new Date(weekStart).toLocaleDateString()}`);

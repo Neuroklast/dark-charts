@@ -16,13 +16,22 @@ export const ROUTES = {
   imprint: '/imprint',
   methodology: '/methodology',
   admin: '/admin',
+  adminAnalytics: '/admin/analytics',
   adminMetrics: '/admin/metrics',
   adminUsers: '/admin/users',
   adminArtists: '/admin/artists',
+  adminReleases: '/admin/releases',
   adminCharts: '/admin/charts',
-  adminPromotions: '/admin/promotions',
-  adminSettings: '/admin/settings',
   adminAnomalies: '/admin/anomalies',
+  adminVotes: '/admin/votes',
+  adminSpotlight: '/admin/spotlight',
+  adminPromotions: '/admin/promotions',
+  adminBadges: '/admin/badges',
+  adminSettings: '/admin/settings',
+  adminFeatures: '/admin/features',
+  adminColors: '/admin/colors',
+  adminApiKeys: '/admin/api-keys',
+  adminSystem: '/admin/system',
 } as const;
 
 const MAIN_GENRE_SLUGS: Record<MainGenre, string> = {
@@ -109,7 +118,8 @@ export function viewToPath(view: ViewType): string {
     case 'admin':
       return ROUTES.admin;
     case 'admin-metrics':
-      return ROUTES.adminMetrics;
+    case 'admin-analytics':
+      return ROUTES.adminAnalytics;
     case 'admin-users':
       return ROUTES.adminUsers;
     case 'admin-artists':
@@ -117,7 +127,8 @@ export function viewToPath(view: ViewType): string {
     case 'admin-charts':
       return ROUTES.adminCharts;
     case 'admin-promotions':
-      return ROUTES.adminPromotions;
+    case 'admin-spotlight':
+      return ROUTES.adminSpotlight;
     case 'admin-settings':
       return ROUTES.adminSettings;
     case 'admin-anomalies':
@@ -144,10 +155,12 @@ export function pathToView(pathname: string): ViewType | null {
     [ROUTES.terms]: 'terms',
     [ROUTES.imprint]: 'imprint',
     [ROUTES.admin]: 'admin',
+    [ROUTES.adminAnalytics]: 'admin-analytics',
     [ROUTES.adminMetrics]: 'admin-metrics',
     [ROUTES.adminUsers]: 'admin-users',
     [ROUTES.adminArtists]: 'admin-artists',
     [ROUTES.adminCharts]: 'admin-charts',
+    [ROUTES.adminSpotlight]: 'admin-spotlight',
     [ROUTES.adminPromotions]: 'admin-promotions',
     [ROUTES.adminSettings]: 'admin-settings',
     [ROUTES.adminAnomalies]: 'admin-anomalies',
@@ -184,11 +197,13 @@ export const NAV_ITEMS: { view: ViewType; href: string; labelKey: string; fallba
   { view: 'about', href: ROUTES.about, labelKey: 'nav.about', fallback: 'About' },
 ];
 
+/** @deprecated Use ADMIN_NAV_GROUPS from @/lib/admin/nav */
 export const ADMIN_NAV_ITEMS = [
-  { id: 'admin-metrics', href: ROUTES.adminMetrics, label: 'Dashboard' },
+  { id: 'admin', href: ROUTES.admin, label: 'Dashboard' },
   { id: 'admin-users', href: ROUTES.adminUsers, label: 'Users' },
-  { id: 'admin-artists', href: ROUTES.adminArtists, label: 'Artists & Blacklist' },
+  { id: 'admin-artists', href: ROUTES.adminArtists, label: 'Artists' },
   { id: 'admin-charts', href: ROUTES.adminCharts, label: 'Charts Control' },
-  { id: 'admin-promotions', href: ROUTES.adminPromotions, label: 'Promotions' },
+  { id: 'admin-spotlight', href: ROUTES.adminSpotlight, label: 'Spotlight' },
+  { id: 'admin-analytics', href: ROUTES.adminAnalytics, label: 'Analytics' },
   { id: 'admin-settings', href: ROUTES.adminSettings, label: 'Settings' },
 ] as const;
