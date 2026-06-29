@@ -3,7 +3,7 @@
 import { ChartCategory } from '@/components/ChartCategory';
 import { ChartEntry } from '@/components/ChartEntry';
 import { Card } from '@/components/ui/card';
-import { PromotionalSlot } from '@/components/PromotionalSlot';
+
 import { ChartEntrySkeleton } from '@/components/skeletons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,20 +15,11 @@ export function HomeChartsView() {
     filteredExpertCharts,
     filteredStreamingCharts,
     isLoading,
-    activePromotion,
-    hasVoted,
     handleTrackClick,
   } = useChartShell();
 
   return (
     <div className="space-y-6">
-      {activePromotion && hasVoted && (
-        <PromotionalSlot
-          type={activePromotion.type}
-          name={activePromotion.name}
-          imageUrl={activePromotion.imageUrl}
-        />
-      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ErrorBoundary level="component">
           <ChartCategory
@@ -73,17 +64,10 @@ export function PillarChartList({ pillar }: PillarChartListProps) {
   const shell = useChartShell();
   const config = PILLAR_CONFIG[pillar];
   const tracks = shell[config.tracksKey];
-  const { isLoading, handleTrackClick, activePromotion, hasVoted } = shell;
+  const { isLoading, handleTrackClick } = shell;
 
   return (
     <div className="space-y-6">
-      {activePromotion && hasVoted && (
-        <PromotionalSlot
-          type={activePromotion.type}
-          name={activePromotion.name}
-          imageUrl={activePromotion.imageUrl}
-        />
-      )}
       <ErrorBoundary level="component">
         <Card className="bg-card border border-border">
           <div className="p-4 border-b border-border">

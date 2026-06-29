@@ -421,6 +421,7 @@ export type Database = {
           id: string
           artistId: string
           spotifyPopularity: number
+          youtubePopularity: number
           followerCount: number
           topTrackPopularity: number
           weekStart: string
@@ -430,6 +431,7 @@ export type Database = {
           id?: string
           artistId: string
           spotifyPopularity?: number
+          youtubePopularity?: number
           followerCount?: number
           topTrackPopularity?: number
           weekStart: string
@@ -439,6 +441,7 @@ export type Database = {
           id?: string
           artistId?: string
           spotifyPopularity?: number
+          youtubePopularity?: number
           followerCount?: number
           topTrackPopularity?: number
           weekStart?: string

@@ -53,6 +53,7 @@ const menuItems = [
   { id: 'admin-artists', href: ROUTES.adminArtists, label: 'Artists & Blacklist', icon: <ShieldSlash size={20} /> },
   { id: 'admin-charts', href: ROUTES.adminCharts, label: 'Charts Control', icon: <PauseCircle size={20} /> },
   { id: 'admin-promotions', href: ROUTES.adminPromotions, label: 'Promotions', icon: <CurrencyDollar size={20} /> },
+  { id: 'admin-anomalies', href: ROUTES.adminAnomalies, label: 'Anomalies', icon: <ShieldSlash size={20} /> },
   { id: 'admin-settings', href: ROUTES.adminSettings, label: 'Settings', icon: <Gear size={20} /> },
 ];
 

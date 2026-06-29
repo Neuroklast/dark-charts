@@ -6,6 +6,8 @@ import {
 } from '@/lib/math/fan-scoring';
 import { getTrustWeight } from '@/lib/trust-level';
 import { buildGenreChartInserts } from '@/lib/genre-aggregation';
+import { detectVoteAnomalies, persistVoteAnomalies } from '@/lib/vote-anomaly';
+import { blendStreamingPopularity, fetchYoutubePopularity } from '@/lib/youtube-metrics';
 import { getSystemSettings } from '@/lib/api/systemSettings';
 import { getWeekEnd, getPreviousWeekStart, getIsoWeekYear } from '@/lib/week';
 
@@ -33,12 +35,20 @@ interface ChartEntryInsert {
 }
 
 function calculateStreamingScore(
-  current: { spotifyPopularity: number; followerCount: number },
-  previous: { spotifyPopularity: number; followerCount: number } | null
+  current: { spotifyPopularity: number; followerCount: number; youtubePopularity?: number },
+  previous: { spotifyPopularity: number; followerCount: number; youtubePopularity?: number } | null
 ): number {
-  const estimatedStreams = Math.round(Math.pow(10, current.spotifyPopularity / 20));
+  const blendedPopularity = blendStreamingPopularity(
+    current.spotifyPopularity,
+    current.youtubePopularity ?? 0
+  );
+  const previousBlended = previous
+    ? blendStreamingPopularity(previous.spotifyPopularity, previous.youtubePopularity ?? 0)
+    : blendedPopularity;
+
+  const estimatedStreams = Math.round(Math.pow(10, blendedPopularity / 20));
   const previousStreams = previous
-    ? Math.round(Math.pow(10, previous.spotifyPopularity / 20))
+    ? Math.round(Math.pow(10, previousBlended / 20))
     : estimatedStreams;
 
   const logScore =
@@ -107,7 +117,7 @@ export class ChartAggregationService {
       throw new Error(`Failed to fetch expert votes: ${expertVotesError.message}`);
     }
 
-    const { data: snapshots, error: snapshotsError } = await supabase
+    const { data: snapshotsData, error: snapshotsError } = await supabase
       .from('streaming_snapshots')
       .select('*')
       .eq('weekStart', weekStartIso);
@@ -115,6 +125,8 @@ export class ChartAggregationService {
     if (snapshotsError) {
       throw new Error(`Failed to fetch streaming snapshots: ${snapshotsError.message}`);
     }
+
+    let snapshots = snapshotsData ?? [];
 
     const { data: prevSnapshots } = await supabase
       .from('streaming_snapshots')
@@ -125,7 +137,39 @@ export class ChartAggregationService {
       (prevSnapshots ?? []).map((s) => [s.artistId, s])
     );
 
-    const artistIds = (snapshots ?? []).map((s) => s.artistId);
+    const artistIds = snapshots.map((s) => s.artistId);
+
+    if (artistIds.length > 0) {
+      const { data: artistsForYoutube } = await supabase
+        .from('artists')
+        .select('id, socialLinks')
+        .in('id', artistIds);
+
+      for (const artist of artistsForYoutube ?? []) {
+        const socialLinks = artist.socialLinks as { youtube?: string } | null;
+        const youtubeUrl = socialLinks?.youtube;
+        if (!youtubeUrl) continue;
+
+        const youtubePopularity = await fetchYoutubePopularity(youtubeUrl);
+        if (youtubePopularity <= 0) continue;
+
+        await supabase
+          .from('streaming_snapshots')
+          .update({ youtubePopularity })
+          .eq('artistId', artist.id)
+          .eq('weekStart', weekStartIso);
+      }
+
+      const { data: refreshedSnapshots } = await supabase
+        .from('streaming_snapshots')
+        .select('*')
+        .eq('weekStart', weekStartIso);
+
+      if (refreshedSnapshots) {
+        snapshots = refreshedSnapshots;
+      }
+    }
+
     const { data: releases } = artistIds.length
       ? await supabase
           .from('releases')
@@ -228,7 +272,7 @@ export class ChartAggregationService {
       metrics.expertScore += calculateExpertPoints(expertVote.rank, reputation);
     }
 
-    for (const snapshot of snapshots ?? []) {
+    for (const snapshot of snapshots) {
       const releaseId = artistToRelease.get(snapshot.artistId);
       if (!releaseId) continue;
 
@@ -358,6 +402,36 @@ export class ChartAggregationService {
     const { error: insertError } = await supabase.from('chart_entries').insert(inserts);
     if (insertError) {
       throw new Error(`Failed to create chart entries: ${insertError.message}`);
+    }
+
+    const fanIdsForAnomaly = [...new Set((fanVotes ?? []).map((v) => v.fanId))];
+    if (fanIdsForAnomaly.length > 0) {
+      const { data: fanProfilesForAnomaly } = await supabase
+        .from('fan_profiles')
+        .select('id, userId')
+        .in('id', fanIdsForAnomaly);
+
+      const userIdsForAnomaly = [...new Set((fanProfilesForAnomaly ?? []).map((p) => p.userId))];
+      const { data: usersForAnomaly } = userIdsForAnomaly.length
+        ? await supabase
+            .from('users')
+            .select('id, trustLevel, createdAt')
+            .in('id', userIdsForAnomaly)
+        : { data: [] };
+
+      const anomalies = detectVoteAnomalies({
+        weekStartIso,
+        votes: (fanVotes ?? []).map((v) => ({
+          fanId: v.fanId,
+          releaseId: v.releaseId,
+          cost: v.cost ?? 0,
+          createdAt: v.createdAt,
+        })),
+        fanProfiles: fanProfilesForAnomaly ?? [],
+        users: usersForAnomaly ?? [],
+      });
+
+      await persistVoteAnomalies(supabase, weekStartIso, anomalies);
     }
 
     await this.resetFanCredits(supabase, settings.voiceCreditsBudget);

@@ -1,7 +1,8 @@
-import { supabase } from '@/lib/supabase/client'
+import { createServiceRoleSupabaseClient } from '@/lib/supabase/server'
 
 export class PromotionService {
   async getActivePromotions() {
+    const supabase = createServiceRoleSupabaseClient()
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const tomorrow = new Date(today)

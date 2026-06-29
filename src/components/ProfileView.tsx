@@ -15,6 +15,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { OAuthLoginButtons } from '@/components/OAuthLoginButtons';
+import { oauthService } from '@/services/oauthService';
 import { ProfileStatsSkeleton, ProfileActivitySkeleton } from '@/components/skeletons';
 
 function LoginView() {
@@ -90,6 +91,45 @@ function EmailVerificationBanner({
         disabled={isResending}
       >
         {isResending ? t('profile.verificationSending') : t('profile.verificationResend')}
+      </Button>
+    </Card>
+  );
+}
+
+function TrustBoostCard({ trustLevel }: { trustLevel?: number }) {
+  const { t } = useLanguage();
+  const [isLoading, setIsLoading] = useState(false);
+
+  if ((trustLevel ?? 0) >= 3) {
+    return null;
+  }
+
+  const handleTrustBoost = async () => {
+    setIsLoading(true);
+    try {
+      await oauthService.initiateSpotifyTrustBoost();
+    } catch {
+      toast.error(t('profile.trustBoostFailed'));
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Card className="bg-card border border-border p-6">
+      <h3 className="display-font text-xl uppercase tracking-tight text-foreground font-semibold mb-2">
+        {t('profile.trustBoostTitle')}
+      </h3>
+      <p className="font-ui text-sm text-muted-foreground mb-4">
+        {t('profile.trustBoostDescription')}
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleTrustBoost}
+        disabled={isLoading}
+        className="font-ui text-[10px] uppercase"
+      >
+        {isLoading ? '…' : t('profile.trustBoostAction')}
       </Button>
     </Card>
   );
@@ -230,10 +270,12 @@ function FanProfileView({
   profile,
   emailVerified,
   authProvider,
+  trustLevel,
 }: {
   profile: FanProfile;
   emailVerified?: boolean;
   authProvider?: string | null;
+  trustLevel?: number;
 }) {
   const { updateProfile, logout } = useAuth();
   const { t } = useLanguage();
@@ -415,6 +457,7 @@ function FanProfileView({
         </Card>
       )}
 
+      <TrustBoostCard trustLevel={trustLevel} />
       <AccountSettingsCard />
     </div>
   );
@@ -454,6 +497,7 @@ export function ProfileView() {
           profile={user.profile as FanProfile}
           emailVerified={user.emailVerified}
           authProvider={user.authProvider}
+          trustLevel={user.trustLevel}
         />
       ) : (
         <Card className="bg-card border border-border p-8">

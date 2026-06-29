@@ -164,11 +164,37 @@ CREATE TABLE IF NOT EXISTS streaming_snapshots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "artistId" UUID NOT NULL REFERENCES artists(id) ON DELETE CASCADE,
   "spotifyPopularity" INTEGER NOT NULL DEFAULT 0,
+  "youtubePopularity" INTEGER NOT NULL DEFAULT 0,
   "followerCount" INTEGER NOT NULL DEFAULT 0,
   "topTrackPopularity" INTEGER NOT NULL DEFAULT 0,
   "weekStart" TIMESTAMPTZ NOT NULL,
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE streaming_snapshots ADD COLUMN IF NOT EXISTS "youtubePopularity" INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS user_listening_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL DEFAULT 'spotify',
+  "topArtistIds" TEXT[] NOT NULL DEFAULT '{}',
+  "topTrackIds" TEXT[] NOT NULL DEFAULT '{}',
+  "checkedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS vote_anomalies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  "weekStart" TIMESTAMPTZ NOT NULL,
+  "anomalyType" TEXT NOT NULL,
+  severity TEXT NOT NULL DEFAULT 'medium',
+  "releaseId" UUID REFERENCES releases(id) ON DELETE SET NULL,
+  details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  resolved BOOLEAN NOT NULL DEFAULT FALSE,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_vote_anomalies_week ON vote_anomalies ("weekStart");
+CREATE INDEX IF NOT EXISTS idx_user_listening_user ON user_listening_snapshots ("userId", "checkedAt");
 
 CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

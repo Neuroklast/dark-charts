@@ -22,6 +22,7 @@ export const ROUTES = {
   adminCharts: '/admin/charts',
   adminPromotions: '/admin/promotions',
   adminSettings: '/admin/settings',
+  adminAnomalies: '/admin/anomalies',
 } as const;
 
 const MAIN_GENRE_SLUGS: Record<MainGenre, string> = {
@@ -119,6 +120,8 @@ export function viewToPath(view: ViewType): string {
       return ROUTES.adminPromotions;
     case 'admin-settings':
       return ROUTES.adminSettings;
+    case 'admin-anomalies':
+      return ROUTES.adminAnomalies;
     default:
       return ROUTES.home;
   }
@@ -147,6 +150,7 @@ export function pathToView(pathname: string): ViewType | null {
     [ROUTES.adminCharts]: 'admin-charts',
     [ROUTES.adminPromotions]: 'admin-promotions',
     [ROUTES.adminSettings]: 'admin-settings',
+    [ROUTES.adminAnomalies]: 'admin-anomalies',
   };
 
   if (exact[path]) return exact[path];

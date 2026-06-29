@@ -1,7 +1,7 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { useKV } from '@/hooks/useKV';
 
-type Language = 'en' | 'de';
+export type Language = 'en' | 'de';
 
 type TranslationKey = string;
 type Translations = Record<TranslationKey, string>;
@@ -231,6 +231,14 @@ const translations: Record<Language, Translations> = {
     'profile.verificationSending': 'Sending…',
     'profile.verificationResent': 'Verification email sent',
     'profile.verificationResendFailed': 'Failed to send verification email',
+    'spotlight.adLabel': 'Ad / Booking',
+    'spotlight.description': 'Discover today\'s featured artist. Support the underground.',
+    'spotlight.visitProfile': 'Visit Profile',
+    'profile.trustBoostTitle': 'Boost voting trust',
+    'profile.trustBoostDescription': 'Connect Spotify listening history for Trust Level 3 (1.25× vote weight).',
+    'profile.trustBoostAction': 'Connect Spotify history',
+    'profile.trustBoostSuccess': 'Trust level upgraded',
+    'profile.trustBoostFailed': 'Trust boost failed',
     
     'about.title': 'About Dark Charts',
     'about.description': 'Independent music charts for Metal & Gothic scene',
@@ -539,6 +547,14 @@ const translations: Record<Language, Translations> = {
     'profile.verificationSending': 'Sende…',
     'profile.verificationResent': 'Bestätigungsmail gesendet',
     'profile.verificationResendFailed': 'Bestätigungsmail konnte nicht gesendet werden',
+    'spotlight.adLabel': 'Anzeige / Booking',
+    'spotlight.description': 'Entdecke den Featured Artist des Tages. Unterstütze die Underground-Szene.',
+    'spotlight.visitProfile': 'Profil besuchen',
+    'profile.trustBoostTitle': 'Voting-Trust erhöhen',
+    'profile.trustBoostDescription': 'Spotify-Hörhistorie verknüpfen für Trust-Level 3 (1,25× Vote-Gewicht).',
+    'profile.trustBoostAction': 'Spotify-Historie verbinden',
+    'profile.trustBoostSuccess': 'Trust-Level erhöht',
+    'profile.trustBoostFailed': 'Trust-Boost fehlgeschlagen',
     
     'history.title': 'Chart-Verlauf',
     'history.description': 'Historische Chart-Positionen ansehen',

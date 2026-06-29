@@ -4,139 +4,107 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { UNIQUE_VOTER_WEIGHT } from '@/lib/math/fan-scoring';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function MethodologyView() {
+  const { language } = useLanguage();
+  const isEn = language === 'en';
+
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8 py-8 px-4">
       <div className="space-y-2">
-        <h1 className="font-display text-3xl uppercase text-foreground">Chart-Methodik</h1>
+        <h1 className="font-display text-3xl uppercase text-foreground">
+          {isEn ? 'Chart Methodology' : 'Chart-Methodik'}
+        </h1>
         <p className="text-muted-foreground text-sm font-ui">
-          Transparente Dokumentation der Dark-Charts-Berechnung. Stand: Juni 2026
+          {isEn
+            ? 'Transparent documentation of Dark Charts calculations. Updated: June 2026'
+            : 'Transparente Dokumentation der Dark-Charts-Berechnung. Stand: Juni 2026'}
         </p>
       </div>
 
       <Card className="p-6 bg-card border-border space-y-8 text-sm text-muted-foreground leading-relaxed">
         <section>
-          <h2 className="font-display text-xl uppercase text-foreground mb-3">Drei Säulen</h2>
+          <h2 className="font-display text-xl uppercase text-foreground mb-3">
+            {isEn ? 'Three Pillars' : 'Drei Säulen'}
+          </h2>
           <ul className="list-disc list-inside space-y-2 ml-2">
-            <li><strong className="text-foreground">Fan Charts</strong> — quadratisches Voting (QV), wöchentlich</li>
-            <li><strong className="text-foreground">Expert Charts</strong> — wöchentliche Top-10-Rankings verifizierter DJs</li>
-            <li><strong className="text-foreground">Streaming Charts</strong> — Spotify-Popularität mit Wachstums- und Engagement-Faktoren</li>
-            <li><strong className="text-foreground">Combined Chart</strong> — gewichtete Zusammenführung aller drei Säulen</li>
+            <li><strong className="text-foreground">Fan Charts</strong> — {isEn ? 'quadratic voting (QV), weekly' : 'quadratisches Voting (QV), wöchentlich'}</li>
+            <li><strong className="text-foreground">Expert Charts</strong> — {isEn ? 'weekly top-10 from verified DJs' : 'wöchentliche Top-10-Rankings verifizierter DJs'}</li>
+            <li><strong className="text-foreground">Streaming Charts</strong> — {isEn ? 'Spotify + YouTube signals (85/15 blend)' : 'Spotify + YouTube Signale (85/15 Blend)'}</li>
+            <li><strong className="text-foreground">Combined Chart</strong> — {isEn ? 'weighted merge of all pillars' : 'gewichtete Zusammenführung aller drei Säulen'}</li>
           </ul>
         </section>
 
         <Separator />
 
         <section>
-          <h2 className="font-display text-xl uppercase text-foreground mb-3">Wochengrenzen</h2>
-          <p>
-            Voting und Aggregation nutzen ISO-Wochen mit Montag 00:00 UTC als Start. Fan-Abstimmungen sind
-            pro Woche einmalig. Charts werden sonntags um 23:55 UTC aggregiert und Credits werden danach
-            auf das konfigurierte Wochenbudget zurückgesetzt.
-          </p>
-        </section>
-
-        <Separator />
-
-        <section>
-          <h2 className="font-display text-xl uppercase text-foreground mb-3">Fan-Score (Sybil-resistent)</h2>
-          <p className="mb-3">
-            Pro Release und Woche gilt:
-          </p>
+          <h2 className="font-display text-xl uppercase text-foreground mb-3">
+            {isEn ? 'Fan Score (Sybil-resistant)' : 'Fan-Score (Sybil-resistent)'}
+          </h2>
           <pre className="bg-secondary/40 border border-border p-4 text-xs font-mono text-foreground overflow-x-auto">
-{`fanScore = uniqueVoters × ${UNIQUE_VOTER_WEIGHT} + Σ√(costᵢ)`}
+{`fanScore = weightedUniqueVoters × ${UNIQUE_VOTER_WEIGHT} + Σ(√(costᵢ) × trustWeight)`}
           </pre>
           <p className="mt-3">
-            Einzelne Accounts können Leidenschaft via QV ausdrücken (√cost × Trust-Gewicht), aber die <strong className="text-foreground">gewichtete
-            Breite der Unterstützung</strong> dominiert. Trust-Gewichte: unverifizierte E-Mail 0.1×, verifizierte E-Mail 0.5×,
-            OAuth 1.0×, OAuth + Hörhistorie (geplant) 1.25×.
+            {isEn
+              ? 'Trust weights: unverified email 0.1×, verified email 0.5×, OAuth 1.0×, Spotify listening history 1.25×.'
+              : 'Trust-Gewichte: unverifizierte E-Mail 0.1×, verifizierte E-Mail 0.5×, OAuth 1.0×, Spotify-Hörhistorie 1.25×.'}
           </p>
         </section>
 
         <Separator />
 
         <section>
-          <h2 className="font-display text-xl uppercase text-foreground mb-3">Genre-Charts</h2>
+          <h2 className="font-display text-xl uppercase text-foreground mb-3">
+            {isEn ? 'Genre Charts' : 'Genre-Charts'}
+          </h2>
           <p>
-            Subgenre- und Main-Genre-Charts werden wöchentlich serverseitig aggregiert (nicht nur clientseitig gefiltert).
-            Ein Subgenre-Chart erscheint erst ab mindestens 5 Fan-Votes in der jeweiligen Woche und Genre-Zuordnung.
+            {isEn
+              ? 'Subgenre and main-genre charts are aggregated server-side weekly. A subgenre chart requires at least 5 fan votes in that genre for the week.'
+              : 'Subgenre- und Main-Genre-Charts werden wöchentlich serverseitig aggregiert. Mindestens 5 Fan-Votes pro Genre und Woche.'}
           </p>
         </section>
 
         <Separator />
 
         <section>
-          <h2 className="font-display text-xl uppercase text-foreground mb-3">E-Mail-Verifizierung</h2>
+          <h2 className="font-display text-xl uppercase text-foreground mb-3">
+            {isEn ? 'Spotlight Ads' : 'Spotlight-Werbung'}
+          </h2>
           <p>
-            E-Mail-Registrierungen müssen die Adresse bestätigen, bevor Votes gezählt werden. OAuth-Accounts (Spotify/Google)
-            gelten als verifiziert und erhalten Trust-Level 2.
+            {isEn
+              ? 'Paid Spotlight slots appear above chart content, clearly labeled as advertising. They never affect rankings.'
+              : 'Bezahlte Spotlight-Slots erscheinen oberhalb der Charts, klar als Anzeige gekennzeichnet. Sie beeinflussen Rankings nicht.'}
           </p>
         </section>
 
         <Separator />
 
         <section>
-          <h2 className="font-display text-xl uppercase text-foreground mb-3">Expert-Score</h2>
+          <h2 className="font-display text-xl uppercase text-foreground mb-3">
+            {isEn ? 'Anomaly Detection' : 'Anomalie-Erkennung'}
+          </h2>
           <p>
-            Punkte pro Rang (1→10, 2→8, 3→6, 4→4, 5→2, 6–10→1), multipliziert mit{' '}
-            <code className="text-accent">max(1, reputationScore)</code>. Nur DJs mit{' '}
-            <code className="text-accent">expertStatus = true</code> werden gezählt.
+            {isEn
+              ? 'Weekly aggregation flags suspicious vote patterns (e.g. low-trust clusters, new-account surges) for admin review.'
+              : 'Die Wochenaggregation markiert verdächtige Vote-Muster (z. B. Low-Trust-Cluster, New-Account-Spikes) zur Admin-Prüfung.'}
           </p>
         </section>
 
         <Separator />
 
         <section>
-          <h2 className="font-display text-xl uppercase text-foreground mb-3">Streaming-Score</h2>
-          <p>
-            Basis: <code className="text-accent">log₁₀(estimatedStreams + 1) × 100</code>, wobei estimatedStreams aus
-            Spotify-Popularity abgeleitet wird. Multiplikatoren: Wochenwachstum (0.5–3.0) und Engagement-Ratio
-            (Follower vs. Streams, max 2.0). Pro Artist wird das aktuellste sichtbare Release repräsentiert.
-          </p>
-        </section>
-
-        <Separator />
-
-        <section>
-          <h2 className="font-display text-xl uppercase text-foreground mb-3">Combined-Gewichtung</h2>
-          <p className="mb-3">
-            Standard-Gewichte (administrativ konfigurierbar in <code className="text-accent">system_settings</code>):
-          </p>
-          <ul className="list-disc list-inside ml-2 space-y-1">
-            <li>Fan: 50%</li>
-            <li>Expert: 35%</li>
-            <li>Streaming: 15%</li>
-          </ul>
-          <p className="mt-3">
-            Jede Säule wird auf den Wochen-Maximalwert normalisiert, dann gewichtet summiert.
-            <strong className="text-foreground"> Community Power</strong> = Anteil des Fan-Scores am Gesamt-Fan-Score der Woche (%).
-          </p>
-        </section>
-
-        <Separator />
-
-        <section>
-          <h2 className="font-display text-xl uppercase text-foreground mb-3">Was Charts NICHT beeinflusst</h2>
-          <ul className="list-disc list-inside ml-2 space-y-2">
-            <li>Spotlight-Werbeplätze (als „Anzeige“ gekennzeichnet, separater Bereich)</li>
-            <li>Bezahlte Promotions ohne Chart-Einfluss</li>
-            <li>Admin-Eingriffe in Rankings (nur Gewichte/Budgets, keine manuellen Platzierungen)</li>
-          </ul>
-        </section>
-
-        <Separator />
-
-        <section>
-          <h2 className="font-display text-xl uppercase text-foreground mb-3">Bekannte Limitierungen</h2>
+          <h2 className="font-display text-xl uppercase text-foreground mb-3">
+            {isEn ? 'Known Limitations' : 'Bekannte Limitierungen'}
+          </h2>
           <ul className="list-disc list-inside ml-2 space-y-2 text-xs">
-            <li>Sybil-Schutz durch Trust-Gewichte reduziert, beseitigt aber nicht vollständig Multi-Accounting</li>
-            <li>OAuth-Hörhistorie (Trust-Level 3) noch nicht implementiert</li>
-            <li>Streaming basiert auf Spotify-Popularity, nicht auf echten Stream-Zahlen</li>
-            <li>Neue Genre-Charts benötigen eine Aggregationswoche mit mindestens 5 Fan-Votes im Genre</li>
+            <li>{isEn ? 'Trust weights reduce but do not eliminate multi-accounting' : 'Trust-Gewichte reduzieren Multi-Accounting, beseitigen es aber nicht vollständig'}</li>
+            <li>{isEn ? 'YouTube metrics require YOUTUBE_API_KEY configuration' : 'YouTube-Metriken benötigen YOUTUBE_API_KEY Konfiguration'}</li>
+            <li>{isEn ? 'Streaming uses estimated popularity, not official stream counts' : 'Streaming nutzt geschätzte Popularität, keine offiziellen Stream-Zahlen'}</li>
           </ul>
           <p className="mt-4 text-xs">
-            Fragen: <Link href="/imprint" className="text-accent underline">Impressum</Link>
+            {isEn ? 'Questions:' : 'Fragen:'}{' '}
+            <Link href="/imprint" className="text-accent underline">{isEn ? 'Imprint' : 'Impressum'}</Link>
           </p>
         </section>
       </Card>

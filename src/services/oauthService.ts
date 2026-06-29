@@ -49,11 +49,54 @@ class OAuthService {
     'user-read-private',
   ].join(' ');
 
+  private readonly SPOTIFY_TRUST_SCOPES = [
+    'user-read-email',
+    'user-read-private',
+    'user-top-read',
+  ].join(' ');
+
   private readonly GOOGLE_SCOPES = [
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile',
     'openid'
   ].join(' ');
+
+  async initiateSpotifyTrustBoost(): Promise<void> {
+    const state = this.generateRandomString(16);
+    const codeVerifier = this.generateRandomString(128);
+    const codeChallenge = await this.generateCodeChallenge(codeVerifier);
+
+    await kv.set('oauth-state', { state, codeVerifier, provider: 'spotify', mode: 'trust-boost' });
+
+    const params = new URLSearchParams({
+      client_id: this.SPOTIFY_CLIENT_ID,
+      response_type: 'code',
+      redirect_uri: this.getRedirectUri(),
+      state: state,
+      scope: this.SPOTIFY_TRUST_SCOPES,
+      code_challenge_method: 'S256',
+      code_challenge: codeChallenge,
+    });
+
+    window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
+  }
+
+  async submitSpotifyTrustBoost(): Promise<boolean> {
+    try {
+      const accessToken = await this.getAccessToken('spotify');
+      const res = await fetch('/api/auth/trust/spotify-listening', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${(await asyncStorage.get<string>('auth-token')) ?? ''}`,
+        },
+        body: JSON.stringify({ accessToken }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
 
   async initiateSpotifyAuth(): Promise<void> {
     const state = this.generateRandomString(16);

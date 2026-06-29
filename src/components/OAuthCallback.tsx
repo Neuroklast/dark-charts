@@ -24,6 +24,7 @@ export function OAuthCallback() {
         const savedState = await asyncStorage.get<{
           state: string;
           provider: 'spotify' | 'google';
+          mode?: 'trust-boost';
         }>('oauth-state');
 
         if (!savedState?.provider) {
@@ -33,10 +34,17 @@ export function OAuthCallback() {
         const success = await oauthService.handleCallback(code, state, savedState.provider);
 
         if (success) {
+          if (savedState.mode === 'trust-boost' && savedState.provider === 'spotify') {
+            const boosted = await oauthService.submitSpotifyTrustBoost();
+            if (!boosted) {
+              throw new Error('Trust-Boost fehlgeschlagen — bitte erneut versuchen');
+            }
+          }
+
           await refreshUser();
           setStatus('success');
           setTimeout(() => {
-            window.location.href = '/';
+            window.location.href = savedState.mode === 'trust-boost' ? '/profile' : '/';
           }, 2000);
         } else {
           throw new Error('Authentifizierung fehlgeschlagen');
