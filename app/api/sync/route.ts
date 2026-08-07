@@ -6,7 +6,6 @@ import { requireAdmin } from '@/lib/adminAuth';
 import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import { isSupabaseServiceConfigured } from '@/lib/supabase/isConfigured';
 import { processSyncQueue } from '@/lib/sync/processSyncQueue';
-import { processItunesSyncQueue } from '@/lib/sync/itunesSyncProcessor';
 import { logger } from '@/lib/logger';
 
 export const maxDuration = 300;
@@ -17,60 +16,45 @@ async function authorize(req: NextRequest): Promise<boolean> {
     await requireAdmin(req);
     return true;
   } catch {
-    return process.env.NODE_ENV !== 'production';
+    return process.env.NODE_ENV !== 'production' && !isSupabaseServiceConfigured();
   }
 }
 
-/**
- * Process sync jobs.
- * Prefer durable Supabase queue when configured; fall back to in-memory iTunes queue for local bootstrap.
- */
 async function handleProcess(req: NextRequest) {
-  const cors = handleCors(req, 'POST,OPTIONS');
+  const cors = handleCors(req, 'POST,GET,OPTIONS');
   if (cors) return cors;
 
   if (!(await authorize(req))) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const force = req.headers.get('x-force-sync') === '1';
-
-  if (isSupabaseServiceConfigured()) {
-    const db = createServiceRoleSupabaseClient();
-    const result = await processSyncQueue(db, {
-      timeBudgetMs: force ? 120_000 : undefined,
-    });
-    logger.info('iTunes/durable sync', result);
-    const response = NextResponse.json({
-      success: true,
-      message: 'Durable sync batch processed',
-      source: 'database',
-      ...result,
-    });
-    return applyCorsToResponse(response, 'POST,GET,OPTIONS');
+  if (!isSupabaseServiceConfigured()) {
+    return NextResponse.json(
+      { success: false, error: 'Supabase is not configured' },
+      { status: 503 }
+    );
   }
 
-  const result = await processItunesSyncQueue({
+  const force = req.headers.get('x-force-sync') === '1';
+  const db = createServiceRoleSupabaseClient();
+  const result = await processSyncQueue(db, {
     timeBudgetMs: force ? 120_000 : undefined,
   });
-  logger.info('iTunes in-memory sync (no Supabase)', result);
+
+  logger.info('Durable sync queue processed', result);
+
   const response = NextResponse.json({
     success: true,
-    message: 'In-memory iTunes sync batch processed',
-    source: 'memory',
+    message: 'Sync queue batch processed',
     ...result,
   });
+
   return applyCorsToResponse(response, 'POST,GET,OPTIONS');
 }
 
+/** Drain durable sync_queue (cron or admin). */
 export const POST = withErrorHandler(async (req: NextRequest) => handleProcess(req));
-
-export const GET = withErrorHandler(async (req: NextRequest) => {
-  if (!(await authorize(req))) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  }
-  return handleProcess(req);
-});
+export const GET = withErrorHandler(async (req: NextRequest) => handleProcess(req));
 
 export const OPTIONS = withErrorHandler(async (req: NextRequest) => {
   const cors = handleCors(req, 'POST,GET,OPTIONS');

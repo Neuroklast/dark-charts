@@ -12,9 +12,10 @@ Crons and API security headers are defined in `vercel.json`.
 
 ## 2. Database (Supabase)
 
-1. Create a Supabase project.
-2. Run `supabase/reset.sql` in the SQL Editor (fresh install).
-3. For existing databases, also run `supabase/migrations/20260629_spotlight_stripe_columns.sql`.
+1. Create a **dedicated** Supabase project for dark-charts (do **not** share darktunes DB).
+2. Fresh install: run `supabase/reset.sql` in the SQL Editor.
+3. Existing DB: run migrations in order under `supabase/migrations/` (incl. `20260807_durable_sync_queue.sql`).
+4. Enable Email auth; set Site URL + redirect URLs to `NEXT_PUBLIC_APP_URL`.
 
 ## 3. Required environment variables
 
@@ -23,8 +24,8 @@ Crons and API security headers are defined in `vercel.json`.
 | `NEXT_PUBLIC_SUPABASE_URL` | All | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | All | Supabase anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server | Service role (API routes only) |
-| `JWT_SECRET` | Server | JWT signing secret |
-| `CRON_SECRET` | Server | Bearer token for `/api/cron/*` |
+| `JWT_SECRET` | Server | JWT signing secret (legacy fallback) |
+| `CRON_SECRET` | Server | Bearer token for `/api/cron/*` and `/api/sync*` |
 | `NEXT_PUBLIC_APP_URL` | All | Production URL (Stripe redirects, email links) |
 | `SPOTIFY_CLIENT_ID` | Server | Spotify API |
 | `SPOTIFY_CLIENT_SECRET` | Server | Spotify API |
@@ -34,6 +35,7 @@ Crons and API security headers are defined in `vercel.json`.
 
 | Variable | Description |
 |----------|-------------|
+| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET_NAME` / `R2_PUBLIC_URL` | Cover art cache (required for full parity with darktunes) |
 | `RESEND_API_KEY` | Email verification |
 | `EMAIL_FROM` | Sender address |
 | `STRIPE_SECRET_KEY` | Spotlight self-service checkout |
@@ -41,6 +43,7 @@ Crons and API security headers are defined in `vercel.json`.
 | `DATA_API_TOKEN` | Server-to-server `/api/v1/*` access |
 | `ALLOWED_ORIGIN` | CORS origin (default `*`) |
 | `NEXT_PUBLIC_LEGAL_*` | Imprint / privacy operator data |
+| `ALLOW_DEMO_LOGIN` | Set to `1` only if demo login must work in production (default: off) |
 
 See `.env.example` for the full list (R2, Google OAuth, admin bootstrap).
 
@@ -56,10 +59,44 @@ Register in Stripe Dashboard:
 
 | Schedule (UTC) | Path | Purpose |
 |----------------|------|---------|
+| `*/10 * * * *` | `/api/sync` | Drain durable `sync_queue` (iTunes → releases + R2) |
+| `0 3 * * 1` | `/api/sync/queue` | Weekly enqueue of all visible artists |
+| `0 4 * * *` | `/api/cron/sync-itunes-artwork` | Backfill missing R2 covers |
 | `55 23 * * 0` | `/api/cron/aggregate-charts` | Weekly chart aggregation + anomaly detection |
-| `0 4 * * *` | `/api/cron/sync-itunes-artwork` | iTunes → R2 cover cache |
 
 Vercel sends `Authorization: Bearer <CRON_SECRET>` automatically.
+
+## 6b. Bootstrap catalog (after first deploy)
+
+1. **darktunes import** (preferred for label releases): export visible artists + releases from darktunes as JSON, then:
+
+```bash
+# Admin session cookie / Bearer, or offline:
+npx tsx scripts/import-darktunes-catalog.ts path/to/catalog.json
+# or POST /api/admin/import/darktunes with the same JSON body
+```
+
+2. **Scene artist seed** (CSV):
+
+```bash
+# Admin auth required
+curl -X POST https://<domain>/api/admin/seed/artists \
+  -H "Authorization: Bearer <admin-access-token>"
+```
+
+3. Kick queue processing:
+
+```bash
+curl -X POST https://<domain>/api/sync \
+  -H "Authorization: Bearer <CRON_SECRET>" \
+  -H "x-force-sync: 1"
+```
+
+4. Promote first admin in SQL:
+
+```sql
+UPDATE public.users SET role = 'ADMIN' WHERE email = 'you@example.com';
+```
 
 ## 7. Post-deploy checks
 
@@ -67,11 +104,13 @@ Vercel sends `Authorization: Bearer <CRON_SECRET>` automatically.
 curl https://<your-domain>/api/health
 ```
 
-- Register/login flow
+- Register/login flow (demo login is **off** in production)
 - Email verification (Resend)
-- Fan vote submission
-- Admin: `/admin/anomalies`, `/admin/promotions`
+- Releases non-empty: `GET /api/releases`
+- Fan vote submission against real release UUIDs
+- Admin: `/admin/anomalies`, `/admin/promotions`, sync queue health
 - Spotlight checkout (Band/Label test account)
+- Homepage charts from database (not mock)
 
 ## 8. Local production preview
 

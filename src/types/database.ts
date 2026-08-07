@@ -191,6 +191,10 @@ export type Database = {
           verified: boolean
           isVisible: boolean
           socialLinks: Json | null
+          itunesId: string | null
+          appleMusicUrl: string | null
+          lastSyncedAt: string | null
+          source: string | null
           createdAt: string
           updatedAt: string
         }
@@ -209,6 +213,10 @@ export type Database = {
           verified?: boolean
           isVisible?: boolean
           socialLinks?: Json | null
+          itunesId?: string | null
+          appleMusicUrl?: string | null
+          lastSyncedAt?: string | null
+          source?: string | null
           createdAt?: string
           updatedAt?: string
         }
@@ -227,6 +235,10 @@ export type Database = {
           verified?: boolean
           isVisible?: boolean
           socialLinks?: Json | null
+          itunesId?: string | null
+          appleMusicUrl?: string | null
+          lastSyncedAt?: string | null
+          source?: string | null
           createdAt?: string
           updatedAt?: string
         }
@@ -252,6 +264,10 @@ export type Database = {
           genres: string[]
           label: string | null
           isVisible: boolean
+          itunesId: string | null
+          appleMusicUrl: string | null
+          syncPolicy: string
+          source: string | null
           createdAt: string
           updatedAt: string
         }
@@ -275,6 +291,10 @@ export type Database = {
           genres?: string[]
           label?: string | null
           isVisible?: boolean
+          itunesId?: string | null
+          appleMusicUrl?: string | null
+          syncPolicy?: string
+          source?: string | null
           createdAt?: string
           updatedAt?: string
         }
@@ -298,8 +318,97 @@ export type Database = {
           genres?: string[]
           label?: string | null
           isVisible?: boolean
+          itunesId?: string | null
+          appleMusicUrl?: string | null
+          syncPolicy?: string
+          source?: string | null
           createdAt?: string
           updatedAt?: string
+        }
+      }
+      sync_queue: {
+        Row: {
+          id: string
+          artistId: string | null
+          jobType: string
+          status: string
+          scheduledAt: string
+          startedAt: string | null
+          finishedAt: string | null
+          lockedUntil: string | null
+          cancelRequestedAt: string | null
+          cancelledAt: string | null
+          errorMessage: string | null
+          attemptCount: number
+          createdAt: string
+        }
+        Insert: {
+          id?: string
+          artistId?: string | null
+          jobType?: string
+          status?: string
+          scheduledAt?: string
+          startedAt?: string | null
+          finishedAt?: string | null
+          lockedUntil?: string | null
+          cancelRequestedAt?: string | null
+          cancelledAt?: string | null
+          errorMessage?: string | null
+          attemptCount?: number
+          createdAt?: string
+        }
+        Update: {
+          id?: string
+          artistId?: string | null
+          jobType?: string
+          status?: string
+          scheduledAt?: string
+          startedAt?: string | null
+          finishedAt?: string | null
+          lockedUntil?: string | null
+          cancelRequestedAt?: string | null
+          cancelledAt?: string | null
+          errorMessage?: string | null
+          attemptCount?: number
+          createdAt?: string
+        }
+      }
+      sync_logs: {
+        Row: {
+          id: string
+          artistId: string | null
+          status: string
+          message: string | null
+          releasesSynced: number
+          errors: Json
+          apiSource: string | null
+          durationMs: number | null
+          metadata: Json | null
+          createdAt: string
+        }
+        Insert: {
+          id?: string
+          artistId?: string | null
+          status: string
+          message?: string | null
+          releasesSynced?: number
+          errors?: Json
+          apiSource?: string | null
+          durationMs?: number | null
+          metadata?: Json | null
+          createdAt?: string
+        }
+        Update: {
+          id?: string
+          artistId?: string | null
+          status?: string
+          message?: string | null
+          releasesSynced?: number
+          errors?: Json
+          apiSource?: string | null
+          durationMs?: number | null
+          metadata?: Json | null
+          createdAt?: string
         }
       }
       chart_entries: {

@@ -46,6 +46,13 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
   const cors = handleCors(req, 'POST,OPTIONS');
   if (cors) return cors;
 
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.ALLOW_DEMO_LOGIN !== '1'
+  ) {
+    throw new ApiError(403, 'Demo login is disabled in production');
+  }
+
   const rateLimited = applyRateLimit(req, { windowMs: 60_000, maxRequests: 20 });
   if (rateLimited) return rateLimited;
 

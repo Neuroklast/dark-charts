@@ -41,11 +41,19 @@ CREATE TABLE IF NOT EXISTS artists (
   verified BOOLEAN NOT NULL DEFAULT FALSE,
   "isVisible" BOOLEAN NOT NULL DEFAULT TRUE,
   "socialLinks" JSONB,
+  "itunesId" TEXT,
+  "appleMusicUrl" TEXT,
+  "lastSyncedAt" TIMESTAMPTZ,
+  "source" TEXT,
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE artists ADD COLUMN IF NOT EXISTS "isVisible" BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE artists ADD COLUMN IF NOT EXISTS "itunesId" TEXT;
+ALTER TABLE artists ADD COLUMN IF NOT EXISTS "appleMusicUrl" TEXT;
+ALTER TABLE artists ADD COLUMN IF NOT EXISTS "lastSyncedAt" TIMESTAMPTZ;
+ALTER TABLE artists ADD COLUMN IF NOT EXISTS "source" TEXT;
 
 CREATE TABLE IF NOT EXISTS releases (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -67,12 +75,50 @@ CREATE TABLE IF NOT EXISTS releases (
   genres TEXT[] NOT NULL DEFAULT '{}',
   label TEXT,
   "isVisible" BOOLEAN NOT NULL DEFAULT TRUE,
+  "itunesId" TEXT,
+  "appleMusicUrl" TEXT,
+  "syncPolicy" TEXT NOT NULL DEFAULT 'auto',
+  "source" TEXT,
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE releases ADD COLUMN IF NOT EXISTS "r2ArtworkUrl" TEXT;
 ALTER TABLE releases ADD COLUMN IF NOT EXISTS "isVisible" BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE releases ADD COLUMN IF NOT EXISTS "itunesId" TEXT;
+ALTER TABLE releases ADD COLUMN IF NOT EXISTS "appleMusicUrl" TEXT;
+ALTER TABLE releases ADD COLUMN IF NOT EXISTS "syncPolicy" TEXT NOT NULL DEFAULT 'auto';
+ALTER TABLE releases ADD COLUMN IF NOT EXISTS "source" TEXT;
+
+-- Durable artist sync queue (darktunes-style; survives Vercel cold starts)
+CREATE TABLE IF NOT EXISTS sync_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  "artistId" UUID REFERENCES artists(id) ON DELETE CASCADE,
+  "jobType" TEXT NOT NULL DEFAULT 'full',
+  status TEXT NOT NULL DEFAULT 'pending',
+  "scheduledAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  "startedAt" TIMESTAMPTZ,
+  "finishedAt" TIMESTAMPTZ,
+  "lockedUntil" TIMESTAMPTZ,
+  "cancelRequestedAt" TIMESTAMPTZ,
+  "cancelledAt" TIMESTAMPTZ,
+  "errorMessage" TEXT,
+  "attemptCount" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sync_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  "artistId" UUID REFERENCES artists(id) ON DELETE SET NULL,
+  status TEXT NOT NULL,
+  message TEXT,
+  "releasesSynced" INTEGER NOT NULL DEFAULT 0,
+  errors JSONB NOT NULL DEFAULT '[]'::jsonb,
+  "apiSource" TEXT,
+  "durationMs" INTEGER,
+  metadata JSONB,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 CREATE TABLE IF NOT EXISTS fan_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -256,9 +302,11 @@ ON CONFLICT (id) DO NOTHING;
 
 CREATE INDEX IF NOT EXISTS idx_artists_spotify_id ON artists ("spotifyId");
 CREATE INDEX IF NOT EXISTS idx_artists_is_visible ON artists ("isVisible");
+CREATE INDEX IF NOT EXISTS idx_artists_itunes_id ON artists ("itunesId");
 CREATE INDEX IF NOT EXISTS idx_releases_artist_id ON releases ("artistId");
 CREATE INDEX IF NOT EXISTS idx_releases_spotify_id ON releases ("spotifyId");
 CREATE INDEX IF NOT EXISTS idx_releases_is_visible ON releases ("isVisible");
+CREATE UNIQUE INDEX IF NOT EXISTS idx_releases_itunes_id_unique ON releases ("itunesId") WHERE "itunesId" IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_chart_entries_chart_type_week ON chart_entries ("chartType", "weekStart");
 CREATE INDEX IF NOT EXISTS idx_chart_entries_release_id ON chart_entries ("releaseId");
 CREATE INDEX IF NOT EXISTS idx_chart_entries_genre ON chart_entries (genre, "chartType", "weekStart");
@@ -269,6 +317,10 @@ CREATE INDEX IF NOT EXISTS idx_expert_votes_release_id ON expert_votes ("release
 CREATE INDEX IF NOT EXISTS idx_streaming_snapshots_artist_week ON streaming_snapshots ("artistId", "weekStart");
 CREATE INDEX IF NOT EXISTS idx_fan_profiles_user_id ON fan_profiles ("userId");
 CREATE INDEX IF NOT EXISTS idx_dj_profiles_user_id ON dj_profiles ("userId");
+CREATE INDEX IF NOT EXISTS idx_sync_queue_status_scheduled ON sync_queue (status, "scheduledAt");
+CREATE INDEX IF NOT EXISTS idx_sync_queue_artist_id ON sync_queue ("artistId");
+CREATE INDEX IF NOT EXISTS idx_sync_logs_artist_id ON sync_logs ("artistId");
+CREATE INDEX IF NOT EXISTS idx_sync_logs_created_at ON sync_logs ("createdAt" DESC);
 
 -- ---------------------------------------------------------------------------
 -- Row Level Security
@@ -290,6 +342,8 @@ ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sync_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sync_logs ENABLE ROW LEVEL SECURITY;
 
 DO $$
 BEGIN
