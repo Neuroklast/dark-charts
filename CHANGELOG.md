@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Added
+- Durable catalog sync (darktunes-style): `sync_queue` / `sync_logs` schema, `POST /api/sync` + `/api/sync/queue`, `syncArtist` → Supabase + R2.
+- darktunes catalog import: `POST /api/admin/import/darktunes`, `scripts/import-darktunes-catalog.ts`.
+- CSV artist seed: `POST /api/admin/seed/artists` from `doc/consolidated_darkcharts_artists.csv`.
+- Migration `supabase/migrations/20260807_durable_sync_queue.sql`.
+- Demo login disabled in production unless `ALLOW_DEMO_LOGIN=1`.
 - `docs/guidelines/AGENT_MANDATE.md` – binding ruleset (SOLID, TDD, ISO/IEC 25010, Clean Code, iterative workflow, DoD checklist) for all agents and developers.
 - `docs/guidelines/LESSONS_LEARNED.md` – living document to record failed approaches and final solutions.
 - `docs/architecture/` directory containing all architectural and feature documentation moved from project root.
