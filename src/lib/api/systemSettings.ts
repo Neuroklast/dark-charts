@@ -8,6 +8,7 @@ export const DEFAULT_CHART_WEIGHTS: ChartWeights = {
   fan: 0.55,
   expert: 0.45,
   streaming: 0,
+  airplay: 0,
 }
 
 export interface SystemSettings {
@@ -38,6 +39,10 @@ function parseChartWeights(value: Json | null | undefined): ChartWeights {
       typeof weights.streaming === 'number'
         ? weights.streaming
         : DEFAULT_CHART_WEIGHTS.streaming,
+    airplay:
+      typeof weights.airplay === 'number'
+        ? weights.airplay
+        : DEFAULT_CHART_WEIGHTS.airplay,
   }
 }
 

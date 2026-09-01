@@ -102,6 +102,8 @@ export interface ChartWeights {
   fan: number;
   expert: number;
   streaming: number;
+  /** Optional playlists & radio-airplay signal. Defaults to 0 (no effect). */
+  airplay?: number;
 }
 
 export interface ChartData {
