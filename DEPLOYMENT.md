@@ -12,9 +12,9 @@ Crons and API security headers are defined in `vercel.json`.
 
 ## 2. Database (Supabase)
 
-1. Create a **dedicated** Supabase project for dark-charts (do **not** share darktunes DB).
+1. Create a **dedicated** Supabase project for dark-charts (do **not** share the darktunes DB).
 2. Fresh install: run `supabase/reset.sql` in the SQL Editor.
-3. Existing DB: run migrations in order under `supabase/migrations/` (incl. `20260807_durable_sync_queue.sql`).
+3. Existing DB: apply migrations in order under `supabase/migrations/` (incl. `20260807_durable_sync_queue.sql`).
 4. Enable Email auth; set Site URL + redirect URLs to `NEXT_PUBLIC_APP_URL`.
 
 ## 3. Required environment variables
@@ -35,7 +35,7 @@ Crons and API security headers are defined in `vercel.json`.
 
 | Variable | Description |
 |----------|-------------|
-| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET_NAME` / `R2_PUBLIC_URL` | Cover art cache (required for full parity with darktunes) |
+| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET_NAME` / `R2_PUBLIC_URL` | Cover-art cache (R2) |
 | `RESEND_API_KEY` | Email verification |
 | `EMAIL_FROM` | Sender address |
 | `STRIPE_SECRET_KEY` | Spotlight self-service checkout |
