@@ -13,6 +13,7 @@ export async function GET() {
         fan: settings.chartWeights.fan,
         expert: settings.chartWeights.expert,
         streaming: 0,
+        airplay: settings.chartWeights.airplay ?? 0,
       },
     });
   } catch {

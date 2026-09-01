@@ -126,6 +126,7 @@ model Artist {
   releases           Release[]
   bandProfile        BandProfile?
   streamingSnapshots StreamingSnapshot[]
+  airplayEvents      AirplayEvent[]
   labelId            String?
   label              LabelProfile? @relation(fields: [labelId], references: [id])
 
@@ -163,9 +164,11 @@ model Release {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  chartEntries ChartEntry[]
-  votes        Vote[]
-  expertVotes  ExpertVote[]
+  chartEntries     ChartEntry[]
+  votes            Vote[]
+  expertVotes      ExpertVote[]
+  airplayEvents    AirplayEvent[]
+  airplaySnapshots AirplaySnapshot[]
 
   @@index([spotifyId])
   @@index([artistId])
@@ -277,4 +280,80 @@ model ExpertVote {
   @@index([djId])
   @@index([releaseId])
   @@index([createdAt])
+}
+
+model TrackedPlaylist {
+  id            String   @id @default(cuid())
+  platform      String
+  externalId    String
+  name          String
+  curatorName   String?
+  followerCount Int      @default(0)
+  url           String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  airplayEvents AirplayEvent[]
+
+  @@unique([platform, externalId])
+  @@index([isActive])
+}
+
+model RadioStation {
+  id               String   @id @default(cuid())
+  name             String
+  streamUrl        String?
+  nowPlayingUrl    String?
+  nowPlayingFormat String?
+  country          String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  airplayEvents AirplayEvent[]
+
+  @@index([isActive])
+}
+
+model AirplayEvent {
+  id               String           @id @default(cuid())
+  releaseId        String?
+  release          Release?         @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  artistId         String?
+  artist           Artist?          @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  source           String
+  sourcePlaylistId String?
+  sourcePlaylist   TrackedPlaylist? @relation(fields: [sourcePlaylistId], references: [id], onDelete: SetNull)
+  sourceStationId  String?
+  sourceStation    RadioStation?    @relation(fields: [sourceStationId], references: [id], onDelete: SetNull)
+  sourceLabel      String?
+  position         Int?
+  reach            Int              @default(0)
+  weight           Float            @default(1)
+  idempotencyKey   String?          @unique
+  observedAt       DateTime         @default(now())
+  weekStart        DateTime
+  createdAt        DateTime         @default(now())
+
+  @@index([releaseId, weekStart])
+  @@index([weekStart])
+}
+
+model AirplaySnapshot {
+  id                String   @id @default(cuid())
+  releaseId         String
+  release           Release  @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  weekStart         DateTime
+  playlistAddCount  Int      @default(0)
+  playlistReach     Int      @default(0)
+  radioSpinCount    Int      @default(0)
+  radioStationCount Int      @default(0)
+  djSpinCount       Int      @default(0)
+  totalReach        Int      @default(0)
+  score             Float    @default(0)
+  createdAt         DateTime @default(now())
+
+  @@unique([releaseId, weekStart])
+  @@index([weekStart])
 }

@@ -9,14 +9,16 @@ import { buildGenreChartInserts } from '@/lib/genre-aggregation';
 import { detectVoteAnomalies, persistVoteAnomalies } from '@/lib/vote-anomaly';
 import { blendStreamingPopularity, fetchYoutubePopularity } from '@/lib/youtube-metrics';
 import { getSystemSettings } from '@/lib/api/systemSettings';
+import { calculateAirplayScore } from '@/lib/airplay/airplayScore';
 import { getWeekEnd, getPreviousWeekStart, getIsoWeekYear } from '@/lib/week';
 
-type ChartTypeKey = 'fan' | 'expert' | 'streaming' | 'combined';
+type ChartTypeKey = 'fan' | 'expert' | 'streaming' | 'combined' | 'airplay';
 
 interface ReleaseMetrics {
   fanScore: number;
   expertScore: number;
   streamingScore: number;
+  airplayScore: number;
 }
 
 interface ChartEntryInsert {
@@ -199,7 +201,7 @@ export class ChartAggregationService {
     const ensureMetrics = (releaseId: string): ReleaseMetrics => {
       const current = releaseMetrics.get(releaseId);
       if (current) return current;
-      const fresh = { fanScore: 0, expertScore: 0, streamingScore: 0 };
+      const fresh = { fanScore: 0, expertScore: 0, streamingScore: 0, airplayScore: 0 };
       releaseMetrics.set(releaseId, fresh);
       return fresh;
     };
@@ -282,6 +284,47 @@ export class ChartAggregationService {
       metrics.streamingScore = Math.max(metrics.streamingScore, score);
     }
 
+    // --- Airplay snapshots (playlists & radio) ------------------------------
+    // Weekly per-release rollups produced by the airplay ingestion job. Scored
+    // in-service (like streaming) so weight changes take effect without
+    // re-running the rollup. Gated to visible releases so a hidden release is
+    // never surfaced through the airplay signal.
+    const { data: airplaySnapshots } = await supabase
+      .from('airplay_snapshots')
+      .select('*')
+      .eq('weekStart', weekStartIso);
+
+    if ((airplaySnapshots ?? []).length > 0) {
+      const { data: prevAirplaySnapshots } = await supabase
+        .from('airplay_snapshots')
+        .select('*')
+        .eq('weekStart', lastWeekStartIso);
+
+      const prevAirplayByRelease = new Map(
+        (prevAirplaySnapshots ?? []).map((s) => [s.releaseId, s])
+      );
+
+      const airplayReleaseIds = [
+        ...new Set((airplaySnapshots ?? []).map((s) => s.releaseId)),
+      ];
+      const { data: visibleAirplayReleases } = await supabase
+        .from('releases')
+        .select('id')
+        .eq('isVisible', true)
+        .in('id', airplayReleaseIds);
+      const visibleAirplayReleaseIds = new Set(
+        (visibleAirplayReleases ?? []).map((r) => r.id)
+      );
+
+      for (const snapshot of airplaySnapshots ?? []) {
+        if (!visibleAirplayReleaseIds.has(snapshot.releaseId)) continue;
+        const prev = prevAirplayByRelease.get(snapshot.releaseId) ?? null;
+        const score = calculateAirplayScore(snapshot, prev);
+        const metrics = ensureMetrics(snapshot.releaseId);
+        metrics.airplayScore = Math.max(metrics.airplayScore, score);
+      }
+    }
+
     const allReleaseIds = Array.from(releaseMetrics.keys());
     if (allReleaseIds.length === 0) {
       await this.resetFanCredits(supabase, settings.voiceCreditsBudget);
@@ -293,27 +336,37 @@ export class ChartAggregationService {
       ...allReleaseIds.map((id) => releaseMetrics.get(id)!.expertScore),
       1
     );
+    const maxAirplay = Math.max(
+      ...allReleaseIds.map((id) => releaseMetrics.get(id)!.airplayScore),
+      1
+    );
     const totalFanScore = allReleaseIds.reduce(
       (sum, id) => sum + releaseMetrics.get(id)!.fanScore,
       0
     );
 
-    const weightTotal = weights.fan + weights.expert || 1;
+    const airplayWeight = weights.airplay ?? 0;
+    const weightTotal = weights.fan + weights.expert + airplayWeight || 1;
     const wFan = weights.fan / weightTotal;
     const wExpert = weights.expert / weightTotal;
+    const wAirplay = airplayWeight / weightTotal;
 
     const combinedScores = allReleaseIds.map((releaseId) => {
       const m = releaseMetrics.get(releaseId)!;
       const weightedScore =
         normalizeScore(m.fanScore, maxFan) * wFan +
-        normalizeScore(m.expertScore, maxExpert) * wExpert;
+        normalizeScore(m.expertScore, maxExpert) * wExpert +
+        normalizeScore(m.airplayScore, maxAirplay) * wAirplay;
 
       const communityPower = calculateCommunityPowerPercent(m.fanScore, totalFanScore);
 
       return { releaseId, ...m, weightedScore, communityPower };
     });
 
-    const chartTypes: ChartTypeKey[] = ['fan', 'expert', 'combined'];
+    const hasAirplayData = combinedScores.some((c) => c.airplayScore > 0);
+    const chartTypes: ChartTypeKey[] = hasAirplayData
+      ? ['fan', 'expert', 'combined', 'airplay']
+      : ['fan', 'expert', 'combined'];
     const lastWeekPlacements = new Map<ChartTypeKey, Map<string, number>>();
 
     for (const chartType of chartTypes) {
@@ -367,6 +420,9 @@ export class ChartAggregationService {
     buildEntries('fan', (i) => i.fanScore);
     buildEntries('expert', (i) => i.expertScore);
     buildEntries('combined', (i) => i.weightedScore);
+    if (hasAirplayData) {
+      buildEntries('airplay', (i) => i.airplayScore);
+    }
 
     const { data: releaseGenreRows } = await supabase
       .from('releases')
