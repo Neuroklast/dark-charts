@@ -42,6 +42,12 @@ Distilled anti-patterns from project history. **Append session findings before o
 
 ## Session additions
 
+### 2026-09-11 — Club-announcer copy hid how the charts work
+
+**Symptom:** Public strings were cut to barky fragments (“Hau rauf.”, “Die Liste”, “Kein Deal.”). Nobody understood Fan vs Club vs Streaming.
+**Cause:** A “no jargon / short imperative” voice guideline over-stripped meaning and warmth.
+**Rule / Fix:** Keep names clear (Fan / Club / Overall / Streaming). Explain the mechanic in plain language on the page, not only behind a tooltip. Warm and human, still no quadratic/Sybil formulas.
+
 ### 2026-09-11 — Schema is one idempotent script
 
 **Symptom:** Incremental `supabase/migrations/*.sql` drifted from `reset.sql` and duplicated policy.

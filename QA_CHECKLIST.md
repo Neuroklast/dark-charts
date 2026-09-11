@@ -5,6 +5,9 @@
 - [ ] Chart pillars render correct data for a seeded week (Fan / Club / Combined); empty weeks show empty, not demo tracks
 - [ ] `/charts/streaming` shows snapshot-based popularity or empty — never iTunes/mock stand-ins; overall stays fan+club only
 - [ ] Genre pages: main genre lists subgenres; subgenre page filters correctly (niche windows applied)
+- [ ] Methodology, About, home, Fan/Club/Streaming, and voting pages explain how charts work in plain language (DE + EN)
+- [ ] Public labels are Fan / Club / Overall / Streaming — not “Die Liste” / “Szene” / “Listen”
+- [ ] Default theme matches darkTunes CI (`#0d0d1a`, `#6d28d9`, Orbitron + Exo 2); header is a wordmark, chart rows have no CRT scanlines
 - [ ] Methodology page explains the weighted merge and pillar isolation
 - [ ] Voting: verified voter can cast votes; cost rises quadratically; receipt + confirmation render
 - [ ] Voting: a second week’s ballot on the same release does not overwrite last week’s row
