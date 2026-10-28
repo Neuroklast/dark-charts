@@ -23,8 +23,8 @@ export function MainLayoutClient({ children }: MainLayoutClientProps) {
   const { activePromotion } = useChartShell();
 
   return (
-    <div className="min-h-[70vh] bg-background relative pt-20">
-      <main id="main-content" className="public-content relative z-10 mx-auto w-full max-w-7xl px-4 py-6 md:px-8 pb-32">
+    <div className="min-h-[70vh] bg-background relative">
+      <main id="main-content" className="public-content relative z-10 mx-auto w-full max-w-7xl px-4 pt-8 pb-24 sm:px-6 md:px-8 md:pt-12 xl:px-10">
         <DataSourceBanner />
         {children}
         {activePromotion && shouldShowSpotlight(pathname) && (
