@@ -159,6 +159,10 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
     if (entries.length !== 10) {
       throw new ApiError(400, 'DJs must submit exactly 10 votes');
     }
+    const ranks = entries.map(([, value]) => value).sort((a, b) => a - b);
+    if (!ranks.every((value, index) => value === index + 1)) {
+      throw new ApiError(400, 'DJs must assign every rank from 1 to 10 exactly once');
+    }
 
     const releaseIds = entries.map(([rId]) => rId);
     const { data: visibleReleases, error: releaseError } = await supabase
