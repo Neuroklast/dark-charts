@@ -14,5 +14,7 @@ export function isReleaseEligibleForVoting(
 ): boolean {
   if (!releaseDate) return false;
   const cutoff = getVotingEligibilityCutoff(now).toISOString().slice(0, 10);
-  return releaseDate.slice(0, 10) >= cutoff;
+  const date = releaseDate.slice(0, 10);
+  const today = now.toISOString().slice(0, 10);
+  return date >= cutoff && date <= today;
 }
