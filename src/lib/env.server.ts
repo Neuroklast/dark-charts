@@ -1,17 +1,25 @@
 import { z } from 'zod'
 
+// Vercel often stores optional integrations as empty environment variables.
+// Treat blank optional values as absent instead of rejecting unrelated routes.
+const optionalEnv = <T extends z.ZodType>(schema: T) =>
+  z.preprocess(
+    (value) => typeof value === 'string' && value.trim() === '' ? undefined : value,
+    schema.optional()
+  )
+
 const serverEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  JWT_SECRET: z.string().min(1),
-  SPOTIFY_CLIENT_ID: z.string().min(1).optional(),
-  SPOTIFY_CLIENT_SECRET: z.string().min(1).optional(),
-  R2_ACCOUNT_ID: z.string().min(1).optional(),
-  R2_ACCESS_KEY_ID: z.string().min(1).optional(),
-  R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
-  R2_BUCKET_NAME: z.string().min(1).optional(),
-  R2_PUBLIC_URL: z.string().url().optional(),
+  JWT_SECRET: z.string().min(32),
+  SPOTIFY_CLIENT_ID: optionalEnv(z.string().min(1)),
+  SPOTIFY_CLIENT_SECRET: optionalEnv(z.string().min(1)),
+  R2_ACCOUNT_ID: optionalEnv(z.string().min(1)),
+  R2_ACCESS_KEY_ID: optionalEnv(z.string().min(1)),
+  R2_SECRET_ACCESS_KEY: optionalEnv(z.string().min(1)),
+  R2_BUCKET_NAME: optionalEnv(z.string().min(1)),
+  R2_PUBLIC_URL: optionalEnv(z.string().url()),
 })
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>
