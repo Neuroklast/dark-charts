@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AdminPagination } from './shared/AdminPagination';
 import { AdminBulkToolbar } from './shared/AdminBulkToolbar';
 import { AdminBulkJobProgress } from './shared/AdminBulkJobProgress';
+import { AdminBulkJobHistory } from './shared/AdminBulkJobHistory';
 import { useAdminList, useDebouncedValue } from './shared/useAdminList';
 
 type Entity = 'artists' | 'releases';
