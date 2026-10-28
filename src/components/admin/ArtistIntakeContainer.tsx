@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AdminPagination } from './shared/AdminPagination';
 import { AdminBulkToolbar } from './shared/AdminBulkToolbar';
 import { AdminBulkJobProgress } from './shared/AdminBulkJobProgress';
+import { AdminBulkJobHistory } from './shared/AdminBulkJobHistory';
 import { useAdminList, useDebouncedValue } from './shared/useAdminList';
 
 type ArtistListRow = ArtistIntakeRow & {
@@ -379,6 +380,7 @@ export function ArtistIntakeContainer() {
           onSelect={setSelectedIds} onAllMatchingChange={setAllMatching}
           onApprove={() => void bulkModerate('approve')} onHide={() => void bulkModerate('hide')}
         />
+        <AdminBulkJobHistory onOpen={setBulkJobId} refreshKey={bulkJobId} />
         <AdminBulkJobProgress jobId={bulkJobId} onDismiss={() => setBulkJobId(null)}
           onFinished={() => { void refresh(true); toast.success('Sammelaktion abgeschlossen.'); }} />
         <AdminPagination page={page} pageSize={pageSize} total={total}
