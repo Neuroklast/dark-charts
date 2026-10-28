@@ -6,7 +6,6 @@ import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import {
   SPOTLIGHT_BOOKING_ROLES,
   SPOTLIGHT_MAX_DAYS_AHEAD,
-  SPOTLIGHT_PENDING_TTL_MS,
   SPOTLIGHT_PRICES,
   SPOTLIGHT_SLOT_TYPES,
   normalizeSlotDate,
@@ -54,46 +53,37 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
   const price = SPOTLIGHT_PRICES[slotType as SpotlightSlotType];
   const supabase = createServiceRoleSupabaseClient();
 
-  const { data: existingBookings, error: existingError } = await supabase
-    .from('bookings')
-    .select('id, status, createdAt')
-    .eq('slotDate', slotDay.toISOString())
-    .eq('slotType', slotType)
-    .in('status', ['PAID', 'pending']);
+  // Reserve under a database lock. Read-then-insert is race-prone.
+  const { data: bookingId, error: reserveError } = await supabase.rpc(
+    'reserve_spotlight_slot',
+    {
+      p_user_id: decoded.userId,
+      p_slot_date: slotDay.toISOString(),
+      p_slot_type: slotType,
+      p_amount_cents: price.amountCents,
+      p_currency: price.currency,
+    }
+  );
 
-  if (existingError) throw new ApiError(500, existingError.message);
-
-  const pendingCutoff = Date.now() - SPOTLIGHT_PENDING_TTL_MS;
-  const blocking = (existingBookings ?? []).find((booking) => {
-    if (booking.status === 'PAID') return true;
-    return new Date(booking.createdAt).getTime() >= pendingCutoff;
-  });
-
-  if (blocking) {
-    throw new ApiError(409, 'This Spotlight slot is already reserved', 'SLOT_UNAVAILABLE');
+  if (reserveError) {
+    if (reserveError.message.includes('SLOT_UNAVAILABLE') || reserveError.code === '23505') {
+      throw new ApiError(409, 'This Spotlight slot is already reserved', 'SLOT_UNAVAILABLE');
+    }
+    throw new ApiError(500, 'Could not reserve Spotlight slot', 'RESERVATION_FAILED');
   }
-
-  const { data: booking, error: insertError } = await supabase
-    .from('bookings')
-    .insert({
-      userId: decoded.userId,
-      slotDate: slotDay.toISOString(),
-      slotType,
-      status: 'pending',
-      amountCents: price.amountCents,
-      currency: price.currency,
-    })
-    .select('id')
-    .single();
-
-  if (insertError || !booking) {
-    throw new ApiError(500, insertError?.message ?? 'Failed to create booking');
+  if (typeof bookingId !== 'string') {
+    throw new ApiError(500, 'Invalid reservation result', 'RESERVATION_FAILED');
   }
 
   const appUrl = getAppBaseUrl();
-  const session = await stripe.checkout.sessions.create({
+  let session: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>;
+  try {
+    session = await stripe.checkout.sessions.create({
     mode: 'payment',
+    payment_method_types: ['card'],
+    expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
     customer_email: decoded.email,
+    client_reference_id: bookingId,
     line_items: [
       {
         quantity: 1,
@@ -108,7 +98,7 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
       },
     ],
     metadata: {
-      bookingId: booking.id,
+      bookingId: bookingId,
       userId: decoded.userId,
       slotType,
       slotDate: slotDay.toISOString(),
@@ -116,14 +106,22 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
     success_url: `${appUrl}/spotlight?success=1&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/spotlight?canceled=1`,
   });
+  } catch (error) {
+    await supabase.from('bookings').update({ status: 'expired' })
+      .eq('id', bookingId).eq('status', 'pending');
+    throw error;
+  }
 
   const { error: sessionUpdateError } = await supabase
     .from('bookings')
     .update({ stripeSessionId: session.id })
-    .eq('id', booking.id);
+    .eq('id', bookingId);
 
   if (sessionUpdateError) {
-    throw new ApiError(500, sessionUpdateError.message);
+    await stripe.checkout.sessions.expire(session.id);
+    await supabase.from('bookings').update({ status: 'expired' })
+      .eq('id', bookingId).eq('status', 'pending');
+    throw new ApiError(500, 'Could not attach checkout to reservation');
   }
 
   if (!session.url) {
@@ -133,6 +131,6 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
   return NextResponse.json({
     success: true,
     checkoutUrl: session.url,
-    bookingId: booking.id,
+    bookingId: bookingId,
   });
 });
