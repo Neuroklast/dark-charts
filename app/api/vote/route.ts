@@ -159,6 +159,10 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
     if (entries.length !== 10) {
       throw new ApiError(400, 'DJs must submit exactly 10 votes');
     }
+    const ranks = entries.map(([, value]) => value).sort((a, b) => a - b);
+    if (!ranks.every((value, index) => value === index + 1)) {
+      throw new ApiError(400, 'DJs must assign every rank from 1 to 10 exactly once');
+    }
 
     const releaseIds = entries.map(([rId]) => rId);
     const { data: visibleReleases, error: releaseError } = await supabase
@@ -178,33 +182,22 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
     await assertNoVoteConflicts(supabase, userId, releaseIds);
     await assertReleasesNotVoteBlocked(supabase, releaseIds, startOfWeek.toISOString());
 
-    const weekStartIso = startOfWeek.toISOString();
-
-    await supabase
-      .from('expert_votes')
-      .delete()
-      .eq('djId', djProfile.id)
-      .eq('weekStart', weekStartIso);
-
-    const createdVotes = [];
-    for (const [rId, voteRank] of entries) {
-      const { data: createdVote, error } = await supabase
-        .from('expert_votes')
-        .insert({
-          djId: djProfile.id,
-          releaseId: rId,
-          rank: voteRank,
-          rating: voteRank,
-          weekStart: weekStartIso,
-        })
-        .select()
-        .single();
-
-      if (error) throw new ApiError(500, error.message);
-      createdVotes.push(createdVote);
+    const { data: createdVotes, error: ballotError } = await supabase.rpc(
+      'cast_dj_top_ten',
+      {
+        p_dj_id: djProfile.id,
+        p_week_start: startOfWeek.toISOString(),
+        p_ranks: votes,
+      }
+    );
+    if (ballotError) {
+      if (ballotError.code === '22023') {
+        throw new ApiError(400, 'Invalid DJ top ten: ' + ballotError.message, 'INVALID_DJ_BALLOT');
+      }
+      throw new ApiError(500, 'Could not save DJ ballot', 'DJ_BALLOT_SAVE_FAILED');
     }
 
-    const response = NextResponse.json({ success: true, votes: createdVotes });
+    const response = NextResponse.json({ success: true, votes: createdVotes ?? [] });
     return setRateLimitHeaders(applyCorsToResponse(response, 'POST,OPTIONS'), req, {
       windowMs: 60_000,
       maxRequests: 20,

@@ -27,6 +27,11 @@ describe('voting eligibility', () => {
     expect(isReleaseEligibleForVoting('2019-01-01', now)).toBe(false);
   });
 
+  it('rejects future releases that have not been published', () => {
+    expect(isReleaseEligibleForVoting('2026-09-12', now)).toBe(false);
+    expect(isReleaseEligibleForVoting('2026-09-11', now)).toBe(true);
+  });
+
   it('rejects missing dates', () => {
     expect(isReleaseEligibleForVoting(null, now)).toBe(false);
     expect(isReleaseEligibleForVoting(undefined, now)).toBe(false);

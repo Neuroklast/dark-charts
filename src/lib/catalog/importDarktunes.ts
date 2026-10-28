@@ -114,7 +114,7 @@ async function upsertArtist(
       imageUrl: artist.imageUrl ?? null,
       profileLink: artist.profileLink ?? artist.appleMusicUrl ?? null,
       country: artist.country ?? null,
-      isVisible: artist.isVisible ?? true,
+      // Import is never a public approval. Preserve visibility on updates.
       source: 'darktunes-import',
       updatedAt: new Date().toISOString(),
     };
@@ -131,7 +131,7 @@ async function upsertArtist(
 
     const { data: created, error } = await db
       .from('artists')
-      .insert(payload)
+      .insert({ ...payload, isVisible: false, status: 'pending_review' })
       .select('id')
       .single();
 
@@ -229,7 +229,7 @@ async function upsertRelease(
       label: release.label ?? null,
       platformLinks: release.platformLinks ?? null,
       odesliLinks: release.odesliLinks ?? null,
-      isVisible: release.isVisible ?? true,
+      // A source feed cannot overwrite a human's visibility decision.
       source: 'darktunes-import',
       syncPolicy: 'auto',
       updatedAt: new Date().toISOString(),
@@ -245,7 +245,7 @@ async function upsertRelease(
       return;
     }
 
-    const { error } = await db.from('releases').insert(payload);
+    const { error } = await db.from('releases').insert({ ...payload, isVisible: false });
     if (error) {
       if (error.code === '23505') {
         result.releasesSkipped++;
@@ -301,8 +301,12 @@ export async function importDarktunesCatalog(
     await upsertRelease(db, release, artistIdByName, artistIdBySpotify, result);
   }
 
-  if (payload.enqueueSync !== false && importedArtistIds.length > 0) {
-    result.syncJobsQueued = await enqueueArtistSyncJobs(db, importedArtistIds, 'full');
+  // Only previously approved artists may be enqueued by source imports.
+  if (payload.enqueueSync === true && importedArtistIds.length > 0) {
+    const { data: approved, error } = await db.from('artists').select('id')
+      .in('id', importedArtistIds).eq('isVisible', true);
+    if (error) throw new Error(error.message);
+    result.syncJobsQueued = await enqueueArtistSyncJobs(db, (approved ?? []).map(a => a.id), 'full');
   }
 
   return result;

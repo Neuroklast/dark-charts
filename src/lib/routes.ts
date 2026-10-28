@@ -24,6 +24,7 @@ export const ROUTES = {
   adminUsers: '/admin/users',
   adminArtists: '/admin/artists',
   adminReleases: '/admin/releases',
+  adminCatalog: '/admin/catalog',
   adminCharts: '/admin/charts',
   adminAnomalies: '/admin/anomalies',
   adminVotes: '/admin/votes',

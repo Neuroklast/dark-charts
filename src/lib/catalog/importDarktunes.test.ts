@@ -10,6 +10,9 @@ describe('importDarktunesCatalog', () => {
         if (table === 'artists') {
           return {
             select: vi.fn(() => ({
+              in: vi.fn(() => ({
+                eq: vi.fn(async () => ({ data: [], error: null })),
+              })),
               eq: vi.fn(() => ({
                 maybeSingle: vi.fn(async () => ({ data: null, error: null })),
               })),
@@ -68,6 +71,7 @@ describe('importDarktunesCatalog', () => {
       spotifyId: 'abc',
       source: 'darktunes-import',
     });
-    expect(result.syncJobsQueued).toBe(1);
+    expect(insertedArtists[0]).toMatchObject({ isVisible: false, status: 'pending_review' });
+    expect(result.syncJobsQueued).toBe(0);
   });
 });

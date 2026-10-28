@@ -53,7 +53,7 @@ const bodySchema = z.object({
     )
     .optional()
     .default([]),
-  enqueueSync: z.boolean().optional().default(true),
+  enqueueSync: z.boolean().optional().default(false),
 });
 
 /**

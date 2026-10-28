@@ -18,6 +18,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { label: 'Artists', href: ROUTES.adminArtists },
       { label: 'Releases', href: ROUTES.adminReleases },
+      { label: 'Catalog Review', href: ROUTES.adminCatalog },
     ],
   },
   {

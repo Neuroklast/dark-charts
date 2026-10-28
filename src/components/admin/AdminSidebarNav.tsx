@@ -35,6 +35,7 @@ import { ROUTES } from '@/lib/routes';
 const ICONS: Record<string, Icon> = {
   Artists: Microphone,
   Releases: VinylRecord,
+  'Catalog Review': ShieldWarning,
   'Chart Control': ChartLine,
   Anomalies: ShieldWarning,
   Votes: HandPointing,

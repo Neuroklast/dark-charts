@@ -135,7 +135,7 @@ async function upsertItunesRelease(
       ...(r2ArtworkUrl ? { r2ArtworkUrl } : {}),
       genres: artistGenres,
       label: artistLabel,
-      isVisible: true,
+      // Newly discovered releases must be explicitly approved separately.
       source: 'itunes',
       syncPolicy: 'auto',
       updatedAt: new Date().toISOString(),
@@ -150,7 +150,7 @@ async function upsertItunesRelease(
       return { upserted: true, errors };
     }
 
-    const { error } = await db.from('releases').insert(payload);
+    const { error } = await db.from('releases').insert({ ...payload, isVisible: false });
     if (error) {
       // Unique race on itunesId
       if (error.code === '23505') {
@@ -186,7 +186,7 @@ export async function syncArtist(artistId: string, deps: SyncDeps): Promise<Sync
 
   const { data: artist, error: artistError } = await db
     .from('artists')
-    .select('id, name, genres, socialLinks, itunesId, appleMusicUrl, profileLink')
+    .select('id, name, genres, socialLinks, itunesId, appleMusicUrl, profileLink, isVisible, status')
     .eq('id', artistId)
     .maybeSingle();
 
@@ -197,6 +197,13 @@ export async function syncArtist(artistId: string, deps: SyncDeps): Promise<Sync
       errors: [artistError?.message ?? 'Artist not found'],
       rateLimited: false,
     };
+  }
+
+  // Manual editorial exclusion takes precedence over all automated sync jobs.
+  if (!artist.isVisible || artist.status === 'pending_review' ||
+      artist.status === 'RESTRICTED' || artist.status === 'BANNED') {
+    return { artistId, releasesUpserted: 0,
+      errors: ['Artist is not approved for synchronization'], rateLimited: false };
   }
 
   const itunesArtistId =

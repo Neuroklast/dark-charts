@@ -13,8 +13,6 @@ import { getStartOfWeek } from '@/lib/api-auth';
 import { mainGenreChartKey } from '@/lib/genre-charts';
 import { MainGenre } from '@/types';
 import { mainGenreMap } from '@/lib/config/genres';
-import { getItunesChartResponse } from '@/lib/charts/itunesChartFallback';
-import { logger } from '@/lib/logger';
 
 const querySchema = z.object({
   type: z.enum(['fan', 'expert', 'streaming', 'combined', 'airplay']),
@@ -40,7 +38,7 @@ async function fetchChartsFromDatabase(
   mainGenre: string | undefined
 ) {
   const supabase = tryCreateServiceRoleSupabaseClient();
-  if (!supabase) return null;
+  if (!supabase) throw new ApiError(503, 'Chart database is not configured', 'SERVICE_UNAVAILABLE');
 
   let genreFilter: string | null = null;
   if (genre) {
@@ -100,7 +98,10 @@ async function fetchChartsFromDatabase(
 
   if (!chartEntries?.length) return null;
 
-  return chartEntries.map((entry) => formatChartEntry(entry));
+  // An editorial takedown must also remove previously ranked entries from public output.
+  return chartEntries.filter((entry) =>
+    entry.release?.isVisible === true && entry.release?.artist?.isVisible === true
+  ).map((entry) => formatChartEntry(entry));
 }
 
 export const GET = withErrorHandler(async (req: NextRequest) => {
@@ -118,55 +119,19 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
 
   const { type, limit: limitNum, completed, genre, mainGenre } = parseResult.data;
 
-  try {
-    const dbEntries = await fetchChartsFromDatabase(
-      type,
-      limitNum,
-      completed,
-      genre,
-      mainGenre
-    );
-
-    if (dbEntries && dbEntries.length > 0) {
-      const response = NextResponse.json({
-        success: true,
-        chartType: type,
-        entries: dbEntries,
-        count: dbEntries.length,
-        source: 'database',
-      });
-      return setRateLimitHeaders(applyCorsToResponse(response, 'GET,OPTIONS'), req, {
-        maxRequests: 120,
-      });
-    }
-  } catch (error) {
-    if (error instanceof ApiError && error.status !== 500) {
-      throw error;
-    }
-    logger.warn('Database chart fetch failed, falling back to iTunes', { error });
-  }
-
-  if (type === 'streaming' || type === 'airplay') {
-    const empty = NextResponse.json({
-      success: true,
-      chartType: type,
-      entries: [],
-      count: 0,
-      source: 'database',
-    });
-    return setRateLimitHeaders(applyCorsToResponse(empty, 'GET,OPTIONS'), req, {
-      maxRequests: 120,
-    });
-  }
-
-  const itunesPayload = await getItunesChartResponse({
-    type,
-    limit: limitNum,
-    genre,
-    mainGenre,
+  // Official charts must reflect actual persisted ballots and measured signals.
+  // Never mislabel iTunes recency/discovery results as FAN, DJ, or combined votes.
+  const entries = await fetchChartsFromDatabase(
+    type, limitNum, completed, genre, mainGenre
+  );
+  const response = NextResponse.json({
+    success: true,
+    chartType: type,
+    entries: entries ?? [],
+    count: entries?.length ?? 0,
+    source: 'database',
+    status: entries?.length ? 'published' : 'awaiting_results',
   });
-
-  const response = NextResponse.json(itunesPayload);
   return setRateLimitHeaders(applyCorsToResponse(response, 'GET,OPTIONS'), req, {
     maxRequests: 120,
   });

@@ -153,7 +153,7 @@ export function loadConsolidatedArtistRows(
 
 export async function seedConsolidatedArtists(
   db: AppSupabaseClient,
-  options: { enqueueSync?: boolean; csvPath?: string } = {}
+  options: { enqueueSync?: boolean; csvPath?: string; offset?: number; limit?: number } = {}
 ): Promise<SeedArtistsResult> {
   const result: SeedArtistsResult = {
     created: 0,
@@ -163,7 +163,10 @@ export async function seedConsolidatedArtists(
     errors: [],
   };
 
-  const rows = loadConsolidatedArtistRows(options.csvPath);
+  // Bound each admin request so a Vercel function cannot time out on 500+ rows.
+  const offset = Math.max(0, Math.floor(options.offset ?? 0));
+  const limit = Math.min(50, Math.max(1, Math.floor(options.limit ?? 25)));
+  const rows = loadConsolidatedArtistRows(options.csvPath).slice(offset, offset + limit);
   const touchedIds: string[] = [];
 
   for (const row of rows) {
@@ -209,7 +212,7 @@ export async function seedConsolidatedArtists(
         genres,
         country: row.country,
         socialLinks: row.label ? { label: row.label } : null,
-        isVisible: true,
+        // CSV is an intake source, not editorial approval. Never publish automatically.
         source: 'csv-seed',
         updatedAt: new Date().toISOString(),
       };
@@ -225,7 +228,7 @@ export async function seedConsolidatedArtists(
       } else {
         const { data: created, error } = await db
           .from('artists')
-          .insert(payload)
+          .insert({ ...payload, isVisible: false, status: 'pending_review' })
           .select('id')
           .single();
         if (error || !created) {
@@ -243,7 +246,12 @@ export async function seedConsolidatedArtists(
   }
 
   if (options.enqueueSync !== false && touchedIds.length > 0) {
-    result.syncJobsQueued = await enqueueArtistSyncJobs(db, touchedIds, 'full');
+    // Do not enqueue pending-review artists: only an explicit admin approval
+    // should make an artist visible and eligible for automated discovery.
+    const { data: approved, error: approvedError } = await db
+      .from('artists').select('id').in('id', touchedIds).eq('isVisible', true);
+    if (approvedError) throw new Error(approvedError.message);
+    result.syncJobsQueued = await enqueueArtistSyncJobs(db, (approved ?? []).map(a => a.id), 'full');
   }
 
   return result;

@@ -17,16 +17,17 @@ export interface ResolvedAuth {
 async function loadUserRole(userId: string): Promise<{
   role: string;
   isSuspended: boolean;
+  authProvider: string | null;
 } | null> {
   const supabase = createServiceRoleSupabaseClient();
   const { data, error } = await supabase
     .from('users')
-    .select('role, isSuspended')
+    .select('role, isSuspended, authProvider')
     .eq('id', userId)
     .maybeSingle();
 
-  if (error || !data) return null;
-  return { role: data.role, isSuspended: data.isSuspended };
+  if (error || !data || data.authProvider === 'demo') return null;
+  return { role: data.role, isSuspended: data.isSuspended, authProvider: data.authProvider };
 }
 
 export async function resolveAuthFromRequest(
@@ -88,7 +89,7 @@ export async function resolveAuthFromRequest(
 
   if (bearerToken) {
     const decoded = await authService.verifyToken(bearerToken);
-    if (decoded) {
+    if (decoded && decoded.isDemo !== true) {
       const profile = await loadUserRole(decoded.userId);
       if (!profile || profile.isSuspended) return null;
       return {

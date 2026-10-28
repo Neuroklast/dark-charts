@@ -26,7 +26,7 @@ export const SPOTLIGHT_PRICES: Record<SpotlightSlotType, SpotlightPrice> = {
 };
 
 export const SPOTLIGHT_MAX_DAYS_AHEAD = 90;
-export const SPOTLIGHT_PENDING_TTL_MS = 24 * 60 * 60 * 1000;
+export const SPOTLIGHT_PENDING_TTL_MS = 2 * 60 * 60 * 1000;
 
 export function normalizeSlotDate(input: string | Date): Date {
   const date = typeof input === 'string' ? new Date(input) : new Date(input);

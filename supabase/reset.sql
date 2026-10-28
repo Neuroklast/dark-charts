@@ -619,3 +619,319 @@ BEGIN
 END $$;
 
 -- Service role bypasses RLS via the Supabase service_role key.
+
+-- ---------------------------------------------------------------------------
+-- 2026-10-28: Atomic, service-only operations for chart integrity
+-- This section is additive. Review existing duplicated active spotlight slots
+-- before running this script on an existing production database.
+-- ---------------------------------------------------------------------------
+
+-- Do not trust raw_user_meta_data.role: it is controlled by the registering user.
+-- New signups always start as FAN. Privileged roles are assigned by trusted staff.
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  user_nickname text := COALESCE(NEW.raw_user_meta_data->>'nickname', 'Anonymous Fan');
+BEGIN
+  INSERT INTO public.users (
+    id, email, role, "emailVerified", "authProvider", "createdAt", "updatedAt"
+  ) VALUES (
+    NEW.id, NEW.email, 'FAN',
+    (NEW.email_confirmed_at IS NOT NULL),
+    COALESCE(NEW.raw_app_meta_data->>'provider', 'email'),
+    NOW(), NOW()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    "emailVerified" = EXCLUDED."emailVerified",
+    "authProvider" = EXCLUDED."authProvider",
+    "updatedAt" = NOW();
+
+  INSERT INTO public.fan_profiles ("userId", nickname, credits, "remainingCredits")
+  VALUES (NEW.id, user_nickname, 150, 150)
+  ON CONFLICT ("userId") DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+-- Enforce one active booking per daily placement at the database level.
+CREATE UNIQUE INDEX IF NOT EXISTS bookings_unique_active_slot
+  ON public.bookings ("slotDate", "slotType")
+  WHERE status IN ('pending', 'PAID');
+
+CREATE OR REPLACE FUNCTION public.reserve_spotlight_slot(
+  p_user_id uuid,
+  p_slot_date timestamptz,
+  p_slot_type text,
+  p_amount_cents integer,
+  p_currency text
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  v_id uuid;
+  v_slot_date timestamptz;
+BEGIN
+  IF p_user_id IS NULL OR p_slot_date IS NULL
+     OR p_slot_type NOT IN ('BAND_OF_DAY', 'DJ_OF_DAY')
+     OR p_amount_cents IS NULL OR p_amount_cents <= 0
+     OR p_currency <> 'eur' THEN
+    RAISE EXCEPTION 'INVALID_SPOTLIGHT_SLOT' USING ERRCODE = '22023';
+  END IF;
+
+  v_slot_date := date_trunc('day', p_slot_date AT TIME ZONE 'UTC') AT TIME ZONE 'UTC';
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_slot_type || v_slot_date::text, 0));
+
+  UPDATE public.bookings
+     SET status = 'expired', "updatedAt" = NOW()
+   WHERE "slotDate" = v_slot_date AND "slotType" = p_slot_type
+     AND status = 'pending'
+     AND "createdAt" < NOW() - INTERVAL '2 hours';
+
+  IF EXISTS (
+    SELECT 1 FROM public.bookings
+    WHERE "slotDate" = v_slot_date AND "slotType" = p_slot_type
+      AND status IN ('pending', 'PAID')
+  ) THEN
+    RAISE EXCEPTION 'SLOT_UNAVAILABLE' USING ERRCODE = '23505';
+  END IF;
+
+  INSERT INTO public.bookings (
+    "userId", "slotDate", "slotType", status, "amountCents", currency
+  ) VALUES (p_user_id, v_slot_date, p_slot_type, 'pending', p_amount_cents, p_currency)
+  RETURNING id INTO v_id;
+  RETURN v_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.reserve_spotlight_slot(uuid,timestamptz,text,integer,text)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.reserve_spotlight_slot(uuid,timestamptz,text,integer,text)
+  TO service_role;
+
+-- A single transaction locks the credit account, validates the entire ballot,
+-- inserts its votes and deducts credits. Any exception rolls back everything.
+CREATE OR REPLACE FUNCTION public.cast_weekly_ballot(
+  p_fan_id uuid,
+  p_week_start timestamptz,
+  p_credit_budget integer,
+  p_votes jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  v_remaining integer;
+  v_total_cost bigint := 0;
+  v_units integer;
+  v_key text;
+  v_value text;
+  v_release_id uuid;
+  v_rows jsonb := '[]'::jsonb;
+  v_record public.votes%ROWTYPE;
+  v_created jsonb := '[]'::jsonb;
+  v_item jsonb;
+BEGIN
+  IF p_fan_id IS NULL OR p_week_start IS NULL
+     OR p_credit_budget NOT BETWEEN 1 AND 10000
+     OR p_votes IS NULL OR jsonb_typeof(p_votes) <> 'object'
+     OR p_votes = '{}'::jsonb THEN
+    RAISE EXCEPTION 'INVALID_BALLOT' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT "remainingCredits" INTO v_remaining
+  FROM public.fan_profiles WHERE id = p_fan_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'FAN_PROFILE_NOT_FOUND' USING ERRCODE = '22023';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.votes
+    WHERE "fanId" = p_fan_id AND "weekStart" = p_week_start
+  ) THEN
+    RAISE EXCEPTION 'ALREADY_VOTED' USING ERRCODE = '23505';
+  END IF;
+
+  FOR v_key, v_value IN SELECT key, value FROM jsonb_each_text(p_votes)
+  LOOP
+    IF v_value !~ '^[1-9][0-9]{0,3}$' THEN
+      RAISE EXCEPTION 'INVALID_VOTE_COUNT' USING ERRCODE = '22023';
+    END IF;
+    v_units := v_value::integer;
+    v_release_id := v_key::uuid;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM public.releases
+      WHERE id = v_release_id AND "isVisible" = TRUE
+        AND "releaseDate" <= CURRENT_DATE
+        AND "releaseDate" >= (CURRENT_DATE - INTERVAL '12 months')::date
+    ) THEN
+      RAISE EXCEPTION 'RELEASE_NOT_ELIGIBLE' USING ERRCODE = '22023';
+    END IF;
+
+    v_total_cost := v_total_cost + v_units::bigint * v_units::bigint;
+    IF v_total_cost > p_credit_budget OR v_total_cost > v_remaining THEN
+      RAISE EXCEPTION 'INSUFFICIENT_CREDITS' USING ERRCODE = '22023';
+    END IF;
+
+    v_rows := v_rows || jsonb_build_array(
+      jsonb_build_object('releaseId', v_release_id, 'votes', v_units, 'cost', v_units * v_units)
+    );
+  END LOOP;
+
+  FOR v_item IN SELECT value FROM jsonb_array_elements(v_rows)
+  LOOP
+    INSERT INTO public.votes (
+      "fanId", "releaseId", "allocatedVotes", cost, votes, credits, "weekStart"
+    ) VALUES (
+      p_fan_id, (v_item->>'releaseId')::uuid,
+      (v_item->>'votes')::integer, (v_item->>'cost')::integer,
+      (v_item->>'votes')::integer, (v_item->>'cost')::integer, p_week_start
+    )
+    RETURNING * INTO v_record;
+    v_created := v_created || jsonb_build_array(to_jsonb(v_record));
+  END LOOP;
+
+  UPDATE public.fan_profiles
+     SET "remainingCredits" = "remainingCredits" - v_total_cost::integer,
+         "updatedAt" = NOW()
+   WHERE id = p_fan_id;
+
+  RETURN jsonb_build_object(
+    'votes', v_created,
+    'remainingCredits', v_remaining - v_total_cost::integer
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.cast_weekly_ballot(uuid,timestamptz,integer,jsonb)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.cast_weekly_ballot(uuid,timestamptz,integer,jsonb)
+  TO service_role;
+
+
+-- Prevent anonymous and user-initiated execution of privileged trigger helpers.
+REVOKE EXECUTE ON FUNCTION public.handle_new_auth_user() FROM PUBLIC, anon, authenticated;
+DO $$
+BEGIN
+  IF to_regprocedure('public.rls_auto_enable()') IS NOT NULL THEN
+    EXECUTE 'REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated';
+  END IF;
+END;
+$$;
+
+-- User roles can be read through the user's own RLS-scoped users row.
+ALTER FUNCTION public.get_my_role() SECURITY INVOKER;
+REVOKE EXECUTE ON FUNCTION public.get_my_role() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_my_role() TO authenticated;
+
+CREATE INDEX IF NOT EXISTS idx_airplay_artist_id ON public.airplay_events ("artistId");
+CREATE INDEX IF NOT EXISTS idx_airplay_source_playlist ON public.airplay_events ("sourcePlaylistId");
+CREATE INDEX IF NOT EXISTS idx_audit_logs_admin_id ON public.audit_logs ("adminId");
+CREATE INDEX IF NOT EXISTS idx_bookings_user_id ON public.bookings ("userId");
+CREATE INDEX IF NOT EXISTS idx_chart_entries_artist_id ON public.chart_entries ("artistId");
+CREATE INDEX IF NOT EXISTS idx_user_badges_badge_id ON public.user_badges ("badgeId");
+CREATE INDEX IF NOT EXISTS idx_vote_anomalies_release_id ON public.vote_anomalies ("releaseId");
+
+DROP POLICY IF EXISTS users_read_own ON public.users;
+CREATE POLICY users_read_own ON public.users FOR SELECT TO authenticated
+  USING (id = (select auth.uid()));
+
+
+-- All scraped/catalog-imported content requires manual editorial approval.
+-- Existing approved records keep their explicit isVisible values.
+ALTER TABLE public.artists ALTER COLUMN "isVisible" SET DEFAULT FALSE;
+ALTER TABLE public.releases ALTER COLUMN "isVisible" SET DEFAULT FALSE;
+-- Index queues for admin review; only query hidden records (never force visibility).
+CREATE INDEX IF NOT EXISTS idx_artists_pending_review ON public.artists ("createdAt" DESC)
+  WHERE "isVisible" = FALSE;
+CREATE INDEX IF NOT EXISTS idx_releases_pending_review ON public.releases ("createdAt" DESC)
+  WHERE "isVisible" = FALSE;
+
+
+-- Expert top-ten ballots are an atomic replacement, not ten independent writes.
+CREATE UNIQUE INDEX IF NOT EXISTS expert_votes_unique_rank_week
+  ON public.expert_votes ("djId", "weekStart", rank)
+  WHERE rank BETWEEN 1 AND 10;
+
+CREATE OR REPLACE FUNCTION public.cast_dj_top_ten(
+  p_dj_id uuid, p_week_start timestamptz, p_ranks jsonb
+)
+RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  v_expert boolean;
+  v_key text;
+  v_value text;
+  v_release_id uuid;
+  v_rank integer;
+  v_ranks integer[] := '{}'::integer[];
+  v_votes jsonb := '[]'::jsonb;
+  v_record public.expert_votes%ROWTYPE;
+BEGIN
+  IF p_dj_id IS NULL OR p_week_start IS NULL OR p_ranks IS NULL
+     OR jsonb_typeof(p_ranks) <> 'object'
+     OR (SELECT count(*) FROM jsonb_object_keys(p_ranks)) <> 10 THEN
+    RAISE EXCEPTION 'INVALID_DJ_BALLOT' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT "expertStatus" INTO v_expert
+    FROM public.dj_profiles WHERE id = p_dj_id FOR UPDATE;
+  IF NOT FOUND OR NOT COALESCE(v_expert, FALSE) THEN
+    RAISE EXCEPTION 'DJ_NOT_VERIFIED' USING ERRCODE = '22023';
+  END IF;
+
+  FOR v_key, v_value IN SELECT key, value FROM jsonb_each_text(p_ranks)
+  LOOP
+    IF v_value !~ '^(10|[1-9])$' THEN
+      RAISE EXCEPTION 'INVALID_DJ_RANK' USING ERRCODE = '22023';
+    END IF;
+    v_rank := v_value::integer;
+    IF v_rank = ANY(v_ranks) THEN
+      RAISE EXCEPTION 'DUPLICATE_DJ_RANK' USING ERRCODE = '22023';
+    END IF;
+    v_ranks := array_append(v_ranks, v_rank);
+    BEGIN
+      v_release_id := v_key::uuid;
+    EXCEPTION WHEN invalid_text_representation THEN
+      RAISE EXCEPTION 'INVALID_RELEASE_ID' USING ERRCODE = '22023';
+    END;
+    IF NOT EXISTS (
+      SELECT 1 FROM public.releases r
+        JOIN public.artists a ON a.id = r."artistId"
+       WHERE r.id = v_release_id AND r."isVisible" = TRUE
+         AND a."isVisible" = TRUE
+         AND r."releaseDate" BETWEEN
+           (CURRENT_DATE - INTERVAL '12 months')::date AND CURRENT_DATE
+    ) THEN
+      RAISE EXCEPTION 'RELEASE_NOT_ELIGIBLE' USING ERRCODE = '22023';
+    END IF;
+  END LOOP;
+
+  DELETE FROM public.expert_votes
+   WHERE "djId" = p_dj_id AND "weekStart" = p_week_start;
+  FOR v_key, v_value IN SELECT key, value FROM jsonb_each_text(p_ranks)
+  LOOP
+    INSERT INTO public.expert_votes ("djId", "releaseId", rank, rating, "weekStart")
+    VALUES (p_dj_id, v_key::uuid, v_value::integer, v_value::integer, p_week_start)
+    RETURNING * INTO v_record;
+    v_votes := v_votes || jsonb_build_array(to_jsonb(v_record));
+  END LOOP;
+  RETURN v_votes;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.cast_dj_top_ten(uuid,timestamptz,jsonb)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.cast_dj_top_ten(uuid,timestamptz,jsonb)
+  TO service_role;

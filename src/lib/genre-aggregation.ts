@@ -75,14 +75,18 @@ export function buildGenreChartInserts(params: {
     filterFn: (releaseId: string) => boolean,
     minFanVotes: number
   ) => {
-    const eligible = combinedScores.filter((item) => {
-      if (!filterFn(item.releaseId)) return false;
-      return (fanVoteCountByRelease.get(item.releaseId) ?? 0) >= minFanVotes;
-    });
-
-    if (eligible.length === 0) return;
+    const genreReleases = combinedScores.filter((item) => filterFn(item.releaseId));
 
     for (const chartType of chartTypes) {
+      // A DJ recommendation or verifiable streaming signal does not need fan
+      // votes to qualify. Only fan charts require the fan-vote minimum.
+      const eligible = genreReleases.filter((item) => {
+        if (scoreFns[chartType](item) <= 0) return false;
+        if (chartType === 'fan') {
+          return (fanVoteCountByRelease.get(item.releaseId) ?? 0) >= minFanVotes;
+        }
+        return true;
+      });
       const sorted = [...eligible]
         .sort((a, b) => scoreFns[chartType](b) - scoreFns[chartType](a))
         .slice(0, GENRE_CHART_LIMIT);

@@ -1,40 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ApiError } from '@/lib/errors';
-import { calculateVoteCost } from '@/lib/math/quadratic';
 
 interface FanProfileRow {
   id: string;
   remainingCredits: number;
 }
 
-interface VoteRowSnapshot {
-  id: string;
-  wasInsert: boolean;
-  previous?: {
-    allocatedVotes: number;
-    cost: number;
-    votes: number;
-    credits: number;
-    createdAt: string;
-  };
-}
-
-async function rollbackFanVotes(
-  supabase: SupabaseClient,
-  snapshots: VoteRowSnapshot[]
-): Promise<void> {
-  for (const snapshot of snapshots) {
-    if (snapshot.wasInsert) {
-      await supabase.from('votes').delete().eq('id', snapshot.id);
-    } else if (snapshot.previous) {
-      await supabase
-        .from('votes')
-        .update(snapshot.previous)
-        .eq('id', snapshot.id);
-    }
-  }
-}
-
+/**
+ * Cast an entire ballot in one PostgreSQL transaction. The server calls this
+ * using the service-role client after authentication and eligibility checks.
+ * PostgreSQL locks the fan profile and enforces the budget and weekly limit.
+ */
 export async function submitFanBulkVotes(params: {
   supabase: SupabaseClient;
   fanProfile: FanProfileRow;
@@ -43,114 +19,35 @@ export async function submitFanBulkVotes(params: {
   weekStart: Date;
 }): Promise<{ votes: unknown[]; remainingCredits: number }> {
   const { supabase, fanProfile, votes, creditBudget, weekStart } = params;
-  const entries = Object.entries(votes);
-  const weekStartIso = weekStart.toISOString();
 
-  let totalCost = 0;
-  for (const [, v] of entries) {
-    totalCost += calculateVoteCost(v);
-  }
+  const { data, error } = await supabase.rpc('cast_weekly_ballot', {
+    p_fan_id: fanProfile.id,
+    p_week_start: weekStart.toISOString(),
+    p_credit_budget: creditBudget,
+    p_votes: votes,
+  });
 
-  if (totalCost > creditBudget) {
-    throw new ApiError(400, 'Budget exceeded');
-  }
-
-  if (fanProfile.remainingCredits < totalCost) {
-    throw new ApiError(400, 'Insufficient credits');
-  }
-
-  const now = new Date().toISOString();
-  const snapshots: VoteRowSnapshot[] = [];
-  const createdVotes: unknown[] = [];
-
-  try {
-    for (const [releaseId, allocatedVotes] of entries) {
-      const cost = calculateVoteCost(allocatedVotes);
-
-      const { data: existingVote, error: existingError } = await supabase
-        .from('votes')
-        .select('*')
-        .eq('fanId', fanProfile.id)
-        .eq('releaseId', releaseId)
-        .eq('weekStart', weekStartIso)
-        .maybeSingle();
-
-      if (existingError) {
-        throw new ApiError(500, existingError.message);
-      }
-
-      if (existingVote) {
-        snapshots.push({
-          id: existingVote.id,
-          wasInsert: false,
-          previous: {
-            allocatedVotes: existingVote.allocatedVotes,
-            cost: existingVote.cost,
-            votes: existingVote.votes,
-            credits: existingVote.credits,
-            createdAt: existingVote.createdAt,
-          },
-        });
-
-        const { data: updatedVote, error } = await supabase
-          .from('votes')
-          .update({
-            allocatedVotes,
-            cost,
-            votes: allocatedVotes,
-            credits: cost,
-            weekStart: weekStartIso,
-            createdAt: now,
-          })
-          .eq('id', existingVote.id)
-          .select()
-          .single();
-
-        if (error) {
-          throw new ApiError(500, error.message);
-        }
-        createdVotes.push(updatedVote);
-      } else {
-        const { data: insertedVote, error } = await supabase
-          .from('votes')
-          .insert({
-            fanId: fanProfile.id,
-            releaseId,
-            allocatedVotes,
-            cost,
-            votes: allocatedVotes,
-            credits: cost,
-            weekStart: weekStartIso,
-            createdAt: now,
-          })
-          .select()
-          .single();
-
-        if (error) {
-          throw new ApiError(500, error.message);
-        }
-
-        snapshots.push({ id: insertedVote.id, wasInsert: true });
-        createdVotes.push(insertedVote);
-      }
+  if (error) {
+    const reason = error.message;
+    if (reason.includes('ALREADY_VOTED') || error.code === '23505') {
+      throw new ApiError(409, 'You have already submitted your vote this week', 'ALREADY_VOTED');
     }
-
-    const remainingCredits = fanProfile.remainingCredits - totalCost;
-    const { error: creditError } = await supabase
-      .from('fan_profiles')
-      .update({
-        remainingCredits,
-        updatedAt: now,
-      })
-      .eq('id', fanProfile.id);
-
-    if (creditError) {
-      throw new ApiError(500, creditError.message);
+    if (reason.includes('RELEASE_NOT_ELIGIBLE')) {
+      throw new ApiError(400, 'Release is not eligible for voting', 'RELEASE_NOT_ELIGIBLE');
     }
-
-    return { votes: createdVotes, remainingCredits };
-  } catch (error) {
-    await rollbackFanVotes(supabase, snapshots);
-    throw error;
+    if (reason.includes('INSUFFICIENT_CREDITS')) {
+      throw new ApiError(400, 'Insufficient voice credits', 'INSUFFICIENT_CREDITS');
+    }
+    if (error.code === '22023') {
+      throw new ApiError(400, 'Invalid ballot', 'INVALID_BALLOT');
+    }
+    throw new ApiError(500, 'Could not save ballot atomically', 'BALLOT_SAVE_FAILED');
   }
+
+  if (!data || !Array.isArray(data.votes) ||
+      !Number.isInteger(data.remainingCredits) || data.remainingCredits < 0) {
+    throw new ApiError(500, 'Unexpected ballot result', 'BALLOT_SAVE_FAILED');
+  }
+
+  return { votes: data.votes, remainingCredits: data.remainingCredits };
 }
