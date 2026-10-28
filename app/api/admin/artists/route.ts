@@ -64,14 +64,20 @@ export const GET = withAdminAuth(async (req: NextRequest) => {
   const db = createServiceRoleSupabaseClient();
   if (req.nextUrl.searchParams.get('view') === 'list') {
     const page = Math.min(10000, Math.max(0, Number(req.nextUrl.searchParams.get('page')) || 0));
+    const size = Math.min(100, Math.max(10, Number(req.nextUrl.searchParams.get('size')) || 10));
     const search = (req.nextUrl.searchParams.get('search') ?? '').trim().slice(0, 100);
+    const visibility = req.nextUrl.searchParams.get('visibility');
     let query = db.from('artists')
       .select('id,name,spotifyId,genres,country,isVisible,status,source,createdAt', { count: 'exact' })
-      .order('createdAt', { ascending: false }).range(page * 50, page * 50 + 49);
+      .order('createdAt', { ascending: false }).order('id', { ascending: true })
+      .range(page * size, page * size + size - 1);
+    if (visibility === 'visible') query = query.eq('isVisible', true);
+    if (visibility === 'hidden') query = query.eq('isVisible', false);
+    if (visibility === 'pending') query = query.eq('isVisible', false).eq('status', 'pending_review');
     if (search) query = query.ilike('name', '%' + search.replace(/[%_\\]/g, '\\$&') + '%');
     const { data, count, error } = await query;
     if (error) throw new ApiError(500, 'Artist-Liste konnte nicht geladen werden.');
-    return NextResponse.json({ artists: data ?? [], total: count ?? 0, page });
+    return NextResponse.json({ artists: data ?? [], total: count ?? 0, page, size });
   }
 
   const { data: blacklist, error } = await db
