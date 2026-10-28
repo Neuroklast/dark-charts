@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
+import { AdminPagination } from './shared/AdminPagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -7,11 +8,14 @@ import { Button } from '@/components/ui/button';
 interface PromotionApprovalViewProps {
   bookings?: any[];
   isLoading?: boolean;
+  total?: number;page?: number;pageSize?: number;busyId?: string | null;
+  onPageChange?: (page:number)=>void;onPageSizeChange?: (size:number)=>void;
   onApprove?: (bookingId: string) => void;
   onReject?: (bookingId: string) => void;
 }
 
-export function PromotionApprovalView({ bookings, isLoading, onApprove, onReject }: PromotionApprovalViewProps) {
+export function PromotionApprovalView({ bookings, isLoading, onApprove, onReject,
+  total=0,page=0,pageSize=10,busyId,onPageChange,onPageSizeChange }: PromotionApprovalViewProps) {
   if (isLoading) {
     return (
       <Card className="p-0 overflow-hidden" data-testid="promotions-loading">
@@ -42,9 +46,12 @@ export function PromotionApprovalView({ bookings, isLoading, onApprove, onReject
   }
 
   return (
-    <Card className="p-0 overflow-hidden">
+    <div className="space-y-3">
+      <AdminPagination page={page} pageSize={pageSize} total={total}
+        onPageChange={onPageChange ?? (() => {})} onPageSizeChange={onPageSizeChange} />
+    <Card className="p-0 max-h-[62vh] overflow-auto">
       <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow>
             <TableHead>Type</TableHead>
             <TableHead>Slot Date</TableHead>
@@ -72,7 +79,7 @@ export function PromotionApprovalView({ bookings, isLoading, onApprove, onReject
                   variant="outline"
                   size="sm"
                   onClick={() => onApprove?.(booking.id)}
-                  disabled={booking.status !== 'PENDING'}
+                  disabled={booking.status !== 'PENDING' || busyId !== null}
                   className="hover:text-green-500 hover:border-green-500"
                 >
                   Approve
@@ -97,5 +104,8 @@ export function PromotionApprovalView({ bookings, isLoading, onApprove, onReject
         </TableBody>
       </Table>
     </Card>
+    <AdminPagination page={page} pageSize={pageSize} total={total}
+      onPageChange={onPageChange ?? (() => {})} onPageSizeChange={onPageSizeChange} />
+    </div>
   );
 }
