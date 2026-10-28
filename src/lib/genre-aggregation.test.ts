@@ -45,5 +45,12 @@ describe('genre-aggregation', () => {
     expect(gothicFan).toHaveLength(1);
     expect(gothicFan[0].releaseId).toBe('r1');
     expect(doomFan).toHaveLength(0);
+
+    // A qualified DJ pick must not disappear merely because fan voting is small.
+    const doomExpert = inserts.filter(
+      (entry) => entry.genre === 'Doom Metal' && entry.chartType === 'expert'
+    );
+    expect(doomExpert).toHaveLength(1);
+    expect(doomExpert[0].releaseId).toBe('r2');
   });
 });
