@@ -142,7 +142,7 @@ async function timedFetch(
     const bytes = new Uint8Array(size);
     let offset = 0;
     for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-    return new Response(bytes.buffer, { status: response.status, headers: response.headers });
+    return new Response(bytes.buffer as ArrayBuffer, { status: response.status, headers: response.headers });
   } finally {
     clearTimeout(timer);
     if (reader) void reader.cancel().catch(() => undefined);
