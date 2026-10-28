@@ -15,7 +15,8 @@ describe('itunesSyncQueue', () => {
   });
 
   it('enqueues consolidated artists and processes jobs FIFO', () => {
-    const { queued, total } = enqueueConsolidatedArtistJobs();
+    const importedArtists = Array.from({ length: 150 }, (_, i) => ({ id: `artist-${i}`, name: `Test Artist ${i}` }));
+    const { queued, total } = enqueueConsolidatedArtistJobs(importedArtists);
     expect(total).toBeGreaterThan(100);
     expect(queued).toBeGreaterThan(0);
     expect(queued).toBeLessThanOrEqual(total);

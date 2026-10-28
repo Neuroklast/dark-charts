@@ -1,5 +1,3 @@
-import { loadConsolidatedArtists } from '@/lib/artists/consolidatedArtists';
-
 export type ItunesSyncJobStatus = 'pending' | 'running' | 'done' | 'failed';
 
 export interface ItunesSyncJob {
@@ -49,9 +47,8 @@ function recoverStuckJobs(store: QueueState): void {
   }
 }
 
-export function enqueueConsolidatedArtistJobs(): { queued: number; total: number } {
+export function enqueueConsolidatedArtistJobs(artists: ReadonlyArray<{ id: string; name: string }> = []): { queued: number; total: number } {
   const store = getStore();
-  const artists = loadConsolidatedArtists();
   let queued = 0;
 
   for (const artist of artists) {
