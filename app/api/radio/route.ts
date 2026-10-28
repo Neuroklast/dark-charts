@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { tryCreateServiceRoleSupabaseClient } from '@/lib/supabase/server';
+import { matchesRadioGenre } from '@/lib/radio/genreSearch';
 
 // Only verified, actively monitored stations are published. Candidate streams remain private.
 export const dynamic = 'force-dynamic';
@@ -36,10 +37,6 @@ function clean(value: string | null, max = 80): string {
 
 function eventGenres(event: Event): string[] {
   return [...(event.artists?.genres ?? []), ...(event.releases?.genres ?? [])];
-}
-
-function matchesGenre(genres: string[], genre: string): boolean {
-  return !genre || genres.some((tag) => tag.toLocaleLowerCase().includes(genre));
 }
 
 export async function GET(request: Request) {
@@ -107,9 +104,9 @@ export async function GET(request: Request) {
     if (country && station.country?.toUpperCase() !== country) return false;
     const tags = station.tags ?? [];
     if (genre && (view === 'stations'
-      ? !matchesGenre(tags, genre)
+      ? !matchesRadioGenre(tags, genre)
       : !station.nowPlaying || !station.nowPlaying.matched ||
-        !matchesGenre(station.nowPlaying.genres, genre))) return false;
+        !matchesRadioGenre(station.nowPlaying.genres, genre))) return false;
     if (view === 'live' && !station.nowPlaying) return false;
     if (q && ![station.name, ...tags, station.nowPlaying?.artist, station.nowPlaying?.title]
       .filter(Boolean).some((value) => String(value).toLocaleLowerCase().includes(q))) return false;
@@ -126,7 +123,7 @@ export async function GET(request: Request) {
       if (!station || !event.artistId || event.confidence < 0.85) continue;
       if (country && station.country?.toUpperCase() !== country) continue;
       const genres = eventGenres(event);
-      if (!matchesGenre(genres, genre)) continue;
+      if (!matchesRadioGenre(genres, genre)) continue;
       const artist = event.artists?.name ?? event.rawArtist ?? '';
       const title = event.releases?.title ?? event.rawTitle ?? '';
       if (!artist || !title) continue;
