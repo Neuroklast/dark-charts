@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -22,6 +23,10 @@ export interface RadioStationRow {
   lastError: string | null;
   lastMetadataAt: string | null;
   tags: string[];
+  streamUrl: string | null;
+  nowPlayingUrl: string | null;
+  metadataMode: string;
+  probeIntervalSeconds: number;
 }
 
 export interface RadioEventRow {
@@ -57,6 +62,10 @@ interface RadioMonitorViewProps {
   onDiscoverySourceChange?: (value: 'radio_browser' | 'shoutcast') => void;
   manualName?: string;
   manualUrl?: string;
+  manualNowPlayingUrl?: string;
+  onManualNowPlayingUrlChange?: (value: string) => void;
+  onDeleteStation?: (id: string) => void;
+  onSaveStation?: (id: string, patch: { streamUrl: string | null; nowPlayingUrl: string | null; metadataMode: string; probeIntervalSeconds: number }) => void;
   onToggleMonitor?: (id: string, enabled: boolean) => void;
   onToggleLegalHold?: (id: string, hold: boolean) => void;
   onUnmatchedChange?: (value: boolean) => void;
@@ -85,6 +94,10 @@ export function RadioMonitorView({
   onDiscoverySourceChange,
   manualName = '',
   manualUrl = '',
+  manualNowPlayingUrl = '',
+  onManualNowPlayingUrlChange,
+  onDeleteStation,
+  onSaveStation,
   onToggleMonitor,
   onToggleLegalHold,
   onUnmatchedChange,
@@ -96,6 +109,12 @@ export function RadioMonitorView({
   onSettingsChange,
   initialTab = 'overview',
 }: RadioMonitorViewProps) {
+  const [editingStation, setEditingStation] = useState<string | null>(null);
+  const [editStreamUrl, setEditStreamUrl] = useState('');
+  const [editNowPlayingUrl, setEditNowPlayingUrl] = useState('');
+  const [editMode, setEditMode] = useState('auto');
+  const [editInterval, setEditInterval] = useState(45);
+
   if (isLoading) {
     return (
       <div className="space-y-4" data-testid="radio-monitor-loading">
@@ -154,6 +173,12 @@ export function RadioMonitorView({
               value={manualUrl}
               onChange={(event) => onManualUrlChange?.(event.target.value)}
             />
+            <Input
+              aria-label="Now-playing JSON URL (optional)"
+              placeholder="Now-playing JSON URL (optional)"
+              value={manualNowPlayingUrl}
+              onChange={(event) => onManualNowPlayingUrlChange?.(event.target.value)}
+            />
             <Button type="submit">Add</Button>
           </form>
           <Card className="p-0 overflow-x-auto">
@@ -166,6 +191,7 @@ export function RadioMonitorView({
                   <TableHead>Monitor</TableHead>
                   <TableHead>Legal hold</TableHead>
                   <TableHead>Last error</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -204,11 +230,59 @@ export function RadioMonitorView({
                     <TableCell className="text-xs text-muted-foreground max-w-[16rem] truncate">
                       {station.lastError ?? '—'}
                     </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => {
+                          setEditingStation(station.id);
+                          setEditStreamUrl(station.streamUrl ?? '');
+                          setEditNowPlayingUrl(station.nowPlayingUrl ?? '');
+                          setEditMode(station.metadataMode);
+                          setEditInterval(station.probeIntervalSeconds);
+                        }}>Configure</Button>
+                        <Button type="button" variant="destructive" size="sm" onClick={() => {
+                          if (window.confirm(`Delete radio station ${station.name}?`)) onDeleteStation?.(station.id);
+                        }}>Delete</Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </Card>
+          {editingStation && (
+            <Card className="space-y-3 p-4">
+              <h3 className="font-semibold">Configure {stations.find((item) => item.id === editingStation)?.name}</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1"><Label htmlFor="edit-stream-url">Stream URL</Label>
+                  <Input id="edit-stream-url" value={editStreamUrl} onChange={(event) => setEditStreamUrl(event.target.value)} /></div>
+                <div className="space-y-1"><Label htmlFor="edit-now-url">Now-playing API URL</Label>
+                  <Input id="edit-now-url" placeholder="Optional AzuraCast / Radio.co JSON URL" value={editNowPlayingUrl}
+                    onChange={(event) => setEditNowPlayingUrl(event.target.value)} /></div>
+                <div className="space-y-1"><Label htmlFor="edit-mode">Metadata mode</Label>
+                  <select id="edit-mode" value={editMode} onChange={(event) => setEditMode(event.target.value)}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                    {['auto', 'nowplaying_url', 'icecast_json', 'shoutcast_stats', 'icy'].map((mode) =>
+                      <option value={mode} key={mode}>{mode}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1"><Label htmlFor="edit-interval">Probe interval (seconds)</Label>
+                  <Input id="edit-interval" type="number" min={15} max={600} value={editInterval}
+                    onChange={(event) => setEditInterval(Number(event.target.value))} /></div>
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" onClick={() => {
+                  onSaveStation?.(editingStation, {
+                    streamUrl: editStreamUrl.trim() || null,
+                    nowPlayingUrl: editNowPlayingUrl.trim() || null,
+                    metadataMode: editMode,
+                    probeIntervalSeconds: editInterval,
+                  });
+                  setEditingStation(null);
+                }}>Save station</Button>
+                <Button type="button" variant="outline" onClick={() => setEditingStation(null)}>Cancel</Button>
+              </div>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="discover" className="space-y-3 pt-4">
