@@ -61,6 +61,7 @@ async function postJson(url: string, body: Record<string, unknown>) {
     errors?: string[];
     affected?: number;
     jobsQueued?: number;
+    jobId?: string;
   };
   if (!response.ok) throw new Error(payload.error || 'Die Anfrage ist fehlgeschlagen.');
   return payload;
