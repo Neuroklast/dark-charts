@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withAdminAuth } from '@/lib/adminAuth';
 import { ApiError } from '@/lib/errors';
+import { isPublicStreamUrl } from '@/lib/radio/publicEndpoint';
 import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import {
   createManualStation,
@@ -43,6 +44,10 @@ export const POST = withAdminAuth(async (req, adminId) => {
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) {
     throw new ApiError(400, 'Invalid station', 'VALIDATION_ERROR');
+  }
+  if (!isPublicStreamUrl(parsed.data.streamUrl) ||
+      (parsed.data.nowPlayingUrl && !isPublicStreamUrl(parsed.data.nowPlayingUrl))) {
+    throw new ApiError(400, 'Station URLs must be public HTTP(S) endpoints', 'VALIDATION_ERROR');
   }
   const supabase = createServiceRoleSupabaseClient();
   const station = await createManualStation(supabase, parsed.data);
