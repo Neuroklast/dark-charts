@@ -74,13 +74,30 @@ export function RadioMonitorContainer() {
   }, [loadAll]);
 
   const patchStation = async (id: string, patch: Record<string, unknown>) => {
-    const res = await authFetch(`/api/admin/radio/stations/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch),
-    });
-    if (!res.ok) throw new Error('patch');
-    await loadStations();
+    const previous = stations.find(station => station.id === id);
+    if (!previous) throw new Error('Station not found');
+    setStations(list => list.map(station => station.id === id ? { ...station, ...patch } : station));
+    if (typeof patch.monitorEnabled === 'boolean' && patch.monitorEnabled !== previous.monitorEnabled) {
+      setStats(value => ({ ...value, monitored: value.monitored + (patch.monitorEnabled ? 1 : -1) }));
+    }
+    try {
+      const res = await authFetch(`/api/admin/radio/stations/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload.error || 'Station update failed');
+      }
+      const payload = await res.json() as { station: RadioStationRow };
+      setStations(list => list.map(station => station.id === id ? payload.station : station));
+    } catch (error) {
+      setStations(list => list.map(station => station.id === id ? previous : station));
+      if (typeof patch.monitorEnabled === 'boolean' && patch.monitorEnabled !== previous.monitorEnabled) {
+        setStats(value => ({ ...value, monitored: value.monitored + (previous.monitorEnabled ? 1 : -1) }));
+      }
+      throw error;
+    }
   };
 
   return (
@@ -112,8 +129,10 @@ export function RadioMonitorContainer() {
       onDeleteStation={(id) => {
         void authFetch(`/api/admin/radio/stations/${id}`, { method: 'DELETE' }).then(async (res) => {
           if (!res.ok) throw new Error('delete');
+          setStations(list => list.filter(station => station.id !== id));
+          setStats(value => ({ ...value, total: Math.max(0, value.total - 1),
+            monitored: Math.max(0, value.monitored - (stations.find(station => station.id === id)?.monitorEnabled ? 1 : 0)) }));
           toast.success('Radio station deleted');
-          await loadStations();
         }).catch(() => toast.error('Failed to delete station'));
       }}
       onSaveStation={(id, patch) => {
