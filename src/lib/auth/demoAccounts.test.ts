@@ -38,14 +38,14 @@ describe('isDemoLoginAllowed', () => {
 });
 
 describe('demo admin cookie access', () => {
-  it('grants admin only for a valid demo ADMIN token', async () => {
+  it('rejects existing demo ADMIN tokens', async () => {
     const token = jwt.sign(
       { userId: 'u1', email: 'demo-admin@darkcharts.demo', role: 'ADMIN', isDemo: true },
       'test-secret',
       { expiresIn: '2h' }
     );
     const payload = await verifyHs256Jwt(token, 'test-secret');
-    expect(payloadGrantsDemoAdmin(payload)).toBe(true);
+    expect(payloadGrantsDemoAdmin(payload)).toBe(false);
   });
 
   it('rejects a demo FAN token for admin', async () => {
