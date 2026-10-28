@@ -77,22 +77,17 @@ export function CentralLoginForm() {
       toast.error(t('auth.emailRequired'));
       return;
     }
-
     setIsLoading(true);
     try {
-      const supabase = tryCreateBrowserSupabaseClient();
-      if (!supabase) {
-        toast.error(t('auth.resetFailed'));
-        return;
-      }
-
-      const redirectTo = `${window.location.origin}/auth/callback?recovery=1`;
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
-      if (error) {
-        toast.error(t('auth.resetFailed'));
-      } else {
-        toast.success(t('auth.resetSent'));
-      }
+      const response = await fetch('/api/auth/password-reset/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (!response.ok) throw new Error('recovery_unavailable');
+      // Same result for existing and unknown accounts: prevent user enumeration.
+      toast.success(t('auth.resetSent'));
     } catch {
       toast.error(t('auth.resetFailed'));
     } finally {
@@ -117,6 +112,18 @@ export function CentralLoginForm() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {searchParams.get('reset') === 'success' && (
+            <div role="status" className="rounded-lg border border-emerald-500/30 bg-emerald-950/25 p-3 text-sm text-emerald-200">
+              {t('auth.passwordChanged') === 'auth.passwordChanged'
+                ? 'Dein Passwort wurde geändert. Du kannst dich jetzt anmelden.'
+                : t('auth.passwordChanged')}
+            </div>
+          )}
+          {(errorParam === 'expired_recovery' || errorParam === 'invalid_recovery') && (
+            <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              {t('auth.resetFailed')}
+            </div>
+          )}
           {errorParam === 'unauthorized' && (
             <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               <Warning size={18} weight="bold" className="mt-0.5 shrink-0" aria-hidden="true" />
