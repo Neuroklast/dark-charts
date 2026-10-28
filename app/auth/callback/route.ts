@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   }
 
   const redirectPath = recovery
-    ? `${origin}/login?type=recovery&exchanged=1`
+    ? `${origin}/reset-password`
     : `${origin}/`;
 
   let response = NextResponse.redirect(redirectPath);
