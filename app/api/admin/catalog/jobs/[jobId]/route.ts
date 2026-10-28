@@ -4,7 +4,7 @@ import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import { ApiError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
-type JobContext = { params: Promise<{ jobId: string }> };
+type JobContext = { params?: Promise<Record<string, string>> };
 
 export const GET = withAdminAuth(async (_req: NextRequest, adminId: string, context?: JobContext) => {
   const id = (await context?.params)?.jobId;
