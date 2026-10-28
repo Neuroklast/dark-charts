@@ -31,7 +31,8 @@ describe('submitFanBulkVotes', () => {
     const result = await submitFanBulkVotes({ supabase, ...params });
 
     expect(result).toEqual({ votes: created, remainingCredits: 145 });
-    expect(rpc).toHaveBeenCalledExactlyOnceWith('cast_weekly_ballot', {
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith('cast_weekly_ballot', {
       p_fan_id: 'fan-profile-1',
       p_week_start: WEEK.toISOString(),
       p_credit_budget: 150,
@@ -45,7 +46,7 @@ describe('submitFanBulkVotes', () => {
       error: { message: 'ALREADY_VOTED', code: '23505' },
     });
     await expect(submitFanBulkVotes({ supabase, ...params }))
-      .rejects.toMatchObject({ statusCode: 409, code: 'ALREADY_VOTED' });
+      .rejects.toMatchObject({ status: 409, code: 'ALREADY_VOTED' });
   });
 
   it('rejects insufficient credits without making a partial write', async () => {
