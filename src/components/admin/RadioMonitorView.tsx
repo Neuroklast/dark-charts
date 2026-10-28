@@ -50,6 +50,11 @@ interface RadioMonitorViewProps {
   settings?: RadioMonitorSettings;
   unmatchedOnly?: boolean;
   discoverTags?: string;
+  discoverCountry?: string;
+  discoverySource?: 'radio_browser' | 'shoutcast';
+  onDiscoverTagsChange?: (value: string) => void;
+  onDiscoverCountryChange?: (value: string) => void;
+  onDiscoverySourceChange?: (value: 'radio_browser' | 'shoutcast') => void;
   manualName?: string;
   manualUrl?: string;
   onToggleMonitor?: (id: string, enabled: boolean) => void;
@@ -73,6 +78,11 @@ export function RadioMonitorView({
   settings,
   unmatchedOnly = false,
   discoverTags,
+  discoverCountry = '',
+  discoverySource = 'radio_browser',
+  onDiscoverTagsChange,
+  onDiscoverCountryChange,
+  onDiscoverySourceChange,
   manualName = '',
   manualUrl = '',
   onToggleMonitor,
@@ -205,12 +215,30 @@ export function RadioMonitorView({
           <p className="text-sm text-muted-foreground">
             Search public directories. Results land as candidates; nothing is probed until you enable monitoring.
           </p>
-          <p className="text-xs text-muted-foreground">
-            Tags: {discoverTags ?? DEFAULT_RADIO_GENRE_TAGS.join(', ')}
-          </p>
-          <Button type="button" onClick={() => onDiscover?.()}>
-            Discover from Radio Browser
-          </Button>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1 sm:col-span-3">
+              <Label htmlFor="discover-tags">Genres / tags (comma separated, up to 20)</Label>
+              <Input id="discover-tags" value={discoverTags ?? DEFAULT_RADIO_GENRE_TAGS.join(', ')}
+                onChange={(event) => onDiscoverTagsChange?.(event.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="discover-country">Country (ISO code, optional)</Label>
+              <Input id="discover-country" placeholder="DE" maxLength={2} value={discoverCountry}
+                onChange={(event) => onDiscoverCountryChange?.(event.target.value.replace(/[^a-z]/gi, '').toUpperCase())} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="discover-source">Directory</Label>
+              <select id="discover-source" value={discoverySource}
+                onChange={(event) => onDiscoverySourceChange?.(event.target.value as 'radio_browser' | 'shoutcast')}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                <option value="radio_browser">Radio Browser</option><option value="shoutcast">SHOUTcast (API key needed)</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <Button type="button" onClick={() => onDiscover?.()} className="w-full">Discover stations</Button>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">Candidates are added with monitoring disabled. Review the station list before enabling probes.</p>
         </TabsContent>
 
         <TabsContent value="events" className="space-y-3 pt-4">
