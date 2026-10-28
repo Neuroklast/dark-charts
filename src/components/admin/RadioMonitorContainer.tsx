@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDebouncedValue } from './shared/useAdminList';
 import { toast } from 'sonner';
 import { authFetch } from '@/lib/auth/client-fetch';
@@ -26,6 +26,8 @@ export function RadioMonitorContainer() {
   const [stationPage, setStationPage] = useState(0);
   const [stationSize, setStationSize] = useState(25);
   const [stationSearch, setStationSearch] = useState('');
+  const stationRequest = useRef(0);
+  const stationAbort = useRef<AbortController | null>(null);
   const debouncedStationSearch = useDebouncedValue(stationSearch);
   const [events, setEvents] = useState<RadioEventRow[]>([]);
   const [settings, setSettings] = useState<RadioMonitorSettings>(DEFAULT_RADIO_MONITOR_SETTINGS);
@@ -40,10 +42,15 @@ export function RadioMonitorContainer() {
   const [discoverySource, setDiscoverySource] = useState<'radio_browser' | 'shoutcast'>('radio_browser');
 
   const loadStations = useCallback(async () => {
+    const current = ++stationRequest.current;
+    stationAbort.current?.abort();
+    const controller = new AbortController();
+    stationAbort.current = controller;
     const params = new URLSearchParams({ page: String(stationPage),size: String(stationSize),search: debouncedStationSearch });
-    const res = await authFetch('/api/admin/radio/stations?' + params.toString());
+    const res = await authFetch('/api/admin/radio/stations?' + params.toString(), { signal: controller.signal });
     if (!res.ok) throw new Error('stations');
     const data = (await res.json()) as StationsResponse;
+    if (controller.signal.aborted || current !== stationRequest.current) return;
     setStations(data.stations ?? []);
     setStationTotal(data.total ?? 0);
     setHeartbeatStale(Boolean(data.heartbeatStale));
@@ -69,10 +76,11 @@ export function RadioMonitorContainer() {
 
   useEffect(() => {
     let active = true;
-    setIsLoading(true);
-    void loadStations().catch(() => toast.error('Failed to load radio stations'))
+    void loadStations().catch(error => {
+      if (error?.name !== 'AbortError') toast.error('Failed to load radio stations');
+    })
       .finally(() => { if (active) setIsLoading(false); });
-    return () => { active = false; };
+    return () => { active = false; stationAbort.current?.abort(); };
   }, [loadStations]);
 
   useEffect(() => {
