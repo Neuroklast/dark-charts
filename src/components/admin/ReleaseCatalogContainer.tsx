@@ -6,6 +6,7 @@ import { authFetch } from '@/lib/auth/client-fetch';
 import { ReleaseCatalogView, type AdminRelease } from './ReleaseCatalogView';
 import { useAdminList, useDebouncedValue } from './shared/useAdminList';
 import { AdminBulkJobProgress } from './shared/AdminBulkJobProgress';
+import { AdminBulkJobHistory } from './shared/AdminBulkJobHistory';
 
 export function ReleaseCatalogContainer() {
   const [search, setSearch] = useState('');
@@ -108,6 +109,7 @@ export function ReleaseCatalogContainer() {
 
   return (
     <div className="space-y-3">
+      <AdminBulkJobHistory onOpen={setBulkJobId} refreshKey={bulkJobId} />
       <AdminBulkJobProgress jobId={bulkJobId} onDismiss={() => setBulkJobId(null)}
         onFinished={() => { void refresh(true); toast.success('Sammelaktion abgeschlossen'); }} />
     <ReleaseCatalogView releases={rows} total={total} search={search} visibility={visibility}
