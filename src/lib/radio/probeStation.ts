@@ -219,7 +219,7 @@ async function tryIcy(
       const { done, value } = await reader.read();
       if (done) break;
       if (!value?.length) continue;
-      const next = new Uint8Array(Math.min(needed, bytes.length + value.length));
+      const next = new Uint8Array(Math.min(metaint + 1 + 255 * 16, bytes.length + value.length));
       next.set(bytes);
       next.set(value.subarray(0, next.length - bytes.length), bytes.length);
       bytes = next;
