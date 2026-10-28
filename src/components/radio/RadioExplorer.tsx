@@ -73,10 +73,6 @@ export function RadioExplorer() {
     return () => { controller.abort(); window.clearInterval(timer); };
   }, [load]);
 
-  const countries = [...new Set((payload?.stations ?? []).map((item) => item.country).filter(
-    (value): value is string => !!value
-  ))].sort();
-
   return (
     <section className="space-y-7" aria-label="Internet radio explorer">
       <header className="space-y-3">
