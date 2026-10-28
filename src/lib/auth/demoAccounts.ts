@@ -35,8 +35,6 @@ export const DEMO_ACCOUNTS: ReadonlyArray<{
   },
 ];
 
-const ADMIN_ROLES = new Set(['ADMIN', 'admin', 'editor']);
-
 export function isDemoRole(value: unknown): value is DemoRole {
   return typeof value === 'string' && (DEMO_ROLES as readonly string[]).includes(value);
 }
@@ -49,10 +47,9 @@ export function isDemoLoginAllowed(_env: {
   return false;
 }
 
-export function payloadGrantsDemoAdmin(payload: Record<string, unknown> | null): boolean {
-  if (!payload) return false;
-  if (payload.isDemo !== true) return false;
-  return typeof payload.role === 'string' && ADMIN_ROLES.has(payload.role);
+export function payloadGrantsDemoAdmin(_payload: Record<string, unknown> | null): boolean {
+  // Defense in depth: disabled legacy demo cookies never authorize admin access.
+  return false;
 }
 
 function base64UrlToBytes(input: string): Uint8Array {
