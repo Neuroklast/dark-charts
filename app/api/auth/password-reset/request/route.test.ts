@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const generateLink = vi.fn();
-const sendEmail = vi.fn();
+const { generateLink, sendEmail } = vi.hoisted(() => ({
+  generateLink: vi.fn(),
+  sendEmail: vi.fn(),
+}));
 
 vi.mock('@/lib/supabase/server', () => ({
   createServiceRoleSupabaseClient: () => ({ auth: { admin: { generateLink } } }),
