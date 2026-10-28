@@ -1,5 +1,6 @@
 import type { AirplayDetectionMethod, RadioMetadataMode, RadioStationHealthStatus } from './constants';
 import { extractIcyStreamTitle } from './icyParser';
+import { assertPublicEndpoint } from './publicEndpoint';
 
 export interface ProbeStationInput {
   streamUrl: string | null;
@@ -39,6 +40,16 @@ export async function probeStation(
   const nowPlayingUrl = input.nowPlayingUrl?.trim() || null;
   if (!streamUrl && !nowPlayingUrl) {
     return { ok: false, health: 'dead', error: 'Missing stream URL' };
+  }
+
+  if (!options.fetchImpl) {
+    try {
+      for (const url of [streamUrl, nowPlayingUrl]) {
+        if (url) await assertPublicEndpoint(url);
+      }
+    } catch (error) {
+      return { ok: false, health: 'blocked', error: error instanceof Error ? error.message : 'Unsafe endpoint' };
+    }
   }
 
   const host = hostOf(streamUrl ?? nowPlayingUrl ?? '');
@@ -97,7 +108,7 @@ async function timedFetch(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetchImpl(url, { ...init, signal: controller.signal, redirect: 'follow' });
+    return await fetchImpl(url, { ...init, signal: controller.signal, redirect: 'manual' });
   } finally {
     clearTimeout(timer);
   }
