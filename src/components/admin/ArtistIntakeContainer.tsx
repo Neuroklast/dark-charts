@@ -57,6 +57,8 @@ async function postJson(url: string, body: Record<string, unknown>) {
     created?: number;
     skipped?: number;
     errors?: string[];
+    affected?: number;
+    jobsQueued?: number;
   };
   if (!response.ok) throw new Error(payload.error || 'Die Anfrage ist fehlgeschlagen.');
   return payload;
@@ -200,23 +202,50 @@ export function ArtistIntakeContainer() {
   }
 
   async function moderate(artist: ArtistListRow) {
-    setBusy(true);
+    if (rowBusy || bulkBusy) return;
+    const nextVisible = !artist.isVisible;
+    setRowBusy(artist.id);
+    setRows(list => list.map(row => row.id === artist.id
+      ? { ...row, isVisible: nextVisible, status: nextVisible ? 'active' : 'inactive' } : row));
     try {
       await postJson('/api/admin/catalog', {
-        entity: 'artists', id: artist.id, action: artist.isVisible ? 'hide' : 'approve',
+        entity: 'artists', id: artist.id, action: nextVisible ? 'approve' : 'hide',
       });
-      toast.success(artist.isVisible ? 'Artist verborgen.' : 'Artist freigegeben.');
-      await loadArtists();
+      if (visibility === 'pending' || (visibility === 'visible' && !nextVisible) ||
+          (visibility === 'hidden' && nextVisible)) {
+        setRows(list => list.filter(row => row.id !== artist.id));
+        setTotal(value => Math.max(0, value - 1));
+      }
+      setSelectedIds(ids => ids.filter(id => id !== artist.id));
+      toast.success(nextVisible ? 'Artist freigegeben.' : 'Artist verborgen.');
     } catch (error) {
+      setRows(list => list.map(row => row.id === artist.id ? artist : row));
       toast.error(error instanceof Error ? error.message : 'Änderung fehlgeschlagen');
-    } finally {
-      setBusy(false);
-    }
+    } finally { setRowBusy(null); }
+  }
+
+  async function bulkModerate(operation: 'approve' | 'hide') {
+    if (bulkBusy || (!allMatching && selectedIds.length === 0)) return;
+    const count = allMatching ? total : selectedIds.length;
+    if (!window.confirm(`${count} Artists ${operation === 'approve' ? 'freigeben' : 'verbergen'}? ${allMatching ? 'Alle Treffer des aktuellen Filters sind betroffen, auch auf anderen Seiten.' : ''}`)) return;
+    setBulkBusy(true);
+    try {
+      const payload = await postJson('/api/admin/catalog', {
+        action: 'bulk', entity: 'artists', operation,
+        ...(allMatching ? { allMatching: true, search: debouncedSearch, visibility } : { ids: selectedIds }),
+      });
+      toast.success(`${payload.affected ?? 0} Artists aktualisiert, ${payload.skipped ?? 0} übersprungen.`);
+      resetSelection();
+      if (page !== 0) setPage(0);
+      await refresh(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Sammelaktion fehlgeschlagen');
+    } finally { setBulkBusy(false); }
   }
 
   async function deleteArtist(artist: ArtistListRow) {
     if (!window.confirm('Artist "' + artist.name + '" wirklich löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.')) return;
-    setBusy(true);
+    setRowBusy(artist.id);
     try {
       await postJson('/api/admin/artists', { action: 'delete', artistId: artist.id });
       toast.success('Artist gelöscht.');
@@ -224,17 +253,21 @@ export function ArtistIntakeContainer() {
         setEditingId(null);
         setForm(emptyForm);
       }
-      await loadArtists();
+      setRows(list => list.filter(row => row.id !== artist.id));
+      setTotal(value => Math.max(0, value - 1));
+      setSelectedIds(ids => ids.filter(id => id !== artist.id));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Artist konnte nicht gelöscht werden.');
-    } finally {
-      setBusy(false);
-    }
+    } finally { setRowBusy(null); }
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="p-5 md:p-6">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">Artists anlegen, importieren und gesammelt verwalten.</p>
+        <Button type="button" variant="outline" onClick={() => setShowIntake(value => !value)}>{showIntake ? 'Eingabe schließen' : '+ Artists hinzufügen / CSV importieren'}</Button>
+      </div>
+      {showIntake && <Card className="p-5 md:p-6">
         <div className="mb-4">
           <h2 className="font-display text-lg uppercase tracking-wide">Artists hinzufügen</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -307,7 +340,7 @@ export function ArtistIntakeContainer() {
             {importResult && <p role="status" className="text-sm">{importResult}</p>}
           </TabsContent>
         </Tabs>
-      </Card>
+      </Card>}
 
       <Card className="p-5 md:p-6">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
