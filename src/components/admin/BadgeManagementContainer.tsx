@@ -63,7 +63,8 @@ export function BadgeManagementContainer() {
     try {
       await postAction({ action: 'revoke_badge', email, badgeId });
       toast.success('Badge revoked');
-      await load();
+      setRecentAssignments(rows => rows.filter(row => !(row.userEmail === email && row.badgeId === badgeId)));
+      void load(true);
     } catch {
       toast.error('Failed to revoke badge');
     }
