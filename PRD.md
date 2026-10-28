@@ -69,7 +69,7 @@ Dark Charts aggregate three strictly isolated ranking pillars and present them h
 
 ### 3.4 Catalog
 - Durable sync: `sync_queue` / `sync_logs`, iTunes + Spotify import, Odesli smart-link resolution, R2 cover-art cache.
-- Admin import from darktunes catalog (`/api/admin/import/darktunes`, `scripts/import-darktunes-catalog.ts`) and scene-artist CSV seed (`/api/admin/seed/artists`, `doc/consolidated_darkcharts_artists.csv`).
+- Admin import from darktunes catalog (`/api/admin/import/darktunes`, `scripts/import-darktunes-catalog.ts`). Artist intake is manual or via a user-selected CSV file under `/admin/artists`; no bundled artist CSV is seeded automatically. New artists remain hidden pending editorial approval.
 
 ### 3.5 Spotlight (revenue, isolated)
 - Self-service promotional placement (Band of the Week, sponsors, subgenre headers) via Stripe checkout.

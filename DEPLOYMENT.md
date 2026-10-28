@@ -93,13 +93,7 @@ npx tsx scripts/import-darktunes-catalog.ts path/to/catalog.json
 # or POST /api/admin/import/darktunes with the same JSON body
 ```
 
-2. **Scene artist seed** (CSV):
-
-```bash
-# Admin auth required
-curl -X POST https://<domain>/api/admin/seed/artists \
-  -H "Authorization: Bearer <admin-access-token>"
-```
+2. **Scene artists anlegen**: Unter `/admin/artists` Namen manuell eintragen oder eine lokale CSV-Datei hochladen. Es gibt keinen Repo-CSV-Seed mehr. Neue Artists werden verborgen zur Freigabe angelegt.
 
 3. Kick queue processing:
 

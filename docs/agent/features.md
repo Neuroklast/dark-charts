@@ -80,8 +80,8 @@ Self-service promotional placement (Band of the Week, sponsors, subgenre headers
 ## Catalog & media
 
 - Durable `sync_queue` / `sync_logs`; iTunes + Spotify + Odesli; R2 cover art (`r2Utils.ts`).
-- Import: `POST /api/admin/import/darktunes`; seed: `POST /api/admin/seed/artists` (CSV from `doc/consolidated_darkcharts_artists.csv`).
-- `src/lib/catalog/importDarktunes.ts`, `seedConsolidatedArtists.ts`.
+- Import: `POST /api/admin/import/darktunes`; manuelle Artist-Anlage und CSV-Upload unter `/admin/artists` über `POST /api/admin/artists`.
+- `src/lib/catalog/importDarktunes.ts`, `src/lib/catalog/artistCsv.ts`. CSV-Dateien sind vom Admin auszuwählen, es gibt keinen eingebauten Artist-Seed.
 
 ## Data API
 

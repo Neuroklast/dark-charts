@@ -5,6 +5,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ## [Unreleased]
 
 ### Added
+- Artist-Verwaltung unter `/admin/artists`: manuelle Anlage, eigener CSV-Datei-Upload mit Vorschau und Validierung, Dublettenerkennung, Bearbeiten und sicheres Löschen. Neue Artists benötigen eine Freigabe.
 - Demo admin login on `/login` (`Preview admin area`) using `demo-admin@darkcharts.demo`. Sets `dc-demo-token` so `/admin` works without a Supabase session. Still disabled in production unless `ALLOW_DEMO_LOGIN=1`.
 - Passive radio monitor: public Icecast/SHOUTcast metadata probes via a Docker worker (`workers/radio-monitor`), admin control at `/admin/radio`, Data API `/api/v1/airplay*` and `/api/v1/radio/stations*`, band/label dashboard at `/airplay`. Discovery writes candidates only; fingerprinting is not enabled. Airplay still never merges into Combined.
 - Airplay tracker foundation: `tracked_playlists`, `radio_stations`, `airplay_events`, `airplay_snapshots` in `reset.sql`; Sunday 23:50 UTC rollup (`/api/cron/aggregate-airplay`). Writes `chartType=airplay` when snapshots exist. Never merged into Combined (playlist pitching is a paid-adjacent signal).
@@ -19,6 +20,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Voting pool filter: visible releases from the last 12 months (`eligible=1` on `/api/releases`).
 
 ### Changed
+- Den fest eingebauten Artist-CSV-Seed einschließlich Import-Button und API entfernt. CSV-Importe erfolgen nur noch aus einer vom Admin ausgewählten Datei.
 - Public UI is one language at a time. Cookie `lang` is the only store; header has an explicit DE | EN switch; cookie banner, skip link, login, voting toasts, imprint labels, custom charts (`/custom-charts`), legal page links, expert voting, and the vote receipt go through `messages.ts` instead of bilingual or hardcoded copy.
 - Redesigned the public chart surface around the darkTunes CI: editorial chart header, isolated pillar tabs, compact responsive ranking rows, semantic release/artist links, honest score and movement states, and reduced visual effects.
 - Added a deterministic, clearly labelled demo catalog for disconnected environments. Demo release and artist routes now resolve consistently, while live mode surfaces API errors instead of silently inventing rankings.

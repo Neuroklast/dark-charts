@@ -47,7 +47,7 @@ Living product-status snapshot. Architecture and agent rules: `AGENTS.md` + `doc
 | Area | Key paths |
 |------|-----------|
 | Catalog sync (durable) | `src/lib/sync/` — `sync_queue` / `sync_logs`, iTunes + Spotify + Odesli |
-| Import / seed | `/api/admin/import/darktunes`, `/api/admin/seed/artists` |
+| Import | `/api/admin/import/darktunes`, `/api/admin/artists` (manuelle Anlage / eigene CSV) |
 | DAL | `src/lib/api/*`, `src/lib/math/*` |
 | Domain services | `src/backend/services/*` — Auth, Artist, Chart, Aggregation, Badge, Promotion |
 | Auth | `src/lib/api-auth.ts`, `proxy.ts` |

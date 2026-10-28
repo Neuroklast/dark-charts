@@ -1,4 +1,5 @@
 import { AdminPageShell } from '../_components/AdminPageShell';
+import { ArtistIntakeContainer } from '@/components/admin/ArtistIntakeContainer';
 import { ArtistBlacklistContainer } from '@/components/admin/ArtistBlacklistContainer';
 
 export const dynamic = 'force-dynamic';
@@ -7,9 +8,10 @@ export default function AdminArtistsPage() {
   return (
     <AdminPageShell
       title="Artists"
-      description="Catalog visibility, blacklist management, and artist sync status."
+      description="Artists manuell anlegen, CSV importieren und vorhandene Einträge verwalten."
     >
-      <ArtistBlacklistContainer />
+      <ArtistIntakeContainer />
+      <div className="mt-8"><ArtistBlacklistContainer /></div>
     </AdminPageShell>
   );
 }
