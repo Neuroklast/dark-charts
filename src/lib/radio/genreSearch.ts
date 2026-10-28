@@ -1,5 +1,5 @@
 export function normalizeGenre(value: string): string {
-  return value.toLocaleLowerCase().normalize('NFKC').replace(/[^\\p{L}\\p{N}]+/gu, '');
+  return value.toLocaleLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, '');
 }
 
 export function matchesRadioGenre(genres: string[], search: string): boolean {
