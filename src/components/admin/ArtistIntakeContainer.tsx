@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { authFetch } from '@/lib/auth/client-fetch';
 import { parseArtistCsv, MAX_ARTIST_CSV_BYTES, type ArtistCsvPreview, type ArtistIntakeRow } from '@/lib/catalog/artistCsv';
@@ -9,6 +9,10 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+import { AdminPagination } from './shared/AdminPagination';
+import { AdminBulkToolbar } from './shared/AdminBulkToolbar';
+import { useAdminList, useDebouncedValue } from './shared/useAdminList';
 
 type ArtistListRow = ArtistIntakeRow & {
   id: string;
@@ -70,34 +74,35 @@ export function ArtistIntakeContainer() {
   const [importResult, setImportResult] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const [rows, setRows] = useState<ArtistListRow[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [pageSize, setPageSize] = useState(10);
+  const [visibility, setVisibility] = useState<'all' | 'pending' | 'visible' | 'hidden'>('all');
+  const [showIntake, setShowIntake] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [allMatching, setAllMatching] = useState(false);
+  const [rowBusy, setRowBusy] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const params = useMemo(() => new URLSearchParams({
+    view: 'list', page: String(page), size: String(pageSize), search: debouncedSearch, visibility,
+  }).toString(), [page, pageSize, debouncedSearch, visibility]);
+  const { rows, total, loading, refreshing, refresh, setRows, setTotal } = useAdminList<ArtistListRow>(
+    '/api/admin/artists?' + params,
+    data => ({ rows: data.artists ?? [], total: data.total ?? 0 }),
+    message => toast.error(message)
+  );
+  const loadArtists = useCallback(() => refresh(true), [refresh]);
 
-  const loadArtists = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ view: 'list', page: String(page), search });
-      const response = await authFetch('/api/admin/artists?' + params);
-      const payload = await response.json() as {
-        artists?: ArtistListRow[];
-        total?: number;
-        error?: string;
-      };
-      if (!response.ok) throw new Error(payload.error || 'Artist-Liste konnte nicht geladen werden.');
-      setRows(payload.artists ?? []);
-      setTotal(payload.total ?? 0);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Fehler beim Laden');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => { void loadArtists(); }, search ? 300 : 0);
-    return () => clearTimeout(timer);
-  }, [loadArtists, search]);
+  function resetSelection() {
+    setSelectedIds([]);
+    setAllMatching(false);
+  }
+  function updateListFilters(next: { search?: string; visibility?: typeof visibility; size?: number }) {
+    if (next.search !== undefined) setSearch(next.search);
+    if (next.visibility !== undefined) setVisibility(next.visibility);
+    if (next.size !== undefined) setPageSize(next.size);
+    setPage(0);
+    resetSelection();
+  }
 
   useEffect(() => {
     if (editingId && mode === 'manual') document.getElementById('artist-manual-form')?.scrollIntoView({ block: 'center' });
@@ -191,6 +196,7 @@ export function ArtistIntakeContainer() {
       country: artist.country ?? '',
     });
     setMode('manual');
+    setShowIntake(true);
   }
 
   async function moderate(artist: ArtistListRow) {
