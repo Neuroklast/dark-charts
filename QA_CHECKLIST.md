@@ -53,7 +53,10 @@
 ## Database & Sync
 - [ ] Schema parity: `reset.sql` (only SQL) + `src/types/database.ts` in sync; no `supabase/migrations/`
 - [ ] Durable sync queue drains; `sync_queue` / `sync_logs` populated
-- [ ] Darktunes import + scene-artist CSV seed produce visible releases/artists
+- [ ] Admin → Artists: manual creation and self-uploaded CSV intake create hidden pending-review artists; approval makes them public, and no repository CSV auto-seed is available
+- [ ] CSV validates headers, comma/semicolon delimiters, quoted names, Spotify URLs, duplicate rows, invalid IDs and oversized files before import; repeated upload skips existing artists
+- [ ] Artists can be edited or hidden; deleting an artist with linked releases is blocked, and non-admin mutations are rejected
+- [ ] Darktunes import and manually approved artists work with the durable sync queue
 - [ ] R2 cover-art cache: artwork lands on CDN; fallback to external URL on failure
 - [ ] `POST /api/sync` (with `CRON_SECRET`) drains the queue; `/api/sync/queue` enqueues
 - [ ] `/api/cron/aggregate-charts` runs and produces anomalies (if any)

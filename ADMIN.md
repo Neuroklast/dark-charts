@@ -10,7 +10,7 @@ The admin is a content + chart-ops console. It is **not** the place for infra se
 
 | Page | Purpose |
 |------|---------|
-| **Artists** | Catalog sync, blacklist, visibility. Create/update artists, trigger sync, mark visibility. |
+| **Artists** | Artist manuell anlegen, eigene CSV hochladen, Einträge bearbeiten, freigeben, verbergen oder löschen (ohne verknüpfte Releases), Blacklist und Sync. |
 | **Releases** | Release management — metadata, track mapping, visibility, linked artists. |
 
 ### CHARTS
@@ -62,6 +62,12 @@ UPDATE public.users SET role = 'ADMIN' WHERE email = 'you@example.com';
 Navigate to `/admin`. If not authenticated you will be redirected to `/login?returnTo=/admin`; after login you are routed by role (`resolveRedirectPath`).
 
 Local preview: `/login` → **Preview admin area** / **Admin-Bereich ansehen**. That creates `demo-admin@darkcharts.demo` (role `ADMIN`) and a short-lived demo cookie. Production stays off unless `ALLOW_DEMO_LOGIN=1`.
+
+## Artists importieren und anlegen
+
+Unter **Admin → Artists** gibt es zwei Eingabewege: **Manuell eintragen** und **CSV hochladen**. Eine CSV braucht eine Kopfzeile mit `Name` oder `Artist`. Optional unterstützt werden `Spotify_ID`, `Genres` und `Country` (auch `Land`). Trennzeichen dürfen Komma oder Semikolon sein; bei Genres werden Komma, Semikolon und `|` verstanden. Spotify-Artist-Links werden als IDs normalisiert. Bis zu 1500 Einträge pro Datei und 1 MB Dateigröße sind zugelassen. Die Datei wird vor dem Import überprüft und in 25er-Blöcken übertragen.
+
+Doppelte Artists werden anhand von Name bzw. Spotify-ID übersprungen. Neue Einträge bleiben **unsichtbar und zur Prüfung markiert**, bis ein Admin auf **Freigeben** klickt. Die bestehende Moderationswarteschlange unter **Catalog Review** zeigt diese Einträge ebenfalls an. Der automatische Import einer im Repository gespeicherten CSV wurde entfernt. Das Löschen eines Artists mit verknüpften Releases ist gesperrt.
 
 ## Chart ops (operator-facing)
 

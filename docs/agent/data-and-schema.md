@@ -38,7 +38,7 @@ Shareable artist/release pages (`/artist/[id]`, `/release/[id]`) and `/search` r
 2. Process: `POST /api/sync` (cron every 10m) → `syncArtist` → upsert `releases` + R2 covers
 3. Logs: `sync_logs`
 4. darktunes bootstrap: `POST /api/admin/import/darktunes` or `scripts/import-darktunes-catalog.ts`
-5. Scene artists: `POST /api/admin/seed/artists` (CSV)
+5. Scene artists: Admin → Artists (`POST /api/admin/artists`); CSV wird nur nach Dateiauswahl durch Admin in geprüften 25er-Blöcken übertragen. Neue Artists sind bis zur Freigabe verborgen.
 
 Sync imports: `src/lib/itunesApi.ts`, `src/lib/sync/itunesSyncProcessor.ts`, `OdesliAPIRepository.ts`, `SpotifyWebAPIRepository.ts`.
 

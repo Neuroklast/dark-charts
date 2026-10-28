@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { authFetch } from '@/lib/auth/client-fetch';
@@ -27,7 +28,6 @@ export function CatalogModerationContainer() {
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [offset, setOffset] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,27 +65,6 @@ export function CatalogModerationContainer() {
     }
   }
 
-  async function importBatch() {
-    setBusy('import');
-    try {
-      const res = await authFetch('/api/admin/seed/artists', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ offset, limit: 25, enqueueSync: false }),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || `HTTP ${res.status}`);
-      setOffset(result.nextOffset);
-      toast.success(`Imported privately: ${result.created} new, ${result.updated} updated, ${result.skipped} skipped`);
-      if (result.errors?.length) toast.error(`${result.errors.length} import errors — inspect server logs`);
-      await load();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Import failed');
-    } finally {
-      setBusy(null);
-    }
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 items-center">
@@ -95,21 +74,7 @@ export function CatalogModerationContainer() {
         <Button variant={filter === 'all' ? 'secondary' : 'outline'} onClick={() => setFilter('all')}>All</Button>
         <Button variant="ghost" onClick={() => void load()} disabled={loading}>Refresh</Button>
       </div>
-      {entity === 'artists' && (
-        <Card className="p-4 space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Controlled CSV intake: 25 records per batch. Imported artists are hidden until you approve them.
-            No mass publication or automatic sync.
-          </p>
-          <div className="flex gap-3 items-center flex-wrap">
-            <Button disabled={busy !== null} onClick={() => void importBatch()}>
-              Import next 25 CSV artists
-            </Button>
-            <span className="text-sm text-muted-foreground">CSV offset: {offset}</span>
-            <Button variant="outline" onClick={() => setOffset(0)}>Restart intake</Button>
-          </div>
-        </Card>
-      )}
+      {entity === 'artists' && <p className="text-sm text-muted-foreground">Artists legst du unter <Link href="/admin/artists" className="text-primary underline underline-offset-4">Artists</Link> an oder importierst dort deine eigene CSV.</p>}
       <p className="text-sm text-muted-foreground">{count} matching records · displaying up to 100</p>
       {loading ? <p className="text-muted-foreground">Loading...</p> : rows.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">No records in this queue.</Card>
