@@ -98,7 +98,10 @@ async function fetchChartsFromDatabase(
 
   if (!chartEntries?.length) return null;
 
-  return chartEntries.map((entry) => formatChartEntry(entry));
+  // An editorial takedown must also remove previously ranked entries from public output.
+  return chartEntries.filter((entry) =>
+    entry.release?.isVisible === true && entry.release?.artist?.isVisible === true
+  ).map((entry) => formatChartEntry(entry));
 }
 
 export const GET = withErrorHandler(async (req: NextRequest) => {
