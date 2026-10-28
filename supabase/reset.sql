@@ -817,3 +817,31 @@ REVOKE ALL ON FUNCTION public.cast_weekly_ballot(uuid,timestamptz,integer,jsonb)
   FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.cast_weekly_ballot(uuid,timestamptz,integer,jsonb)
   TO service_role;
+
+
+-- Prevent anonymous and user-initiated execution of privileged trigger helpers.
+REVOKE EXECUTE ON FUNCTION public.handle_new_auth_user() FROM PUBLIC, anon, authenticated;
+DO $$
+BEGIN
+  IF to_regprocedure('public.rls_auto_enable()') IS NOT NULL THEN
+    EXECUTE 'REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated';
+  END IF;
+END;
+$$;
+
+-- User roles can be read through the user's own RLS-scoped users row.
+ALTER FUNCTION public.get_my_role() SECURITY INVOKER;
+REVOKE EXECUTE ON FUNCTION public.get_my_role() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_my_role() TO authenticated;
+
+CREATE INDEX IF NOT EXISTS idx_airplay_artist_id ON public.airplay_events ("artistId");
+CREATE INDEX IF NOT EXISTS idx_airplay_source_playlist ON public.airplay_events ("sourcePlaylistId");
+CREATE INDEX IF NOT EXISTS idx_audit_logs_admin_id ON public.audit_logs ("adminId");
+CREATE INDEX IF NOT EXISTS idx_bookings_user_id ON public.bookings ("userId");
+CREATE INDEX IF NOT EXISTS idx_chart_entries_artist_id ON public.chart_entries ("artistId");
+CREATE INDEX IF NOT EXISTS idx_user_badges_badge_id ON public.user_badges ("badgeId");
+CREATE INDEX IF NOT EXISTS idx_vote_anomalies_release_id ON public.vote_anomalies ("releaseId");
+
+DROP POLICY IF EXISTS users_read_own ON public.users;
+CREATE POLICY users_read_own ON public.users FOR SELECT TO authenticated
+  USING (id = (select auth.uid()));
