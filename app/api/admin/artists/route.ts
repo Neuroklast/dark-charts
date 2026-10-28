@@ -16,7 +16,7 @@ type ArtistInput = z.infer<typeof artistSchema>;
 
 const mutationSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('create'), artist: artistSchema }),
-  z.object({ action: z.literal('import'), artists: z.array(artistSchema).min(1).max(25) }),
+  z.object({ action: z.literal('import'), artists: z.array(artistSchema).min(1).max(100) }),
   z.object({ action: z.literal('update'), artistId: z.string().uuid(), artist: artistSchema }),
   z.object({ action: z.literal('delete'), artistId: z.string().uuid() }),
   z.object({ action: z.literal('update_status'), artistId: z.string().uuid(), status: z.enum(['active', 'ACTIVE', 'RESTRICTED', 'BANNED']) }),
@@ -106,28 +106,12 @@ export const POST = withAdminAuth(async (req: NextRequest, adminId: string) => {
   }
 
   if (body.action === 'import') {
-    let created = 0;
-    let skipped = 0;
-    const errors: string[] = [];
-    const names = new Set<string>();
-    const ids = new Set<string>();
-    for (const artist of body.artists) {
-      const nameKey = artist.name.toLocaleLowerCase('de');
-      if (names.has(nameKey) || (artist.spotifyId && ids.has(artist.spotifyId))) {
-        skipped++;
-        continue;
-      }
-      names.add(nameKey);
-      if (artist.spotifyId) ids.add(artist.spotifyId);
-      try {
-        if (await insertArtist(db, artist, 'csv-upload')) created++;
-        else skipped++;
-      } catch (error) {
-        errors.push(artist.name + ': ' + (error instanceof Error ? error.message : 'Importfehler'));
-      }
-    }
-    await audit(db, adminId, 'ARTIST_CSV_IMPORT', { created, skipped, errors: errors.length });
-    return NextResponse.json({ success: true, created, skipped, errors });
+    const { data, error } = await db.rpc('import_admin_artists', {
+      p_rows: body.artists, p_admin_id: adminId,
+    });
+    if (error) throw new ApiError(503, 'CSV-Import fehlgeschlagen: ' + error.message);
+    return NextResponse.json({ success: true, created: data.created,
+      skipped: data.skipped, errors: [] });
   }
 
   if (body.action === 'update') {

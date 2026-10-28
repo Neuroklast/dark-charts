@@ -15,7 +15,7 @@ const bulkSchema = z.object({
   action: z.literal('bulk'),
   entity: z.enum(['artists', 'releases']),
   operation: z.enum(['approve', 'hide']),
-  ids: z.array(z.string().uuid()).max(200).optional(),
+  ids: z.array(z.string().uuid()).max(1000).optional(),
   allMatching: z.boolean().optional(),
   filter: z.enum(['pending', 'all']).optional(),
   visibility: z.enum(['all', 'pending', 'visible', 'hidden']).optional(),
@@ -24,7 +24,6 @@ const bulkSchema = z.object({
 
 const actionSchema = z.union([singleActionSchema, bulkSchema]);
 const BULK_MAX = 1000;
-const BULK_CHUNK = 100;
 
 async function moderateBulk(db: ReturnType<typeof createServiceRoleSupabaseClient>,
   adminId: string, body: z.infer<typeof bulkSchema>) {
@@ -52,73 +51,15 @@ async function moderateBulk(db: ReturnType<typeof createServiceRoleSupabaseClien
   if (ids.length === 0) return NextResponse.json({ success: true, affected: 0, skipped: 0, jobsQueued: 0 });
   if (ids.length > BULK_MAX) throw new ApiError(413, 'Too many selected records');
 
-  let eligible: string[] = [];
-  let skipped = 0;
-  for (let offset = 0; offset < ids.length; offset += BULK_CHUNK) {
-    const batch = ids.slice(offset, offset + BULK_CHUNK);
-    if (entity === 'artists') {
-      const { data, error } = await db.from('artists')
-        .select('id,status,isVisible').in('id', batch);
-      if (error) throw new ApiError(500, 'Could not validate artists');
-      const valid = (data ?? []).filter(artist =>
-        !['BANNED', 'RESTRICTED'].includes(artist.status) &&
-        (body.operation === 'approve' ? !artist.isVisible : artist.isVisible));
-      eligible.push(...valid.map(artist => artist.id));
-      skipped += batch.length - valid.length;
-    } else {
-      const { data, error } = await db.from('releases')
-        .select('id,isVisible,artistId').in('id', batch);
-      if (error) throw new ApiError(500, 'Could not validate releases');
-      let valid = (data ?? []).filter(release => release.isVisible !== (body.operation === 'approve'));
-      if (body.operation === 'approve' && valid.length) {
-        const ownerIds = [...new Set(valid.map(row => row.artistId))];
-        const { data: owners, error: ownerError } = await db.from('artists')
-          .select('id,isVisible,status').in('id', ownerIds);
-        if (ownerError) throw new ApiError(500, 'Could not validate release artists');
-        const allowed = new Set((owners ?? []).filter(row => row.isVisible && row.status === 'active').map(row => row.id));
-        valid = valid.filter(row => allowed.has(row.artistId));
-      }
-      eligible.push(...valid.map(row => row.id));
-      skipped += batch.length - valid.length;
-    }
-  }
-
-  let affected = 0;
-  let jobsQueued = 0;
-  for (let offset = 0; offset < eligible.length; offset += BULK_CHUNK) {
-    const batch = eligible.slice(offset, offset + BULK_CHUNK);
-    if (entity === 'artists') {
-      if (body.operation === 'hide') {
-        const { error: releaseError } = await db.from('releases').update({
-          isVisible: false, updatedAt: new Date().toISOString(),
-        }).in('artistId', batch);
-        if (releaseError) throw new ApiError(500, 'Could not hide linked releases');
-      }
-      const { error } = await db.from('artists').update({
-        isVisible: body.operation === 'approve',
-        status: body.operation === 'approve' ? 'active' : 'inactive',
-        updatedAt: new Date().toISOString(),
-      }).in('id', batch);
-      if (error) throw new ApiError(500, 'Could not moderate selected artists');
-    } else {
-      const { error } = await db.from('releases').update({
-        isVisible: body.operation === 'approve',
-        updatedAt: new Date().toISOString(),
-      }).in('id', batch);
-      if (error) throw new ApiError(500, 'Could not moderate selected releases');
-    }
-    affected += batch.length;
-    // Record changes before optional sync queueing, keeping an audit trail for every batch.
-    const { error: auditError } = await db.from('audit_logs').insert({
-      adminId, action: 'CATALOG_BULK_' + body.operation.toUpperCase(),
-      details: { entity, ids: batch, allMatching: !!body.allMatching },
-    });
-    if (auditError) throw new ApiError(500, 'Changes saved but audit log failed');
-    if (entity === 'artists' && body.operation === 'approve') {
-      jobsQueued += await enqueueArtistSyncJobs(db, batch, 'full');
-    }
-  }
-  return NextResponse.json({ success: true, affected, skipped, jobsQueued });
+  // Snapshot selected IDs, then return immediately. The cron worker processes
+  // each 50-row batch atomically in Postgres with a progress record and audit log.
+  const { data: job, error } = await db.from('admin_bulk_jobs').insert({
+    adminId, entity, operation: body.operation, targetIds: ids,
+    total: ids.length, status: 'queued',
+  }).select('id,total,status').single();
+  if (error) throw new ApiError(503, 'Unable to enqueue bulk action: ' + error.message);
+  return NextResponse.json({ queued: true, jobId: job.id, total: job.total, status: job.status },
+    { status: 202 });
 }
 
 export const GET = withAdminAuth(async (req: NextRequest) => {

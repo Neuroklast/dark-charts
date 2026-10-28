@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { AdminPagination } from './shared/AdminPagination';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -51,6 +52,13 @@ interface RadioMonitorViewProps {
   heartbeatStale?: boolean;
   stats?: RadioMonitorStats;
   stations?: RadioStationRow[];
+  stationTotal?: number;
+  stationPage?: number;
+  stationSize?: number;
+  stationSearch?: string;
+  onStationPageChange?: (page: number) => void;
+  onStationSizeChange?: (size: number) => void;
+  onStationSearchChange?: (value: string) => void;
   events?: RadioEventRow[];
   settings?: RadioMonitorSettings;
   unmatchedOnly?: boolean;
@@ -83,6 +91,13 @@ export function RadioMonitorView({
   heartbeatStale,
   stats,
   stations = [],
+  stationTotal = 0,
+  stationPage = 0,
+  stationSize = 25,
+  stationSearch = '',
+  onStationPageChange,
+  onStationSizeChange,
+  onStationSearchChange,
   events = [],
   settings,
   unmatchedOnly = false,
@@ -181,10 +196,19 @@ export function RadioMonitorView({
             />
             <Button type="submit">Add</Button>
           </form>
-          <Card className="p-0 overflow-x-auto">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="space-y-1 text-xs text-muted-foreground">
+              <span className="block">Search stations</span>
+              <Input type="search" value={stationSearch} placeholder="Station name"
+                onChange={event => onStationSearchChange?.(event.target.value)} />
+            </label>
+          </div>
+          <AdminPagination page={stationPage} pageSize={stationSize} total={stationTotal}
+            onPageChange={onStationPageChange ?? (() => {})} onPageSizeChange={onStationSizeChange} />
+          <Card className="p-0 max-h-[62vh] overflow-auto">
             <Table>
               <TableCaption>Public stream candidates and monitored stations</TableCaption>
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-10 bg-card">
                 <TableRow>
                   <TableHead>Station</TableHead>
                   <TableHead>Health</TableHead>
@@ -249,6 +273,8 @@ export function RadioMonitorView({
               </TableBody>
             </Table>
           </Card>
+          <AdminPagination page={stationPage} pageSize={stationSize} total={stationTotal}
+            onPageChange={onStationPageChange ?? (() => {})} onPageSizeChange={onStationSizeChange} />
           {editingStation && (
             <Card className="space-y-3 p-4">
               <h3 className="font-semibold">Configure {stations.find((item) => item.id === editingStation)?.name}</h3>

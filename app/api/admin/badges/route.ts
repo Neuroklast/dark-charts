@@ -13,7 +13,7 @@ export const GET = withAdminAuth(async () => {
       .select('*, user:users(email)')
       .order('earnedAt', { ascending: false })
       .limit(50),
-    supabase.from('user_badges').select('badgeId'),
+    supabase.rpc('get_admin_badge_counts'),
   ]);
 
   if (assignmentsResult.error) throw new ApiError(500, assignmentsResult.error.message);
@@ -21,7 +21,7 @@ export const GET = withAdminAuth(async () => {
 
   const earnedCounts: Record<string, number> = {};
   for (const row of countsResult.data ?? []) {
-    earnedCounts[row.badgeId] = (earnedCounts[row.badgeId] ?? 0) + 1;
+    earnedCounts[row.badge_id] = Number(row.earned_count ?? 0);
   }
 
   const badges = BADGE_DEFINITIONS.map((badge) => ({

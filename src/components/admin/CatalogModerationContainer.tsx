@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AdminPagination } from './shared/AdminPagination';
 import { AdminBulkToolbar } from './shared/AdminBulkToolbar';
+import { AdminBulkJobProgress } from './shared/AdminBulkJobProgress';
+import { AdminBulkJobHistory } from './shared/AdminBulkJobHistory';
 import { useAdminList, useDebouncedValue } from './shared/useAdminList';
 
 type Entity = 'artists' | 'releases';
@@ -28,6 +30,7 @@ export function CatalogModerationContainer() {
   const [selected, setSelected] = useState<string[]>([]);
   const [allMatching, setAllMatching] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [bulkJobId, setBulkJobId] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search);
   const params = useMemo(() => new URLSearchParams({
     entity, filter, search: debouncedSearch, page: String(page), limit: String(pageSize),
@@ -86,10 +89,9 @@ export function CatalogModerationContainer() {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || `HTTP ${res.status}`);
-      toast.success(`${result.affected} geändert, ${result.skipped} übersprungen`);
+      if (result.jobId) { setBulkJobId(result.jobId); toast.success('Sammelaktion eingeplant'); }
+      else toast.success('Keine Änderungen erforderlich');
       reset();
-      if (page > 0) setPage(0);
-      await refresh(true);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Sammelaktion fehlgeschlagen');
     } finally { setBusy(null); }
@@ -108,11 +110,13 @@ export function CatalogModerationContainer() {
       </div>
       {entity === 'artists' && <p className="text-xs text-muted-foreground">Artists kannst du unter <Link href="/admin/artists" className="text-primary underline">Artists</Link> importieren und bearbeiten.</p>}
       <AdminBulkToolbar visibleIds={rows.filter(row => entity !== 'artists' || !['BANNED', 'RESTRICTED'].includes(row.status ?? '')).map(row => row.id)}
-        selectedIds={selected} allMatching={allMatching} total={total} busy={busy !== null}
+        selectedIds={selected} allMatching={allMatching} total={total} busy={busy !== null || bulkJobId !== null}
         onSelect={setSelected} onAllMatchingChange={setAllMatching}
         onApprove={() => void bulk('approve')} onHide={() => void bulk('hide')} />
+      <AdminBulkJobProgress jobId={bulkJobId} onDismiss={() => setBulkJobId(null)}
+        onFinished={() => { void refresh(true); toast.success('Sammelaktion abgeschlossen'); }} />
       <AdminPagination page={page} pageSize={pageSize} total={total} disabled={busy !== null}
-        onPageChange={value => { setPage(value); reset(); }}
+        onPageChange={value => { setPage(value); }}
         onPageSizeChange={size => changeFilters({ size })} />
       <Card className="max-h-[62vh] min-h-44 overflow-auto p-0" aria-busy={loading}>
         {loading && rows.length === 0 ? <p className="p-5 text-muted-foreground">Lade Katalog…</p> :
@@ -145,7 +149,7 @@ export function CatalogModerationContainer() {
           </div>}
       </Card>
       <AdminPagination page={page} pageSize={pageSize} total={total} disabled={busy !== null}
-        onPageChange={value => { setPage(value); reset(); }}
+        onPageChange={value => { setPage(value); }}
         onPageSizeChange={size => changeFilters({ size })} />
     </div>
   );
