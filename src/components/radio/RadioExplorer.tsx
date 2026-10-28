@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { mainGenreMap } from '@/lib/config/genres';
 
 type Track = {
   artist: string | null; title: string | null; detectedAt: string;
@@ -30,22 +31,26 @@ const VIEWS = [
 ] as const;
 type View = (typeof VIEWS)[number]['id'];
 
-const GENRES = [
-  'All genres', 'Gothic', 'Darkwave', 'Dark Wave', 'Post Punk', 'Industrial',
-  'Dark Electro', 'Aggrotech', 'Futurepop', 'Electronic Body Music',
-  'Dark Techno', 'Black Metal', 'Death Metal', 'Doom Metal', 'Gothic Metal',
-  'Synthpop', 'Neofolk',
-];
+const GENRES = ['All genres', ...new Set([
+  ...Object.keys(mainGenreMap), ...Object.values(mainGenreMap).flat(),
+  'Darkwave', 'Goth', 'Industrial', 'EBM', 'Synthpop', 'Dark Techno',
+])].sort((a, b) => a === 'All genres' ? -1 : b === 'All genres' ? 1 : a.localeCompare(b));
 
 export function RadioExplorer() {
   const [view, setView] = useState<View>('stations');
   const [genre, setGenre] = useState('');
   const [country, setCountry] = useState('');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [days, setDays] = useState(7);
   const [payload, setPayload] = useState<RadioPayload | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 350);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setPending(true);
@@ -53,7 +58,7 @@ export function RadioExplorer() {
     const params = new URLSearchParams({ view, days: String(days) });
     if (genre) params.set('genre', genre);
     if (country) params.set('country', country);
-    if (search.trim()) params.set('q', search.trim());
+    if (debouncedSearch.trim()) params.set('q', debouncedSearch.trim());
     try {
       const response = await fetch(`/api/radio?${params.toString()}`, { signal, cache: 'no-store' });
       if (!response.ok) throw new Error('Radio information is temporarily unavailable');
@@ -64,7 +69,7 @@ export function RadioExplorer() {
     } finally {
       if (!signal?.aborted) setPending(false);
     }
-  }, [view, genre, country, search, days]);
+  }, [view, genre, country, debouncedSearch, days]);
 
   useEffect(() => {
     const controller = new AbortController();
