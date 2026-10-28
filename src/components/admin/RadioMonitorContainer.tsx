@@ -27,6 +27,9 @@ export function RadioMonitorContainer() {
   const [unmatchedOnly, setUnmatchedOnly] = useState(false);
   const [manualName, setManualName] = useState('');
   const [manualUrl, setManualUrl] = useState('');
+  const [discoverTags, setDiscoverTags] = useState(DEFAULT_RADIO_MONITOR_SETTINGS.genreTags.join(', '));
+  const [discoverCountry, setDiscoverCountry] = useState('');
+  const [discoverySource, setDiscoverySource] = useState<'radio_browser' | 'shoutcast'>('radio_browser');
 
   const loadStations = useCallback(async () => {
     const res = await authFetch('/api/admin/radio/stations');
@@ -48,7 +51,10 @@ export function RadioMonitorContainer() {
     const res = await authFetch('/api/admin/radio/settings');
     if (!res.ok) throw new Error('settings');
     const data = (await res.json()) as { settings?: RadioMonitorSettings };
-    if (data.settings) setSettings(data.settings);
+    if (data.settings) {
+      setSettings(data.settings);
+      setDiscoverTags(data.settings.genreTags.join(', '));
+    }
   }, []);
 
   const loadAll = useCallback(async () => {
@@ -85,7 +91,12 @@ export function RadioMonitorContainer() {
       events={events}
       settings={settings}
       unmatchedOnly={unmatchedOnly}
-      discoverTags={settings.genreTags.join(', ')}
+      discoverTags={discoverTags}
+      discoverCountry={discoverCountry}
+      discoverySource={discoverySource}
+      onDiscoverTagsChange={setDiscoverTags}
+      onDiscoverCountryChange={setDiscoverCountry}
+      onDiscoverySourceChange={setDiscoverySource}
       manualName={manualName}
       manualUrl={manualUrl}
       onManualNameChange={setManualName}
@@ -119,7 +130,9 @@ export function RadioMonitorContainer() {
         const res = await authFetch('/api/admin/radio/discover', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ source: 'radio_browser' }),
+          body: JSON.stringify({ source: discoverySource,
+            tags: discoverTags.split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 20),
+            country: discoverCountry || undefined, limit: 300 }),
         });
         if (!res.ok) {
           toast.error('Discovery failed');
