@@ -10,7 +10,9 @@ import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 
 const REQUIRED_ENV_VARS: { key: string; description: string }[] = [
-  { key: 'DATABASE_URL', description: 'PostgreSQL connection string' },
+  { key: 'NEXT_PUBLIC_SUPABASE_URL', description: 'Supabase project URL' },
+  { key: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', description: 'Supabase publishable key' },
+  { key: 'SUPABASE_SERVICE_ROLE_KEY', description: 'Supabase server secret key' },
   { key: 'JWT_SECRET', description: 'Secret key used to sign JWTs' },
 ];
 
