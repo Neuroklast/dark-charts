@@ -27,6 +27,7 @@ export function RadioMonitorContainer() {
   const [unmatchedOnly, setUnmatchedOnly] = useState(false);
   const [manualName, setManualName] = useState('');
   const [manualUrl, setManualUrl] = useState('');
+  const [manualNowPlayingUrl, setManualNowPlayingUrl] = useState('');
   const [discoverTags, setDiscoverTags] = useState(DEFAULT_RADIO_MONITOR_SETTINGS.genreTags.join(', '));
   const [discoverCountry, setDiscoverCountry] = useState('');
   const [discoverySource, setDiscoverySource] = useState<'radio_browser' | 'shoutcast'>('radio_browser');
@@ -99,12 +100,25 @@ export function RadioMonitorContainer() {
       onDiscoverySourceChange={setDiscoverySource}
       manualName={manualName}
       manualUrl={manualUrl}
+      manualNowPlayingUrl={manualNowPlayingUrl}
+      onManualNowPlayingUrlChange={setManualNowPlayingUrl}
       onManualNameChange={setManualName}
       onManualUrlChange={setManualUrl}
       onSettingsChange={setSettings}
       onUnmatchedChange={(value) => {
         setUnmatchedOnly(value);
         void loadEvents(value);
+      }}
+      onDeleteStation={(id) => {
+        void authFetch(`/api/admin/radio/stations/${id}`, { method: 'DELETE' }).then(async (res) => {
+          if (!res.ok) throw new Error('delete');
+          toast.success('Radio station deleted');
+          await loadStations();
+        }).catch(() => toast.error('Failed to delete station'));
+      }}
+      onSaveStation={(id, patch) => {
+        void patchStation(id, patch).then(() => toast.success('Radio station updated'))
+          .catch(() => toast.error('Failed to update station'));
       }}
       onToggleMonitor={(id, enabled) => {
         void patchStation(id, { monitorEnabled: enabled }).catch(() =>
@@ -146,7 +160,8 @@ export function RadioMonitorContainer() {
         const res = await authFetch('/api/admin/radio/stations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: manualName, streamUrl: manualUrl }),
+          body: JSON.stringify({ name: manualName, streamUrl: manualUrl,
+            nowPlayingUrl: manualNowPlayingUrl || undefined }),
         });
         if (!res.ok) {
           toast.error('Could not add station');
@@ -154,6 +169,7 @@ export function RadioMonitorContainer() {
         }
         setManualName('');
         setManualUrl('');
+        setManualNowPlayingUrl('');
         toast.success('Station added as a candidate');
         await loadStations();
       }}
