@@ -856,3 +856,82 @@ CREATE INDEX IF NOT EXISTS idx_artists_pending_review ON public.artists ("create
   WHERE "isVisible" = FALSE;
 CREATE INDEX IF NOT EXISTS idx_releases_pending_review ON public.releases ("createdAt" DESC)
   WHERE "isVisible" = FALSE;
+
+
+-- Expert top-ten ballots are an atomic replacement, not ten independent writes.
+CREATE UNIQUE INDEX IF NOT EXISTS expert_votes_unique_rank_week
+  ON public.expert_votes ("djId", "weekStart", rank)
+  WHERE rank BETWEEN 1 AND 10;
+
+CREATE OR REPLACE FUNCTION public.cast_dj_top_ten(
+  p_dj_id uuid, p_week_start timestamptz, p_ranks jsonb
+)
+RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  v_expert boolean;
+  v_key text;
+  v_value text;
+  v_release_id uuid;
+  v_rank integer;
+  v_ranks integer[] := '{}'::integer[];
+  v_votes jsonb := '[]'::jsonb;
+  v_record public.expert_votes%ROWTYPE;
+BEGIN
+  IF p_dj_id IS NULL OR p_week_start IS NULL OR p_ranks IS NULL
+     OR jsonb_typeof(p_ranks) <> 'object'
+     OR (SELECT count(*) FROM jsonb_object_keys(p_ranks)) <> 10 THEN
+    RAISE EXCEPTION 'INVALID_DJ_BALLOT' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT "expertStatus" INTO v_expert
+    FROM public.dj_profiles WHERE id = p_dj_id FOR UPDATE;
+  IF NOT FOUND OR NOT COALESCE(v_expert, FALSE) THEN
+    RAISE EXCEPTION 'DJ_NOT_VERIFIED' USING ERRCODE = '22023';
+  END IF;
+
+  FOR v_key, v_value IN SELECT key, value FROM jsonb_each_text(p_ranks)
+  LOOP
+    IF v_value !~ '^(10|[1-9])$' THEN
+      RAISE EXCEPTION 'INVALID_DJ_RANK' USING ERRCODE = '22023';
+    END IF;
+    v_rank := v_value::integer;
+    IF v_rank = ANY(v_ranks) THEN
+      RAISE EXCEPTION 'DUPLICATE_DJ_RANK' USING ERRCODE = '22023';
+    END IF;
+    v_ranks := array_append(v_ranks, v_rank);
+    BEGIN
+      v_release_id := v_key::uuid;
+    EXCEPTION WHEN invalid_text_representation THEN
+      RAISE EXCEPTION 'INVALID_RELEASE_ID' USING ERRCODE = '22023';
+    END;
+    IF NOT EXISTS (
+      SELECT 1 FROM public.releases r
+        JOIN public.artists a ON a.id = r."artistId"
+       WHERE r.id = v_release_id AND r."isVisible" = TRUE
+         AND a."isVisible" = TRUE
+         AND r."releaseDate" BETWEEN
+           (CURRENT_DATE - INTERVAL '12 months')::date AND CURRENT_DATE
+    ) THEN
+      RAISE EXCEPTION 'RELEASE_NOT_ELIGIBLE' USING ERRCODE = '22023';
+    END IF;
+  END LOOP;
+
+  DELETE FROM public.expert_votes
+   WHERE "djId" = p_dj_id AND "weekStart" = p_week_start;
+  FOR v_key, v_value IN SELECT key, value FROM jsonb_each_text(p_ranks)
+  LOOP
+    INSERT INTO public.expert_votes ("djId", "releaseId", rank, rating, "weekStart")
+    VALUES (p_dj_id, v_key::uuid, v_value::integer, v_value::integer, p_week_start)
+    RETURNING * INTO v_record;
+    v_votes := v_votes || jsonb_build_array(to_jsonb(v_record));
+  END LOOP;
+  RETURN v_votes;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.cast_dj_top_ten(uuid,timestamptz,jsonb)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.cast_dj_top_ten(uuid,timestamptz,jsonb)
+  TO service_role;
