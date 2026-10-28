@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withAdminAuth } from '@/lib/adminAuth';
 import { ApiError } from '@/lib/errors';
+import { isPublicStreamUrl } from '@/lib/radio/publicEndpoint';
 import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import { RADIO_METADATA_MODES } from '@/lib/radio/constants';
 import { deleteStation, updateStation } from '@/lib/radio/stationRepository';
@@ -25,6 +26,11 @@ export const PATCH = withAdminAuth(async (req, adminId, context) => {
   if (!stationId) throw new ApiError(400, 'Missing station id');
   const parsed = patchSchema.safeParse(await req.json());
   if (!parsed.success) throw new ApiError(400, 'Invalid station patch', 'VALIDATION_ERROR');
+  for (const url of [parsed.data.streamUrl, parsed.data.nowPlayingUrl]) {
+    if (url && !isPublicStreamUrl(url)) {
+      throw new ApiError(400, 'Station URLs must be public HTTP(S) endpoints', 'VALIDATION_ERROR');
+    }
+  }
   const supabase = createServiceRoleSupabaseClient();
   const station = await updateStation(supabase, stationId, parsed.data);
   await supabase.from('audit_logs').insert({
