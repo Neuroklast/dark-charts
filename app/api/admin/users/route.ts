@@ -4,26 +4,21 @@ import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import { ApiError } from '@/lib/errors';
 
 export const GET = withAdminAuth(async (req) => {
-  const page = parseInt(req.nextUrl.searchParams.get('page') || '1', 10);
-  const limit = parseInt(req.nextUrl.searchParams.get('limit') || '50', 10);
+  const page = Math.min(10000, Math.max(1, parseInt(req.nextUrl.searchParams.get('page') || '1', 10) || 1));
+  const limit = Math.min(100, Math.max(10, parseInt(req.nextUrl.searchParams.get('limit') || '10', 10) || 10));
   const skip = (page - 1) * limit;
   const supabase = createServiceRoleSupabaseClient();
 
-  const { data: users, error } = await supabase
+  const { data: users, error, count } = await supabase
     .from('users')
     .select(
-      'id, email, role, isSuspended, createdAt, fanProfile:fan_profiles(nickname, remainingCredits), djProfile:dj_profiles(expertStatus, expertRequested, reputationScore)'
+      'id, email, role, isSuspended, createdAt, fanProfile:fan_profiles(nickname, remainingCredits), djProfile:dj_profiles(expertStatus, expertRequested, reputationScore)',
+      { count: 'exact' }
     )
-    .order('createdAt', { ascending: false })
+    .order('createdAt', { ascending: false }).order('id', { ascending: true })
     .range(skip, skip + limit - 1);
 
   if (error) throw new ApiError(500, error.message);
-
-  const { count, error: countError } = await supabase
-    .from('users')
-    .select('*', { count: 'exact', head: true });
-
-  if (countError) throw new ApiError(500, countError.message);
 
   const total = count ?? 0;
 
