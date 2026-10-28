@@ -16,8 +16,8 @@ export function BadgeManagementContainer() {
   const [awardBadgeId, setAwardBadgeId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
+  const load = useCallback(async (background = false) => {
+    if (!background) setIsLoading(true);
     try {
       const res = await authFetch('/api/admin/badges');
       if (!res.ok) throw new Error();
@@ -27,7 +27,7 @@ export function BadgeManagementContainer() {
     } catch {
       toast.error('Failed to load badges');
     } finally {
-      setIsLoading(false);
+      if (!background) setIsLoading(false);
     }
   }, []);
 
@@ -52,7 +52,7 @@ export function BadgeManagementContainer() {
       await postAction({ action: 'award_badge', email: awardEmail, badgeId: awardBadgeId });
       toast.success('Badge awarded');
       setAwardEmail('');
-      await load();
+      await load(true);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to award badge');
     }

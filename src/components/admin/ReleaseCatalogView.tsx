@@ -4,6 +4,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { AdminPagination } from './shared/AdminPagination';
+import { AdminBulkToolbar } from './shared/AdminBulkToolbar';
 
 export interface AdminRelease {
   id: string;
@@ -20,6 +23,19 @@ interface ReleaseCatalogViewProps {
   search?: string;
   visibility?: string;
   isLoading?: boolean;
+  isRefreshing?: boolean;
+  page?: number;
+  pageSize?: number;
+  selectedIds?: string[];
+  allMatching?: boolean;
+  isBusy?: boolean;
+  onSelect?: (ids: string[]) => void;
+  onAllMatchingChange?: (enabled: boolean) => void;
+  onBulkApprove?: () => void;
+  onBulkHide?: () => void;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  onRefresh?: () => void;
   onSearchChange?: (value: string) => void;
   onVisibilityChange?: (value: string) => void;
   onToggleVisibility?: (releaseId: string, isVisible: boolean) => void;
@@ -33,13 +49,26 @@ export function ReleaseCatalogView({
   search = '',
   visibility = 'all',
   isLoading,
+  isRefreshing,
+  page = 0,
+  pageSize = 10,
+  selectedIds = [],
+  allMatching = false,
+  isBusy = false,
+  onSelect,
+  onAllMatchingChange,
+  onBulkApprove,
+  onBulkHide,
+  onPageChange,
+  onPageSizeChange,
+  onRefresh,
   onSearchChange,
   onVisibilityChange,
   onToggleVisibility,
   onDelete,
   onSyncArtwork,
 }: ReleaseCatalogViewProps) {
-  if (isLoading) {
+  if (isLoading && !releases?.length) {
     return (
       <div className="space-y-4" data-testid="releases-loading">
         <Skeleton className="h-10 w-full max-w-md" />
@@ -70,17 +99,25 @@ export function ReleaseCatalogView({
             <option value="hidden">Hidden only</option>
           </select>
         </div>
+        <Button variant="outline" size="sm" disabled={isRefreshing} onClick={onRefresh}>Refresh</Button>
         <Button variant="secondary" size="sm" onClick={onSyncArtwork}>
           Sync artwork batch
         </Button>
       </div>
 
       <p className="text-xs text-muted-foreground">{total.toLocaleString()} releases</p>
+      <AdminBulkToolbar visibleIds={(releases ?? []).map(row => row.id)} selectedIds={selectedIds}
+        total={total} allMatching={allMatching} busy={isBusy}
+        onSelect={onSelect ?? (() => {})} onAllMatchingChange={onAllMatchingChange ?? (() => {})}
+        onApprove={onBulkApprove ?? (() => {})} onHide={onBulkHide ?? (() => {})} />
+      <AdminPagination page={page} pageSize={pageSize} total={total} disabled={isBusy}
+        onPageChange={onPageChange ?? (() => {})} onPageSizeChange={onPageSizeChange} />
 
-      <Card className="p-0 overflow-hidden">
+      <Card className="p-0 max-h-[62vh] overflow-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>
+              <TableHead>Select</TableHead>
               <TableHead>Title</TableHead>
               <TableHead>Artist</TableHead>
               <TableHead>Date</TableHead>
@@ -92,6 +129,13 @@ export function ReleaseCatalogView({
             {releases?.length ? (
               releases.map((release) => (
                 <TableRow key={release.id}>
+                  <TableCell><Checkbox aria-label={`Select ${release.title}`}
+                    checked={allMatching || selectedIds.includes(release.id)}
+                    disabled={isBusy}
+                    onCheckedChange={checked => {
+                      onAllMatchingChange?.(false);
+                      onSelect?.(checked ? [...new Set([...selectedIds, release.id])] : selectedIds.filter(id => id !== release.id));
+                    }} /></TableCell>
                   <TableCell className="font-medium">{release.title}</TableCell>
                   <TableCell>{release.artist?.name ?? '—'}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">
@@ -124,7 +168,7 @@ export function ReleaseCatalogView({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   No releases found.
                 </TableCell>
               </TableRow>
@@ -132,6 +176,8 @@ export function ReleaseCatalogView({
           </TableBody>
         </Table>
       </Card>
+      <AdminPagination page={page} pageSize={pageSize} total={total} disabled={isBusy}
+        onPageChange={onPageChange ?? (() => {})} onPageSizeChange={onPageSizeChange} />
     </div>
   );
 }

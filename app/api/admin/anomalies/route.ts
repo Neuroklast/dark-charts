@@ -5,23 +5,24 @@ import { ApiError } from '@/lib/errors';
 
 export const GET = withAdminAuth(async (req) => {
   const week = req.nextUrl.searchParams.get('week');
-  const limit = parseInt(req.nextUrl.searchParams.get('limit') || '50', 10);
+  const limit = Math.min(100, Math.max(10, parseInt(req.nextUrl.searchParams.get('limit') || '10', 10) || 10));
+  const page = Math.min(10000, Math.max(0, Number(req.nextUrl.searchParams.get('page')) || 0));
   const supabase = createServiceRoleSupabaseClient();
 
   let query = supabase
     .from('vote_anomalies')
-    .select('*, release:releases(id, title, artist:artists(name))')
-    .order('createdAt', { ascending: false })
-    .limit(limit);
+    .select('*, release:releases(id, title, artist:artists(name))', { count: 'exact' })
+    .order('createdAt', { ascending: false }).order('id', { ascending: true })
+    .range(page * limit, page * limit + limit - 1);
 
   if (week) {
     query = query.eq('weekStart', week);
   }
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw new ApiError(500, error.message);
 
-  return NextResponse.json({ success: true, anomalies: data ?? [] });
+  return NextResponse.json({ success: true, anomalies: data ?? [], total: count ?? 0, page, limit });
 });
 
 export const POST = withAdminAuth(async (req, adminId) => {

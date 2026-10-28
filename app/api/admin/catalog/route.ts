@@ -5,41 +5,159 @@ import { createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import { enqueueArtistSyncJobs } from '@/lib/api/syncQueue';
 import { ApiError } from '@/lib/errors';
 
-const actionSchema = z.object({
+const singleActionSchema = z.object({
   entity: z.enum(['artists', 'releases']),
   id: z.string().uuid(),
   action: z.enum(['approve', 'hide', 'reject', 'sync']),
 });
 
+const bulkSchema = z.object({
+  action: z.literal('bulk'),
+  entity: z.enum(['artists', 'releases']),
+  operation: z.enum(['approve', 'hide']),
+  ids: z.array(z.string().uuid()).max(200).optional(),
+  allMatching: z.boolean().optional(),
+  filter: z.enum(['pending', 'all']).optional(),
+  visibility: z.enum(['all', 'pending', 'visible', 'hidden']).optional(),
+  search: z.string().trim().max(100).optional(),
+}).refine(value => value.allMatching || (value.ids?.length ?? 0) > 0, 'No records selected');
+
+const actionSchema = z.union([singleActionSchema, bulkSchema]);
+const BULK_MAX = 1000;
+const BULK_CHUNK = 100;
+
+async function moderateBulk(db: ReturnType<typeof createServiceRoleSupabaseClient>,
+  adminId: string, body: z.infer<typeof bulkSchema>) {
+  let ids = [...new Set(body.ids ?? [])];
+  const entity = body.entity;
+  if (body.allMatching) {
+    let query = entity === 'artists'
+      ? db.from('artists').select('id', { count: 'exact' }).order('id', { ascending: true }).limit(BULK_MAX)
+      : db.from('releases').select('id', { count: 'exact' }).order('id', { ascending: true }).limit(BULK_MAX);
+    if (body.visibility === 'visible') query = query.eq('isVisible', true);
+    if (body.visibility === 'hidden') query = query.eq('isVisible', false);
+    if (body.visibility === 'pending' || (!body.visibility && body.filter === 'pending')) {
+      if (entity === 'artists') {
+        query = query.eq('isVisible', false).eq('status', 'pending_review');
+      } else query = query.eq('isVisible', false);
+    }
+    const search = (body.search ?? '').replace(/[%_\\]/g, match => '\\' + match);
+    if (search) query = query.ilike(entity === 'artists' ? 'name' : 'title', `%${search}%`);
+    const { data, count, error } = await query;
+    if (error) throw new ApiError(500, 'Unable to select matching records');
+    if ((count ?? 0) > BULK_MAX)
+      throw new ApiError(413, 'Too many matches. Narrow the filter (maximum 1000 per action).');
+    ids = (data ?? []).map(row => row.id);
+  }
+  if (ids.length === 0) return NextResponse.json({ success: true, affected: 0, skipped: 0, jobsQueued: 0 });
+  if (ids.length > BULK_MAX) throw new ApiError(413, 'Too many selected records');
+
+  let eligible: string[] = [];
+  let skipped = 0;
+  for (let offset = 0; offset < ids.length; offset += BULK_CHUNK) {
+    const batch = ids.slice(offset, offset + BULK_CHUNK);
+    if (entity === 'artists') {
+      const { data, error } = await db.from('artists')
+        .select('id,status,isVisible').in('id', batch);
+      if (error) throw new ApiError(500, 'Could not validate artists');
+      const valid = (data ?? []).filter(artist =>
+        !['BANNED', 'RESTRICTED'].includes(artist.status) &&
+        (body.operation === 'approve' ? !artist.isVisible : artist.isVisible));
+      eligible.push(...valid.map(artist => artist.id));
+      skipped += batch.length - valid.length;
+    } else {
+      const { data, error } = await db.from('releases')
+        .select('id,isVisible,artistId').in('id', batch);
+      if (error) throw new ApiError(500, 'Could not validate releases');
+      let valid = (data ?? []).filter(release => release.isVisible !== (body.operation === 'approve'));
+      if (body.operation === 'approve' && valid.length) {
+        const ownerIds = [...new Set(valid.map(row => row.artistId))];
+        const { data: owners, error: ownerError } = await db.from('artists')
+          .select('id,isVisible,status').in('id', ownerIds);
+        if (ownerError) throw new ApiError(500, 'Could not validate release artists');
+        const allowed = new Set((owners ?? []).filter(row => row.isVisible && row.status === 'active').map(row => row.id));
+        valid = valid.filter(row => allowed.has(row.artistId));
+      }
+      eligible.push(...valid.map(row => row.id));
+      skipped += batch.length - valid.length;
+    }
+  }
+
+  let affected = 0;
+  let jobsQueued = 0;
+  for (let offset = 0; offset < eligible.length; offset += BULK_CHUNK) {
+    const batch = eligible.slice(offset, offset + BULK_CHUNK);
+    if (entity === 'artists') {
+      if (body.operation === 'hide') {
+        const { error: releaseError } = await db.from('releases').update({
+          isVisible: false, updatedAt: new Date().toISOString(),
+        }).in('artistId', batch);
+        if (releaseError) throw new ApiError(500, 'Could not hide linked releases');
+      }
+      const { error } = await db.from('artists').update({
+        isVisible: body.operation === 'approve',
+        status: body.operation === 'approve' ? 'active' : 'inactive',
+        updatedAt: new Date().toISOString(),
+      }).in('id', batch);
+      if (error) throw new ApiError(500, 'Could not moderate selected artists');
+    } else {
+      const { error } = await db.from('releases').update({
+        isVisible: body.operation === 'approve',
+        updatedAt: new Date().toISOString(),
+      }).in('id', batch);
+      if (error) throw new ApiError(500, 'Could not moderate selected releases');
+    }
+    affected += batch.length;
+    // Record changes before optional sync queueing, keeping an audit trail for every batch.
+    const { error: auditError } = await db.from('audit_logs').insert({
+      adminId, action: 'CATALOG_BULK_' + body.operation.toUpperCase(),
+      details: { entity, ids: batch, allMatching: !!body.allMatching },
+    });
+    if (auditError) throw new ApiError(500, 'Changes saved but audit log failed');
+    if (entity === 'artists' && body.operation === 'approve') {
+      jobsQueued += await enqueueArtistSyncJobs(db, batch, 'full');
+    }
+  }
+  return NextResponse.json({ success: true, affected, skipped, jobsQueued });
+}
+
 export const GET = withAdminAuth(async (req: NextRequest) => {
   const entity = req.nextUrl.searchParams.get('entity') === 'releases' ? 'releases' : 'artists';
   const pendingOnly = req.nextUrl.searchParams.get('filter') !== 'all';
+  const limit = Math.min(100, Math.max(10, Number(req.nextUrl.searchParams.get('limit')) || 25));
+  const page = Math.min(10000, Math.max(0, Number(req.nextUrl.searchParams.get('page')) || 0));
+  const search = (req.nextUrl.searchParams.get('search') ?? '').trim().slice(0, 100)
+    .replace(/[%_\\]/g, '\\$&');
   const db = createServiceRoleSupabaseClient();
-
   if (entity === 'artists') {
     let q = db.from('artists')
       .select('id,name,genres,status,isVisible,source,spotifyId,itunesId,createdAt', { count: 'exact' })
-      .order('createdAt', { ascending: false }).limit(100);
+      .order('createdAt', { ascending: false }).order('id', { ascending: true })
+      .range(page * limit, page * limit + limit - 1);
     if (pendingOnly) q = q.eq('isVisible', false).eq('status', 'pending_review');
+    if (search) q = q.ilike('name', `%${search}%`);
     const { data, error, count } = await q;
     if (error) throw new ApiError(500, 'Unable to load artist moderation queue');
-    return NextResponse.json({ entity, items: data ?? [], count: count ?? 0 });
+    return NextResponse.json({ entity, items: data ?? [], count: count ?? 0, page, limit });
   }
-
   let q = db.from('releases')
     .select('id,title,releaseDate,isVisible,source,itunesId,artistId,artist:artists(id,name,isVisible)', { count: 'exact' })
-    .order('createdAt', { ascending: false }).limit(100);
+    .order('createdAt', { ascending: false }).order('id', { ascending: true })
+    .range(page * limit, page * limit + limit - 1);
   if (pendingOnly) q = q.eq('isVisible', false);
+  if (search) q = q.ilike('title', `%${search}%`);
   const { data, error, count } = await q;
   if (error) throw new ApiError(500, 'Unable to load release moderation queue');
-  return NextResponse.json({ entity, items: data ?? [], count: count ?? 0 });
+  return NextResponse.json({ entity, items: data ?? [], count: count ?? 0, page, limit });
 });
 
 export const POST = withAdminAuth(async (req: NextRequest, adminId: string) => {
   const parsed = actionSchema.safeParse(await req.json());
   if (!parsed.success) throw new ApiError(400, 'Invalid moderation action');
-  const { entity, id, action } = parsed.data;
+  const body = parsed.data;
   const db = createServiceRoleSupabaseClient();
+  if (body.action === 'bulk') return moderateBulk(db, adminId, body);
+  const { entity, id, action } = body;
   let jobsQueued = 0;
 
   if (entity === 'artists') {

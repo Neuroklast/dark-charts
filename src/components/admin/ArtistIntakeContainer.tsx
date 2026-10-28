@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { authFetch } from '@/lib/auth/client-fetch';
 import { parseArtistCsv, MAX_ARTIST_CSV_BYTES, type ArtistCsvPreview, type ArtistIntakeRow } from '@/lib/catalog/artistCsv';
@@ -9,6 +9,10 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+import { AdminPagination } from './shared/AdminPagination';
+import { AdminBulkToolbar } from './shared/AdminBulkToolbar';
+import { useAdminList, useDebouncedValue } from './shared/useAdminList';
 
 type ArtistListRow = ArtistIntakeRow & {
   id: string;
@@ -53,6 +57,8 @@ async function postJson(url: string, body: Record<string, unknown>) {
     created?: number;
     skipped?: number;
     errors?: string[];
+    affected?: number;
+    jobsQueued?: number;
   };
   if (!response.ok) throw new Error(payload.error || 'Die Anfrage ist fehlgeschlagen.');
   return payload;
@@ -70,34 +76,35 @@ export function ArtistIntakeContainer() {
   const [importResult, setImportResult] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const [rows, setRows] = useState<ArtistListRow[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [pageSize, setPageSize] = useState(10);
+  const [visibility, setVisibility] = useState<'all' | 'pending' | 'visible' | 'hidden'>('all');
+  const [showIntake, setShowIntake] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [allMatching, setAllMatching] = useState(false);
+  const [rowBusy, setRowBusy] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const params = useMemo(() => new URLSearchParams({
+    view: 'list', page: String(page), size: String(pageSize), search: debouncedSearch, visibility,
+  }).toString(), [page, pageSize, debouncedSearch, visibility]);
+  const { rows, total, loading, refreshing, refresh, setRows, setTotal } = useAdminList<ArtistListRow>(
+    '/api/admin/artists?' + params,
+    data => ({ rows: data.artists ?? [], total: data.total ?? 0 }),
+    message => toast.error(message)
+  );
+  const loadArtists = useCallback(() => refresh(true), [refresh]);
 
-  const loadArtists = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ view: 'list', page: String(page), search });
-      const response = await authFetch('/api/admin/artists?' + params);
-      const payload = await response.json() as {
-        artists?: ArtistListRow[];
-        total?: number;
-        error?: string;
-      };
-      if (!response.ok) throw new Error(payload.error || 'Artist-Liste konnte nicht geladen werden.');
-      setRows(payload.artists ?? []);
-      setTotal(payload.total ?? 0);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Fehler beim Laden');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => { void loadArtists(); }, search ? 300 : 0);
-    return () => clearTimeout(timer);
-  }, [loadArtists, search]);
+  function resetSelection() {
+    setSelectedIds([]);
+    setAllMatching(false);
+  }
+  function updateListFilters(next: { search?: string; visibility?: typeof visibility; size?: number }) {
+    if (next.search !== undefined) setSearch(next.search);
+    if (next.visibility !== undefined) setVisibility(next.visibility);
+    if (next.size !== undefined) setPageSize(next.size);
+    setPage(0);
+    resetSelection();
+  }
 
   useEffect(() => {
     if (editingId && mode === 'manual') document.getElementById('artist-manual-form')?.scrollIntoView({ block: 'center' });
@@ -191,26 +198,54 @@ export function ArtistIntakeContainer() {
       country: artist.country ?? '',
     });
     setMode('manual');
+    setShowIntake(true);
   }
 
   async function moderate(artist: ArtistListRow) {
-    setBusy(true);
+    if (rowBusy || bulkBusy) return;
+    const nextVisible = !artist.isVisible;
+    setRowBusy(artist.id);
+    setRows(list => list.map(row => row.id === artist.id
+      ? { ...row, isVisible: nextVisible, status: nextVisible ? 'active' : 'inactive' } : row));
     try {
       await postJson('/api/admin/catalog', {
-        entity: 'artists', id: artist.id, action: artist.isVisible ? 'hide' : 'approve',
+        entity: 'artists', id: artist.id, action: nextVisible ? 'approve' : 'hide',
       });
-      toast.success(artist.isVisible ? 'Artist verborgen.' : 'Artist freigegeben.');
-      await loadArtists();
+      if (visibility === 'pending' || (visibility === 'visible' && !nextVisible) ||
+          (visibility === 'hidden' && nextVisible)) {
+        setRows(list => list.filter(row => row.id !== artist.id));
+        setTotal(value => Math.max(0, value - 1));
+      }
+      setSelectedIds(ids => ids.filter(id => id !== artist.id));
+      toast.success(nextVisible ? 'Artist freigegeben.' : 'Artist verborgen.');
     } catch (error) {
+      setRows(list => list.map(row => row.id === artist.id ? artist : row));
       toast.error(error instanceof Error ? error.message : 'Änderung fehlgeschlagen');
-    } finally {
-      setBusy(false);
-    }
+    } finally { setRowBusy(null); }
+  }
+
+  async function bulkModerate(operation: 'approve' | 'hide') {
+    if (bulkBusy || (!allMatching && selectedIds.length === 0)) return;
+    const count = allMatching ? total : selectedIds.length;
+    if (!window.confirm(`${count} Artists ${operation === 'approve' ? 'freigeben' : 'verbergen'}? ${allMatching ? 'Alle Treffer des aktuellen Filters sind betroffen, auch auf anderen Seiten.' : ''}`)) return;
+    setBulkBusy(true);
+    try {
+      const payload = await postJson('/api/admin/catalog', {
+        action: 'bulk', entity: 'artists', operation,
+        ...(allMatching ? { allMatching: true, search: debouncedSearch, visibility } : { ids: selectedIds }),
+      });
+      toast.success(`${payload.affected ?? 0} Artists aktualisiert, ${payload.skipped ?? 0} übersprungen.`);
+      resetSelection();
+      if (page !== 0) setPage(0);
+      await refresh(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Sammelaktion fehlgeschlagen');
+    } finally { setBulkBusy(false); }
   }
 
   async function deleteArtist(artist: ArtistListRow) {
     if (!window.confirm('Artist "' + artist.name + '" wirklich löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.')) return;
-    setBusy(true);
+    setRowBusy(artist.id);
     try {
       await postJson('/api/admin/artists', { action: 'delete', artistId: artist.id });
       toast.success('Artist gelöscht.');
@@ -218,17 +253,21 @@ export function ArtistIntakeContainer() {
         setEditingId(null);
         setForm(emptyForm);
       }
-      await loadArtists();
+      setRows(list => list.filter(row => row.id !== artist.id));
+      setTotal(value => Math.max(0, value - 1));
+      setSelectedIds(ids => ids.filter(id => id !== artist.id));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Artist konnte nicht gelöscht werden.');
-    } finally {
-      setBusy(false);
-    }
+    } finally { setRowBusy(null); }
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="p-5 md:p-6">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">Artists anlegen, importieren und gesammelt verwalten.</p>
+        <Button type="button" variant="outline" onClick={() => setShowIntake(value => !value)}>{showIntake ? 'Eingabe schließen' : '+ Artists hinzufügen / CSV importieren'}</Button>
+      </div>
+      {showIntake && <Card className="p-5 md:p-6">
         <div className="mb-4">
           <h2 className="font-display text-lg uppercase tracking-wide">Artists hinzufügen</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -301,52 +340,97 @@ export function ArtistIntakeContainer() {
             {importResult && <p role="status" className="text-sm">{importResult}</p>}
           </TabsContent>
         </Tabs>
-      </Card>
+      </Card>}
 
-      <Card className="p-5 md:p-6">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <Card className="p-4 md:p-5 space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h2 className="font-display text-lg uppercase tracking-wide">Artist-Datenbank</h2>
-            <p className="text-sm text-muted-foreground">{total} Treffer, 50 pro Seite</p>
+            <p className="text-sm text-muted-foreground">{total.toLocaleString('de-DE')} Treffer · {refreshing ? 'Aktualisiere…' : 'Bereit'}</p>
           </div>
-          <div className="w-full max-w-sm space-y-2">
-            <Label htmlFor="artist-search">Artist suchen</Label>
-            <Input id="artist-search" value={search} placeholder="Nach Namen suchen"
-              onChange={event => { setSearch(event.target.value); setPage(0); }} />
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="min-w-48 flex-1 space-y-1">
+              <Label htmlFor="artist-search">Artist suchen</Label>
+              <Input id="artist-search" value={search} placeholder="Nach Namen suchen"
+                onChange={event => updateListFilters({ search: event.target.value })} />
+            </div>
+            <label className="space-y-1 text-xs text-muted-foreground">
+              <span className="block">Status</span>
+              <select aria-label="Artists nach Status filtern" value={visibility}
+                onChange={event => updateListFilters({ visibility: event.target.value as typeof visibility })}
+                className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground">
+                <option value="all">Alle Artists</option>
+                <option value="pending">Freigabe ausstehend</option>
+                <option value="visible">Öffentlich</option>
+                <option value="hidden">Nicht öffentlich</option>
+              </select>
+            </label>
+            <Button type="button" variant="outline" size="sm" disabled={refreshing}
+              onClick={() => void refresh(true)}>Aktualisieren</Button>
           </div>
         </div>
-        {loading ? <p className="text-sm text-muted-foreground">Lade Artists ...</p> : rows.length === 0
-          ? <p className="text-sm text-muted-foreground">Keine Artists gefunden. Du kannst oben den ersten anlegen.</p>
-          : <div className="divide-y divide-border">
-            {rows.map(artist => (
-              <div key={artist.id} className="flex flex-col gap-3 py-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="min-w-0">
-                  <p className="font-medium break-words">{artist.name}</p>
-                  <p className="text-xs text-muted-foreground break-words">
-                    {artist.spotifyId ?? 'Ohne Spotify-ID'} · {(artist.genres ?? []).join(', ') || 'Kein Genre'} · {artist.isVisible ? 'Öffentlich' : artist.status}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" disabled={busy}
-                    onClick={() => editArtist(artist)}>Bearbeiten</Button>
-                  {artist.status !== 'BANNED' && artist.status !== 'RESTRICTED' &&
-                    <Button size="sm" variant="outline" disabled={busy}
-                      onClick={() => { void moderate(artist); }}>
-                      {artist.isVisible ? 'Verbergen' : 'Freigeben'}
-                    </Button>}
-                  <Button size="sm" variant="destructive" disabled={busy}
-                    onClick={() => { void deleteArtist(artist); }}>Löschen</Button>
-                </div>
-              </div>
-            ))}
-          </div>}
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <Button variant="outline" size="sm" disabled={busy || page === 0}
-            onClick={() => setPage(page - 1)}>Zurück</Button>
-          <span className="text-xs text-muted-foreground">Seite {page + 1}</span>
-          <Button variant="outline" size="sm" disabled={busy || (page + 1) * 50 >= total}
-            onClick={() => setPage(page + 1)}>Weiter</Button>
+        <AdminBulkToolbar
+          visibleIds={rows.filter(row => !['BANNED', 'RESTRICTED'].includes(row.status)).map(row => row.id)}
+          selectedIds={selectedIds} allMatching={allMatching} total={total}
+          busy={bulkBusy || rowBusy !== null}
+          onSelect={setSelectedIds} onAllMatchingChange={setAllMatching}
+          onApprove={() => void bulkModerate('approve')} onHide={() => void bulkModerate('hide')}
+        />
+        <AdminPagination page={page} pageSize={pageSize} total={total}
+          onPageChange={value => { setPage(value); resetSelection(); }}
+          onPageSizeChange={size => updateListFilters({ size })}
+          disabled={bulkBusy} />
+        <div className="max-h-[62vh] min-h-[10rem] overflow-auto rounded-lg border border-border" aria-busy={loading}>
+          {loading && rows.length === 0 ? <p className="p-5 text-sm text-muted-foreground">Lade Artists…</p> :
+            rows.length === 0 ? <p className="p-5 text-sm text-muted-foreground">Keine passenden Artists.</p> :
+            <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+              <thead className="sticky top-0 z-10 bg-card text-xs uppercase text-muted-foreground">
+                <tr className="border-b border-border">
+                  <th scope="col" className="w-12 px-3 py-2">Auswahl</th>
+                  <th scope="col" className="px-3 py-2">Artist</th>
+                  <th scope="col" className="px-3 py-2">Genres / Land</th>
+                  <th scope="col" className="px-3 py-2">Status</th>
+                  <th scope="col" className="px-3 py-2 text-right">Aktionen</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {rows.map(artist => (
+                  <tr key={artist.id} className={rowBusy === artist.id ? 'opacity-60' : 'hover:bg-muted/30'}>
+                    <td className="px-3 py-2">
+                      <Checkbox aria-label={`${artist.name} auswählen`}
+                        disabled={bulkBusy || ['BANNED', 'RESTRICTED'].includes(artist.status)}
+                        checked={allMatching || selectedIds.includes(artist.id)}
+                        onCheckedChange={checked => {
+                          setAllMatching(false);
+                          setSelectedIds(ids => checked ? [...new Set([...ids, artist.id])] : ids.filter(id => id !== artist.id));
+                        }} />
+                    </td>
+                    <td className="px-3 py-2 font-medium">{artist.name}
+                      <div className="text-[11px] font-normal text-muted-foreground">{artist.spotifyId ? 'Spotify verknüpft' : 'Ohne Spotify-ID'}</div>
+                    </td>
+                    <td className="max-w-72 truncate px-3 py-2 text-muted-foreground" title={(artist.genres ?? []).join(', ')}>
+                      {(artist.genres ?? []).join(', ') || 'Kein Genre'} · {artist.country || '—'}
+                    </td>
+                    <td className="px-3 py-2">{artist.isVisible ? 'Öffentlich' : artist.status}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" disabled={rowBusy !== null || bulkBusy} onClick={() => editArtist(artist)}>Bearbeiten</Button>
+                        {!['BANNED', 'RESTRICTED'].includes(artist.status) &&
+                          <Button size="sm" variant="outline" disabled={rowBusy !== null || bulkBusy}
+                            onClick={() => void moderate(artist)}>{artist.isVisible ? 'Verbergen' : 'Freigeben'}</Button>}
+                        <Button size="sm" variant="destructive" disabled={rowBusy !== null || bulkBusy}
+                          onClick={() => void deleteArtist(artist)}>Löschen</Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>}
         </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total}
+          onPageChange={value => { setPage(value); resetSelection(); }}
+          onPageSizeChange={size => updateListFilters({ size })}
+          disabled={bulkBusy} />
       </Card>
     </div>
   );

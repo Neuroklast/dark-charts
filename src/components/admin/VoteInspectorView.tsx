@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { AdminPagination } from './shared/AdminPagination';
 
 export interface VoteRow {
   id: string;
@@ -24,6 +25,10 @@ interface VoteInspectorViewProps {
   type?: 'fan' | 'expert';
   weekOnly?: boolean;
   isLoading?: boolean;
+  page?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
   onTypeChange?: (type: 'fan' | 'expert') => void;
   onWeekOnlyChange?: (weekOnly: boolean) => void;
 }
@@ -34,10 +39,14 @@ export function VoteInspectorView({
   type = 'fan',
   weekOnly = true,
   isLoading,
+  page = 0,
+  pageSize = 10,
+  onPageChange,
+  onPageSizeChange,
   onTypeChange,
   onWeekOnlyChange,
 }: VoteInspectorViewProps) {
-  if (isLoading) {
+  if (isLoading && !votes?.length) {
     return (
       <div className="space-y-4" data-testid="votes-loading">
         <Skeleton className="h-10 w-64" />
@@ -75,9 +84,11 @@ export function VoteInspectorView({
         <Badge variant="outline">{total.toLocaleString()} votes</Badge>
       </div>
 
-      <Card className="p-0 overflow-hidden">
+      <AdminPagination page={page} pageSize={pageSize} total={total}
+        onPageChange={onPageChange ?? (() => {})} onPageSizeChange={onPageSizeChange} />
+      <Card className="p-0 max-h-[62vh] overflow-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>
               <TableHead>Time</TableHead>
               <TableHead>User</TableHead>
@@ -120,6 +131,8 @@ export function VoteInspectorView({
           </TableBody>
         </Table>
       </Card>
+      <AdminPagination page={page} pageSize={pageSize} total={total}
+        onPageChange={onPageChange ?? (() => {})} onPageSizeChange={onPageSizeChange} />
     </div>
   );
 }

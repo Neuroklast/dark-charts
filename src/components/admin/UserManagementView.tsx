@@ -4,8 +4,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { AdminPagination } from './shared/AdminPagination';
 
-interface AdminUser {
+export interface AdminUser {
   id: string;
   email: string;
   role: string;
@@ -17,6 +18,11 @@ interface AdminUser {
 interface UserManagementViewProps {
   users?: AdminUser[];
   isLoading?: boolean;
+  total?: number;
+  page?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
   onSuspendUser?: (userId: string) => void;
   onUnsuspendUser?: (userId: string) => void;
   onResetCredits?: (userId: string) => void;
@@ -27,13 +33,18 @@ interface UserManagementViewProps {
 export function UserManagementView({
   users,
   isLoading,
+  total = 0,
+  page = 0,
+  pageSize = 10,
+  onPageChange,
+  onPageSizeChange,
   onSuspendUser,
   onUnsuspendUser,
   onResetCredits,
   onToggleExpertStatus,
   onSetReputation,
 }: UserManagementViewProps) {
-  if (isLoading) {
+  if (isLoading && !users?.length) {
     return (
       <Card className="p-0 overflow-hidden" data-testid="users-loading">
         <Table>
@@ -61,9 +72,12 @@ export function UserManagementView({
   }
 
   return (
-    <Card className="p-0 overflow-hidden">
+    <div className="space-y-3">
+      <AdminPagination page={page} pageSize={pageSize} total={total}
+        onPageChange={onPageChange ?? (() => {})} onPageSizeChange={onPageSizeChange} />
+    <Card className="p-0 max-h-[62vh] overflow-auto">
       <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow>
             <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
@@ -154,5 +168,8 @@ export function UserManagementView({
         </TableBody>
       </Table>
     </Card>
+    <AdminPagination page={page} pageSize={pageSize} total={total}
+      onPageChange={onPageChange ?? (() => {})} onPageSizeChange={onPageSizeChange} />
+    </div>
   );
 }
