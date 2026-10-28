@@ -27,13 +27,13 @@ describe('demo accounts', () => {
 });
 
 describe('isDemoLoginAllowed', () => {
-  it('is on in development', () => {
-    expect(isDemoLoginAllowed({ NODE_ENV: 'development' })).toBe(true);
+  it('is disabled in development too', () => {
+    expect(isDemoLoginAllowed({ NODE_ENV: 'development' })).toBe(false);
   });
 
-  it('is off in production unless ALLOW_DEMO_LOGIN=1', () => {
+  it('cannot be enabled in production via environment', () => {
     expect(isDemoLoginAllowed({ NODE_ENV: 'production' })).toBe(false);
-    expect(isDemoLoginAllowed({ NODE_ENV: 'production', ALLOW_DEMO_LOGIN: '1' })).toBe(true);
+    expect(isDemoLoginAllowed({ NODE_ENV: 'production', ALLOW_DEMO_LOGIN: '1' })).toBe(false);
   });
 });
 
