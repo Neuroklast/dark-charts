@@ -18,6 +18,7 @@ const bulkSchema = z.object({
   ids: z.array(z.string().uuid()).max(200).optional(),
   allMatching: z.boolean().optional(),
   filter: z.enum(['pending', 'all']).optional(),
+  visibility: z.enum(['all', 'pending', 'visible', 'hidden']).optional(),
   search: z.string().trim().max(100).optional(),
 }).refine(value => value.allMatching || (value.ids?.length ?? 0) > 0, 'No records selected');
 
@@ -33,7 +34,9 @@ async function moderateBulk(db: ReturnType<typeof createServiceRoleSupabaseClien
     let query = entity === 'artists'
       ? db.from('artists').select('id').order('id', { ascending: true }).limit(BULK_MAX + 1)
       : db.from('releases').select('id').order('id', { ascending: true }).limit(BULK_MAX + 1);
-    if (body.filter === 'pending') {
+    if (body.visibility === 'visible') query = query.eq('isVisible', true);
+    if (body.visibility === 'hidden') query = query.eq('isVisible', false);
+    if (body.visibility === 'pending' || (!body.visibility && body.filter === 'pending')) {
       if (entity === 'artists') {
         query = query.eq('isVisible', false).eq('status', 'pending_review');
       } else query = query.eq('isVisible', false);
