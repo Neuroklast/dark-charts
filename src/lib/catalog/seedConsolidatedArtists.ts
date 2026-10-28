@@ -153,7 +153,7 @@ export function loadConsolidatedArtistRows(
 
 export async function seedConsolidatedArtists(
   db: AppSupabaseClient,
-  options: { enqueueSync?: boolean; csvPath?: string } = {}
+  options: { enqueueSync?: boolean; csvPath?: string; offset?: number; limit?: number } = {}
 ): Promise<SeedArtistsResult> {
   const result: SeedArtistsResult = {
     created: 0,
@@ -163,7 +163,10 @@ export async function seedConsolidatedArtists(
     errors: [],
   };
 
-  const rows = loadConsolidatedArtistRows(options.csvPath);
+  // Bound each admin request so a Vercel function cannot time out on 500+ rows.
+  const offset = Math.max(0, Math.floor(options.offset ?? 0));
+  const limit = Math.min(50, Math.max(1, Math.floor(options.limit ?? 25)));
+  const rows = loadConsolidatedArtistRows(options.csvPath).slice(offset, offset + limit);
   const touchedIds: string[] = [];
 
   for (const row of rows) {
