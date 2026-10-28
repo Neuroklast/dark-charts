@@ -79,7 +79,7 @@ export function PromotionApprovalView({ bookings, isLoading, onApprove, onReject
                   variant="outline"
                   size="sm"
                   onClick={() => onApprove?.(booking.id)}
-                  disabled={booking.status !== 'PENDING' || busyId !== null}
+                  disabled={booking.status !== 'PENDING' || busyId != null}
                   className="hover:text-green-500 hover:border-green-500"
                 >
                   Approve
