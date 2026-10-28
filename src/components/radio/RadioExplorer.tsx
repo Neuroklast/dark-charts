@@ -11,14 +11,14 @@ type Track = {
 type Station = {
   id: string; name: string; country: string | null; tags: string[];
   homepageUrl: string | null; health: string; lastMetadataAt: string | null;
-  nowPlaying: Track | null;
+  nowPlaying: Track | null; monitored: boolean;
 };
 type ChartEntry = {
   rank: number; artist: string; title: string; spins: number;
   stations: number; countries: string[]; genres: string[]; lastDetected: string;
 };
 type RadioPayload = {
-  stations: Station[]; charts: ChartEntry[]; totalStations: number;
+  stations: Station[]; charts: ChartEntry[]; totalStations: number; monitored: number;
   coverage: { sampleSize: number; totalEvents: number; truncated: boolean;
     sampledThrough: string | null; freshWindowSeconds: number };
   generatedAt: string;
@@ -84,8 +84,8 @@ export function RadioExplorer() {
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">RADIO INTELLIGENCE</p>
         <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">Global radio monitor</h1>
         <p className="max-w-3xl text-muted-foreground">
-          Discover monitored underground stations, follow current tracks and browse observed radio airplay.
-          Only stations with public metadata and enabled monitoring appear here.
+          Discover underground radio stations, follow current tracks and browse observed radio airplay.
+          The station directory includes public candidates; live titles require active monitoring.
         </p>
       </header>
 
@@ -133,7 +133,7 @@ export function RadioExplorer() {
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
         <span aria-live="polite">{pending ? 'Refreshing…' : payload
-          ? `${payload.totalStations} monitored stations · Last updated ${new Date(payload.generatedAt).toLocaleTimeString()}`
+          ? `${payload.totalStations} listed · ${payload.monitored} monitored · Last updated ${new Date(payload.generatedAt).toLocaleTimeString()}`
           : 'Waiting for radio data'}</span>
         <button type="button" onClick={() => void load()} disabled={pending}
           className="rounded-md border border-border px-3 py-2 text-foreground hover:bg-muted disabled:opacity-40">
@@ -177,7 +177,10 @@ export function RadioExplorer() {
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="text-lg font-semibold">{station.name}</h2>
-                  {station.country && <span className="rounded bg-muted px-2 py-1 text-xs">{station.country}</span>}
+                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {station.country && <span className="rounded bg-muted px-2 py-1">{station.country}</span>}
+                    {station.monitored ? 'Monitored' : 'Directory'}
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">{station.tags.slice(0, 5).join(' · ') || 'Genre unspecified'}</p>
                 {station.nowPlaying ? (
@@ -204,7 +207,7 @@ export function RadioExplorer() {
         : 'No monitored stations match these filters. Add and enable stations in the admin radio monitor.'} /> : null}
 
       <footer className="border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
-        Genre filtering of stations uses broadcaster-provided tags. Genre filtering of live tracks and
+        The directory includes curated public stream candidates, not every internet radio station. Genre filtering of stations uses broadcaster-provided tags. Genre filtering of live tracks and
         airplay uses matched artist or release genres, not station tags. Metadata may be delayed or missing.
         Coverage depends on participating public streams. Data refreshes every 60 seconds.
         <Link className="ml-2 underline hover:text-foreground" href="/methodology">Methodology</Link>
