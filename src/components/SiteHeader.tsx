@@ -15,7 +15,7 @@ export function SiteHeader() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const pathname = usePathname();
-  const items = [{ href: '/', label: t('nav.home') }, { href: '/search', label: t('ui.discover') }, { href: '/history', label: t('nav.history') }, { href: '/custom-charts', label: t('nav.custom') }];
+  const items = [{ href: '/', label: t('nav.home') }, { href: '/search', label: t('ui.discover') }, { href: '/radio', label: 'Radio' }, { href: '/history', label: t('nav.history') }, { href: '/custom-charts', label: t('nav.custom') }];
   const active = (href: string) => href === '/' ? pathname === '/' || pathname.startsWith('/charts/') || pathname.startsWith('/genre/') : pathname.startsWith(href);
   const links = items.map(item => <Link key={item.href} href={item.href} onClick={() => setOpen(false)} aria-current={active(item.href) ? 'page' : undefined} className={cn('site-nav-link', active(item.href) && 'is-active')}>{item.label}</Link>);
   return <header className="site-header">
