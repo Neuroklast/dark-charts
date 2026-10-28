@@ -107,4 +107,46 @@ describe('probeStation', () => {
     );
     expect(result).toEqual({ ok: false, health: 'dead', error: 'Missing stream URL' });
   });
+  it('reads a bounded ICY metadata frame without waiting for a stream to end', async () => {
+    const label = "StreamTitle='NEUROKLAST - GODSLAYER';";
+    const paddedLength = Math.ceil(label.length / 16) * 16;
+    const bytes = new Uint8Array(16 + 1 + paddedLength);
+    bytes[16] = paddedLength / 16;
+    new TextEncoder().encodeInto(label, bytes.subarray(17));
+    const fetchImpl = vi.fn(async () => new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(bytes.subarray(0, 20));
+        controller.enqueue(bytes.subarray(20));
+        controller.close();
+      },
+    }), { headers: { 'icy-metaint': '16' } }));
+    const result = await probeStation(
+      { ...station, metadataMode: 'icy' },
+      { userAgent: 'test-agent', fetchImpl: fetchImpl as unknown as typeof fetch }
+    );
+    expect(result).toMatchObject({ ok: true, streamTitle: 'NEUROKLAST - GODSLAYER', method: 'icy' });
+  });
+
+  it('parses an AzuraCast nested now-playing response', async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      now_playing: { song: { artist: 'NEUROKLAST', title: 'HELLFIRE' } },
+    })));
+    const result = await probeStation(
+      { ...station, nowPlayingUrl: 'https://radio.example/azuracast', metadataMode: 'nowplaying_url' },
+      { userAgent: 'test-agent', fetchImpl: fetchImpl as unknown as typeof fetch }
+    );
+    expect(result).toMatchObject({ ok: true, streamTitle: 'NEUROKLAST - HELLFIRE' });
+  });
+
+  it('parses a Radio.co current track object', async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      current_track: { artist: 'NEUROKLAST', title: 'MAYHEM' },
+    })));
+    const result = await probeStation(
+      { ...station, nowPlayingUrl: 'https://public.radio.co/api/v2/s000/track/current', metadataMode: 'nowplaying_url' },
+      { userAgent: 'test-agent', fetchImpl: fetchImpl as unknown as typeof fetch }
+    );
+    expect(result).toMatchObject({ ok: true, streamTitle: 'NEUROKLAST - MAYHEM' });
+  });
+
 });
