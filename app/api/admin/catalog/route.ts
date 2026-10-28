@@ -41,7 +41,7 @@ async function moderateBulk(db: ReturnType<typeof createServiceRoleSupabaseClien
         query = query.eq('isVisible', false).eq('status', 'pending_review');
       } else query = query.eq('isVisible', false);
     }
-    const search = (body.search ?? '').replace(/[%_\\]/g, '\\export const GET =');
+    const search = (body.search ?? '').replace(/[%_\\]/g, match => '\\' + match);
     if (search) query = query.ilike(entity === 'artists' ? 'name' : 'title', `%${search}%`);
     const { data, error } = await query;
     if (error) throw new ApiError(500, 'Unable to select matching records');
