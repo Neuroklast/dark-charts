@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { authFetch } from '@/lib/auth/client-fetch';
 import { ReleaseCatalogView, type AdminRelease } from './ReleaseCatalogView';
 import { useAdminList, useDebouncedValue } from './shared/useAdminList';
+import { AdminBulkJobProgress } from './shared/AdminBulkJobProgress';
 
 export function ReleaseCatalogContainer() {
   const [search, setSearch] = useState('');
@@ -14,6 +15,7 @@ export function ReleaseCatalogContainer() {
   const [selected, setSelected] = useState<string[]>([]);
   const [allMatching, setAllMatching] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [bulkJobId, setBulkJobId] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search);
   const params = useMemo(() => new URLSearchParams({
     limit: String(pageSize), offset: String(page * pageSize), search: debouncedSearch, visibility,
@@ -85,10 +87,9 @@ export function ReleaseCatalogContainer() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Sammelaktion fehlgeschlagen');
-      toast.success(`${data.affected} Releases aktualisiert, ${data.skipped} übersprungen`);
+      if (data.jobId) { setBulkJobId(data.jobId); toast.success('Sammelaktion eingeplant'); }
+      else toast.success('Keine Änderungen erforderlich');
       reset();
-      if (page) setPage(0);
-      await refresh(true);
     } catch (error) { toast.error(error instanceof Error ? error.message : 'Sammelaktion fehlgeschlagen'); }
     finally { setBusy(false); }
   };
@@ -106,16 +107,20 @@ export function ReleaseCatalogContainer() {
   };
 
   return (
+    <div className="space-y-3">
+      <AdminBulkJobProgress jobId={bulkJobId} onDismiss={() => setBulkJobId(null)}
+        onFinished={() => { void refresh(true); toast.success('Sammelaktion abgeschlossen'); }} />
     <ReleaseCatalogView releases={rows} total={total} search={search} visibility={visibility}
       isLoading={loading} isRefreshing={refreshing} page={page} pageSize={pageSize}
-      selectedIds={selected} allMatching={allMatching} isBusy={busy}
+      selectedIds={selected} allMatching={allMatching} isBusy={busy || bulkJobId !== null}
       onSelect={setSelected} onAllMatchingChange={setAllMatching}
       onBulkApprove={() => void handleBulk('approve')} onBulkHide={() => void handleBulk('hide')}
-      onPageChange={value => { setPage(value); reset(); }}
+      onPageChange={value => { setPage(value); }}
       onPageSizeChange={size => updateFilter({ pageSize: size })}
       onSearchChange={value => updateFilter({ search: value })}
       onVisibilityChange={value => updateFilter({ visibility: value })}
       onToggleVisibility={handleToggleVisibility} onDelete={handleDelete}
       onSyncArtwork={handleSyncArtwork} onRefresh={() => void refresh(true)} />
+    </div>
   );
 }
