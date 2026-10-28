@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useDebouncedValue } from './shared/useAdminList';
 import { toast } from 'sonner';
 import { authFetch } from '@/lib/auth/client-fetch';
 import { DEFAULT_RADIO_MONITOR_SETTINGS, type RadioMonitorSettings } from '@/lib/radio/constants';
@@ -13,6 +14,7 @@ import {
 
 interface StationsResponse {
   stations: RadioStationRow[];
+  total: number;
   heartbeatStale?: boolean;
   stats?: RadioMonitorStats;
 }
@@ -20,6 +22,11 @@ interface StationsResponse {
 export function RadioMonitorContainer() {
   const [isLoading, setIsLoading] = useState(true);
   const [stations, setStations] = useState<RadioStationRow[]>([]);
+  const [stationTotal, setStationTotal] = useState(0);
+  const [stationPage, setStationPage] = useState(0);
+  const [stationSize, setStationSize] = useState(25);
+  const [stationSearch, setStationSearch] = useState('');
+  const debouncedStationSearch = useDebouncedValue(stationSearch);
   const [events, setEvents] = useState<RadioEventRow[]>([]);
   const [settings, setSettings] = useState<RadioMonitorSettings>(DEFAULT_RADIO_MONITOR_SETTINGS);
   const [stats, setStats] = useState<RadioMonitorStats>({ total: 0, monitored: 0, dead: 0, blocked: 0 });
@@ -33,13 +40,15 @@ export function RadioMonitorContainer() {
   const [discoverySource, setDiscoverySource] = useState<'radio_browser' | 'shoutcast'>('radio_browser');
 
   const loadStations = useCallback(async () => {
-    const res = await authFetch('/api/admin/radio/stations');
+    const params = new URLSearchParams({ page: String(stationPage),size: String(stationSize),search: debouncedStationSearch });
+    const res = await authFetch('/api/admin/radio/stations?' + params.toString());
     if (!res.ok) throw new Error('stations');
     const data = (await res.json()) as StationsResponse;
     setStations(data.stations ?? []);
+    setStationTotal(data.total ?? 0);
     setHeartbeatStale(Boolean(data.heartbeatStale));
     setStats(data.stats ?? { total: 0, monitored: 0, dead: 0, blocked: 0 });
-  }, []);
+  }, [stationPage,stationSize,debouncedStationSearch]);
 
   const loadEvents = useCallback(async (unmatched: boolean) => {
     const res = await authFetch(`/api/admin/radio/events${unmatched ? '?unmatched=1' : ''}`);
@@ -58,20 +67,18 @@ export function RadioMonitorContainer() {
     }
   }, []);
 
-  const loadAll = useCallback(async () => {
+  useEffect(() => {
+    let active = true;
     setIsLoading(true);
-    try {
-      await Promise.all([loadStations(), loadEvents(unmatchedOnly), loadSettings()]);
-    } catch {
-      toast.error('Failed to load radio monitor');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [loadEvents, loadSettings, loadStations, unmatchedOnly]);
+    void loadStations().catch(() => toast.error('Failed to load radio stations'))
+      .finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; };
+  }, [loadStations]);
 
   useEffect(() => {
-    void loadAll();
-  }, [loadAll]);
+    void Promise.all([loadEvents(false),loadSettings()])
+      .catch(() => toast.error('Failed to load radio settings or events'));
+  }, [loadEvents,loadSettings]);
 
   const patchStation = async (id: string, patch: Record<string, unknown>) => {
     const previous = stations.find(station => station.id === id);
@@ -106,6 +113,13 @@ export function RadioMonitorContainer() {
       heartbeatStale={heartbeatStale}
       stats={stats}
       stations={stations}
+      stationTotal={stationTotal}
+      stationPage={stationPage}
+      stationSize={stationSize}
+      stationSearch={stationSearch}
+      onStationPageChange={setStationPage}
+      onStationSizeChange={size => { setStationPage(0);setStationSize(size); }}
+      onStationSearchChange={value => { setStationPage(0);setStationSearch(value); }}
       events={events}
       settings={settings}
       unmatchedOnly={unmatchedOnly}
@@ -130,6 +144,7 @@ export function RadioMonitorContainer() {
         void authFetch(`/api/admin/radio/stations/${id}`, { method: 'DELETE' }).then(async (res) => {
           if (!res.ok) throw new Error('delete');
           setStations(list => list.filter(station => station.id !== id));
+          setStationTotal(n => Math.max(0, n-1));
           setStats(value => ({ ...value, total: Math.max(0, value.total - 1),
             monitored: Math.max(0, value.monitored - (stations.find(station => station.id === id)?.monitorEnabled ? 1 : 0)) }));
           toast.success('Radio station deleted');
