@@ -845,3 +845,14 @@ CREATE INDEX IF NOT EXISTS idx_vote_anomalies_release_id ON public.vote_anomalie
 DROP POLICY IF EXISTS users_read_own ON public.users;
 CREATE POLICY users_read_own ON public.users FOR SELECT TO authenticated
   USING (id = (select auth.uid()));
+
+
+-- All scraped/catalog-imported content requires manual editorial approval.
+-- Existing approved records keep their explicit isVisible values.
+ALTER TABLE public.artists ALTER COLUMN "isVisible" SET DEFAULT FALSE;
+ALTER TABLE public.releases ALTER COLUMN "isVisible" SET DEFAULT FALSE;
+-- Index queues for admin review; only query hidden records (never force visibility).
+CREATE INDEX IF NOT EXISTS idx_artists_pending_review ON public.artists ("createdAt" DESC)
+  WHERE "isVisible" = FALSE;
+CREATE INDEX IF NOT EXISTS idx_releases_pending_review ON public.releases ("createdAt" DESC)
+  WHERE "isVisible" = FALSE;
