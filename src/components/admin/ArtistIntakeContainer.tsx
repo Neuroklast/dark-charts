@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AdminPagination } from './shared/AdminPagination';
 import { AdminBulkToolbar } from './shared/AdminBulkToolbar';
+import { AdminBulkJobProgress } from './shared/AdminBulkJobProgress';
 import { useAdminList, useDebouncedValue } from './shared/useAdminList';
 
 type ArtistListRow = ArtistIntakeRow & {
@@ -83,6 +84,7 @@ export function ArtistIntakeContainer() {
   const [allMatching, setAllMatching] = useState(false);
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkJobId, setBulkJobId] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search, 300);
   const params = useMemo(() => new URLSearchParams({
     view: 'list', page: String(page), size: String(pageSize), search: debouncedSearch, visibility,
@@ -234,10 +236,11 @@ export function ArtistIntakeContainer() {
         action: 'bulk', entity: 'artists', operation,
         ...(allMatching ? { allMatching: true, search: debouncedSearch, visibility } : { ids: selectedIds }),
       });
-      toast.success(`${payload.affected ?? 0} Artists aktualisiert, ${payload.skipped ?? 0} übersprungen.`);
+      if (payload.jobId) {
+        setBulkJobId(payload.jobId);
+        toast.success('Sammelaktion eingeplant.');
+      } else toast.success('Keine Änderungen erforderlich.');
       resetSelection();
-      if (page !== 0) setPage(0);
-      await refresh(true);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Sammelaktion fehlgeschlagen');
     } finally { setBulkBusy(false); }
@@ -372,12 +375,14 @@ export function ArtistIntakeContainer() {
         <AdminBulkToolbar
           visibleIds={rows.filter(row => !['BANNED', 'RESTRICTED'].includes(row.status)).map(row => row.id)}
           selectedIds={selectedIds} allMatching={allMatching} total={total}
-          busy={bulkBusy || rowBusy !== null}
+          busy={bulkBusy || rowBusy !== null || bulkJobId !== null}
           onSelect={setSelectedIds} onAllMatchingChange={setAllMatching}
           onApprove={() => void bulkModerate('approve')} onHide={() => void bulkModerate('hide')}
         />
+        <AdminBulkJobProgress jobId={bulkJobId} onDismiss={() => setBulkJobId(null)}
+          onFinished={() => { void refresh(true); toast.success('Sammelaktion abgeschlossen.'); }} />
         <AdminPagination page={page} pageSize={pageSize} total={total}
-          onPageChange={value => { setPage(value); resetSelection(); }}
+          onPageChange={value => { setPage(value); }}
           onPageSizeChange={size => updateListFilters({ size })}
           disabled={bulkBusy} />
         <div className="max-h-[62vh] min-h-[10rem] overflow-auto rounded-lg border border-border" aria-busy={loading}>
@@ -428,7 +433,7 @@ export function ArtistIntakeContainer() {
             </table>}
         </div>
         <AdminPagination page={page} pageSize={pageSize} total={total}
-          onPageChange={value => { setPage(value); resetSelection(); }}
+          onPageChange={value => { setPage(value); }}
           onPageSizeChange={size => updateListFilters({ size })}
           disabled={bulkBusy} />
       </Card>
