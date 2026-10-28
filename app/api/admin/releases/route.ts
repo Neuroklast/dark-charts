@@ -40,6 +40,16 @@ export const POST = withAdminAuth(async (req, adminId) => {
   const supabase = createServiceRoleSupabaseClient();
 
   if (action === 'toggle_visibility' && releaseId && typeof isVisible === 'boolean') {
+    if (isVisible) {
+      const { data: release } = await supabase.from('releases')
+        .select('artistId').eq('id', releaseId).maybeSingle();
+      if (!release) throw new ApiError(404, 'Release not found');
+      const { data: artist } = await supabase.from('artists')
+        .select('isVisible,status').eq('id', release.artistId).maybeSingle();
+      if (!artist?.isVisible || artist.status !== 'active') {
+        throw new ApiError(409, 'Approve the artist first');
+      }
+    }
     const { data: updated, error } = await supabase
       .from('releases')
       .update({ isVisible })
