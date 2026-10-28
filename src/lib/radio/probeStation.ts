@@ -86,7 +86,7 @@ export async function probeStation(
     if (!result) continue;
     if (result.ok) return result;
     lastFailure = result;
-    if (result.health === 'blocked' || result.health === 'geo_blocked') return result;
+    if (mode !== 'auto' && (result.health === 'blocked' || result.health === 'geo_blocked')) return result;
   }
 
   return lastFailure ?? { ok: false, health: 'no_metadata', error: 'No now-playing metadata' };
