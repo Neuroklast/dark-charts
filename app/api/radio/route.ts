@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { tryCreateServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import { matchesRadioGenre } from '@/lib/radio/genreSearch';
 
-// Only verified, actively monitored stations are published. Candidate streams remain private.
+// Publish only listed directory stations and explicitly monitored manual stations. Never expose stream credentials.
 export const dynamic = 'force-dynamic';
 
 type Station = {
@@ -13,6 +13,8 @@ type Station = {
   homepageUrl: string | null;
   healthStatus: string;
   lastMetadataAt: string | null;
+  monitorEnabled: boolean;
+  discoverySource: string;
 };
 type Relation = { name?: string; title?: string; genres?: string[] } | null;
 type Event = {
@@ -58,13 +60,15 @@ export async function GET(request: Request) {
 
   const { data: stationRows, error: stationError } = await db
     .from('radio_stations')
-    .select('id,name,country,tags,homepageUrl,healthStatus,lastMetadataAt')
-    .eq('monitorEnabled', true).eq('isActive', true).eq('legalHold', false)
+    .select('id,name,country,tags,homepageUrl,healthStatus,lastMetadataAt,monitorEnabled,discoverySource')
+    .eq('isActive', true).eq('legalHold', false)
     .order('name', { ascending: true }).limit(1000);
   if (stationError) return NextResponse.json({ error: 'Could not load radio stations' }, { status: 503 });
 
-  const stations = (stationRows ?? []) as Station[];
-  const stationMap = new Map(stations.map((station) => [station.id, station]));
+  const stations = ((stationRows ?? []) as Station[]).filter((station) =>
+    station.monitorEnabled || ['radio_browser', 'shoutcast'].includes(station.discoverySource));
+  const stationMap = new Map(stations.filter((station) => station.monitorEnabled)
+    .map((station) => [station.id, station]));
   // Query just the observed sample; keep this separate from every official chart pillar.
   const { data, error, count } = await db
     .from('airplay_events')
@@ -85,7 +89,7 @@ export async function GET(request: Request) {
 
   const items = stations.map((station) => {
     const event = latest.get(station.id);
-    const fresh = event && now - Date.parse(event.observedAt) <= FRESH_MS &&
+    const fresh = station.monitorEnabled && event && now - Date.parse(event.observedAt) <= FRESH_MS &&
       station.lastMetadataAt && now - Date.parse(station.lastMetadataAt) <= FRESH_MS;
     const track = fresh && event ? {
       artist: event.artists?.name ?? event.rawArtist ?? null,
@@ -97,6 +101,7 @@ export async function GET(request: Request) {
     return {
       id: station.id, name: station.name, country: station.country,
       tags: station.tags ?? [], homepageUrl: station.homepageUrl,
+      monitored: station.monitorEnabled,
       health: station.healthStatus, lastMetadataAt: station.lastMetadataAt,
       nowPlaying: track,
     };
@@ -150,7 +155,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     stations: items.slice(0, 1000), charts, totalStations: stations.length,
-    monitored: stations.length, days, view,
+    monitored: stations.filter((station) => station.monitorEnabled).length, days, view,
     coverage: { sampleSize: events.length, totalEvents: count ?? events.length,
       truncated: (count ?? 0) > events.length,
       sampledThrough: events.at(-1)?.observedAt ?? null,
