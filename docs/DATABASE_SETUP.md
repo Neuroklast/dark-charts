@@ -1,55 +1,66 @@
-# Dark Charts database deployment
+# DARK CHARTS — Production database setup
 
-## Environment
+## Architecture and hosting
 
-- **Supabase project:** [Darktunes Charts](https://supabase.com/dashboard/project/gzjpsjthefabbipixizt) (`gzjpsjthefabbipixizt`)
-- **Organization/plan:** `neuroklast's projects` / Free (separate from the Neuroklast Pro organization)
-- **Region:** `eu-central-1` (Frankfurt)
-- **Schema source:** `supabase/reset.sql`
-- **Schema applied:** `dark_charts_initial_schema`, `dark_charts_secure_functions_and_indexes`
-- **Vercel project:** `dark-charts` / `prj_v9E01YmizXtQX0N8mk4ftaRIoIfO`
+- **Supabase:** [Darktunes Charts](https://supabase.com/dashboard/project/gzjpsjthefabbipixizt), ID `gzjpsjthefabbipixizt`
+- **Plan:** Free; organization `neuroklast's projects`
+- **Region:** Frankfurt (`eu-central-1`)
+- **Vercel:** `dark-charts`, production project ID `prj_v9E01YmizXtQX0N8mk4ftaRIoIfO`
+- **Public domain:** https://www.darkcharts.de
+- **Deployment model:** **Production only** for this prototype; no preview or staging workflows required
+- **Database schema source:** `supabase/reset.sql`
 
-The initial schema has been applied to the new, initially empty database. No
-existing database was overwritten and no catalog/users were migrated.
+## Database provisioning
 
-## Security and integrity
+The existing initially empty Free database was provisioned using migrations:
 
-- RLS is enabled on all 25 application tables.
-- Public SELECT is restricted to the explicitly public artist, release,
-  chart and badge data. Other tables intentionally have no public policies.
-- `cast_weekly_ballot` and `reserve_spotlight_slot` are service-only RPCs.
-- `handle_new_auth_user` and `rls_auto_enable` are not callable by API users.
-- Spotlight active slots are protected by a partial unique index.
-- Never commit API credentials or paste secret/service-role keys into a PR.
+1. `dark_charts_initial_schema`
+2. `dark_charts_secure_functions_and_indexes`
 
-## Vercel status and safe cutover
+All 25 application tables have RLS. Deliberately private tables have no
+public access policies. The voting and reservation RPCs can be executed by the
+Supabase service role only. Active Spotlight reservations have a unique index.
 
-The **development** Vercel environment has the new project's URL and
-publishable key:
+## Vercel Production variables
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+`NEXT_PUBLIC_SUPABASE_URL`:
+`https://gzjpsjthefabbipixizt.supabase.co`
 
-The **production and preview** environment variables have not been changed.
-They still reference the existing database. The Vercel API did not accept
-branch-scoped Preview variables at the time of setup, even after the new
-branch deployed; it reported that the branch was not found.
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`:
+Use the **publishable** API key of the same Supabase project.
 
-To finish connecting the new database securely:
+`SUPABASE_SERVICE_ROLE_KEY`:
+Use the **server-side service-role** key of the same project. Sensitive, and
+never prefixed with `NEXT_PUBLIC_`.
 
-1. In the [Supabase dashboard](https://supabase.com/dashboard/project/gzjpsjthefabbipixizt/settings/api-keys), obtain the **new project's server-side secret/service-role key**. Do not post it in a chat or commit it.
-2. In [Vercel project settings](https://vercel.com/neuroklasts-projects/dark-charts/settings/environment-variables), set `SUPABASE_SERVICE_ROLE_KEY` as **encrypted/sensitive** for the intended environment. It must be from this project, not another Supabase database. Do not use the service key in any `NEXT_PUBLIC_` variable.
-3. Set the two public Supabase variables for that same environment. Prefer branch-scoped Preview when Vercel recognizes the Git branch.
-4. Deploy an isolated preview, confirm login, onboarding, CRUD, voting transaction, checkout in **Stripe test mode**, cron authorization and chart queries.
-5. Before changing production, decide whether users/releases from the prior database must be migrated. The new database is intentionally empty. Back up and validate migrated content if needed.
-6. Only after successful tests, update production's three Supabase variables together and redeploy. Ensure OAuth callback URLs, auth email templates and allowed origins refer to the final domain. Keep old DB backups for rollback.
+`JWT_SECRET`:
+Generate a strong random secret (at least 32 characters) and keep it in the
+**Production** environment only. Changing it invalidates existing legacy JWTs.
 
-The Vercel Next.js preview build of this branch is **READY**, but a successful
-build does **not** prove database connectivity, functional tests, or payment
-readiness.
+The above variables have been configured in Vercel Production as of
+2026-10-28. Do not put secret values into GitHub issues, PRs or source code.
 
-## Free-tier caveat
+Optional Spotify and Cloudflare R2 integration variables may be left unset or
+empty until those integrations are operational. Blank optional settings must
+not prevent independent application routes from working.
 
-Supabase Free projects can be paused after prolonged inactivity and have
-smaller compute/usage quotas. Avoid treating this as a high-availability
-production database until the traffic and availability requirements are met.
+## Production smoke checks
+
+On 2026-10-28, production deployment `dpl_Emrs5mYsw6D6NWyMKGfyC7GbUc5h`
+built successfully, and the public domain responded successfully to:
+
+- `GET /api/spotlight/availability?slotType=BAND_OF_DAY` → 200
+- `GET /api/spotlight/availability?slotType=DJ_OF_DAY` → 200
+- Unauthenticated `GET /api/auth/me` → 401, expected
+
+The database currently has no migrated user or artist catalog. Live payment,
+authenticated sign-up, content imports and voting concurrency need functional
+testing with legitimate test accounts before the prototype becomes a commercial
+launch. A successful Vercel build alone is not comprehensive test coverage.
+
+## Rollback and safety
+
+For future schema changes, add versioned migrations and a backout plan. Avoid
+running `supabase/reset.sql` over an existing populated production database
+without reviewing any data-migration operations. Treat the Supabase Free
+resource limits and automatic pausing policies as prototype constraints.
