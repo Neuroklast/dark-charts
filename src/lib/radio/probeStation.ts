@@ -59,8 +59,9 @@ export async function probeStation(
 
   const attempts: Array<() => Promise<ProbeResult | null>> = [];
 
-  if (mode === 'nowplaying_url' || (mode === 'auto' && nowPlayingUrl)) {
-    attempts.push(() => tryNowPlaying(nowPlayingUrl, host, options.userAgent, fetchImpl, timeoutMs));
+  const providerUrl = nowPlayingUrl ?? (mode === 'auto' ? inferNowPlayingUrl(streamUrl) : null);
+  if (mode === 'nowplaying_url' || (mode === 'auto' && providerUrl)) {
+    attempts.push(() => tryNowPlaying(providerUrl, host, options.userAgent, fetchImpl, timeoutMs));
   }
   if (mode === 'shoutcast_stats' || mode === 'auto') {
     attempts.push(() => tryShoutcastStats(streamUrl, host, options.userAgent, fetchImpl, timeoutMs));
@@ -91,6 +92,17 @@ export async function probeStation(
   return lastFailure ?? { ok: false, health: 'no_metadata', error: 'No now-playing metadata' };
 }
 
+export function inferNowPlayingUrl(streamUrl: string | null): string | null {
+  if (!streamUrl) return null;
+  try {
+    const url = new URL(streamUrl);
+    if (url.hostname !== 'streaming.radio.co') return null;
+    const id = url.pathname.split('/')[1] ?? '';
+    return /^s[a-z0-9]{5,32}$/i.test(id)
+      ? `https://public.radio.co/api/v2/${id}/track/current` : null;
+  } catch { return null; }
+}
+
 function hostOf(url: string): string {
   try {
     return new URL(url).hostname;
@@ -107,10 +119,34 @@ async function timedFetch(
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
-    return await fetchImpl(url, { ...init, signal: controller.signal, redirect: 'manual' });
+    const response = await fetchImpl(url, { ...init, signal: controller.signal, redirect: 'manual' });
+    if (!response.ok || !response.body) return response;
+    // Metadata endpoints are small. Reject oversized bodies and keep the timeout
+    // active for the entire body read, not only until HTTP headers arrive.
+    const MAX_BODY = 128 * 1024;
+    const length = Number(response.headers.get('content-length') ?? 0);
+    if (length > MAX_BODY) throw new Error('Radio metadata response too large');
+    reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    while (true) {
+      const result = await reader.read();
+      if (result.done) break;
+      if (!result.value) continue;
+      size += result.value.byteLength;
+      if (size > MAX_BODY) throw new Error('Radio metadata response too large');
+      chunks.push(result.value);
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    return new Response(bytes.buffer, { status: response.status, headers: response.headers });
   } finally {
     clearTimeout(timer);
+    if (reader) void reader.cancel().catch(() => undefined);
+    controller.abort();
   }
 }
 
