@@ -13,6 +13,7 @@ const bodySchema = z.object({
   source: z.enum(['radio_browser', 'shoutcast']).default('radio_browser'),
   tags: z.array(z.string().min(1)).max(20).optional(),
   limit: z.number().int().min(1).max(300).optional(),
+  country: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/).optional(),
 });
 
 export const POST = withAdminAuth(async (req, adminId) => {
@@ -37,7 +38,7 @@ export const POST = withAdminAuth(async (req, adminId) => {
           userAgent: settings.userAgent,
           apiKey: process.env.SHOUTCAST_API_KEY ?? '',
         })
-      : await searchRadioBrowser(tags, limit, { userAgent: settings.userAgent });
+      : await searchRadioBrowser(tags, limit, { userAgent: settings.userAgent, countryCode: parsed.data.country });
 
   const { upserted } = await upsertCandidates(supabase, candidates);
   await supabase.from('audit_logs').insert({

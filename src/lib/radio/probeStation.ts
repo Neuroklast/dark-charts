@@ -1,5 +1,6 @@
 import type { AirplayDetectionMethod, RadioMetadataMode, RadioStationHealthStatus } from './constants';
 import { extractIcyStreamTitle } from './icyParser';
+import { assertPublicEndpoint } from './publicEndpoint';
 
 export interface ProbeStationInput {
   streamUrl: string | null;
@@ -29,6 +30,7 @@ export interface ProbeOptions {
 }
 
 const DEFAULT_TIMEOUT_MS = 8000;
+const MAX_ICY_META_INTERVAL = 1024 * 1024;
 
 export async function probeStation(
   input: ProbeStationInput,
@@ -40,6 +42,16 @@ export async function probeStation(
     return { ok: false, health: 'dead', error: 'Missing stream URL' };
   }
 
+  if (!options.fetchImpl) {
+    try {
+      for (const url of [streamUrl, nowPlayingUrl]) {
+        if (url) await assertPublicEndpoint(url);
+      }
+    } catch (error) {
+      return { ok: false, health: 'blocked', error: error instanceof Error ? error.message : 'Unsafe endpoint' };
+    }
+  }
+
   const host = hostOf(streamUrl ?? nowPlayingUrl ?? '');
   const mode = input.metadataMode;
   const fetchImpl = options.fetchImpl ?? fetch;
@@ -47,8 +59,9 @@ export async function probeStation(
 
   const attempts: Array<() => Promise<ProbeResult | null>> = [];
 
-  if (mode === 'nowplaying_url' || (mode === 'auto' && nowPlayingUrl)) {
-    attempts.push(() => tryNowPlaying(nowPlayingUrl, host, options.userAgent, fetchImpl, timeoutMs));
+  const providerUrl = nowPlayingUrl ?? (mode === 'auto' ? inferNowPlayingUrl(streamUrl) : null);
+  if (mode === 'nowplaying_url' || (mode === 'auto' && providerUrl)) {
+    attempts.push(() => tryNowPlaying(providerUrl, host, options.userAgent, fetchImpl, timeoutMs));
   }
   if (mode === 'shoutcast_stats' || mode === 'auto') {
     attempts.push(() => tryShoutcastStats(streamUrl, host, options.userAgent, fetchImpl, timeoutMs));
@@ -62,14 +75,32 @@ export async function probeStation(
 
   let lastFailure: ProbeFailure | null = null;
   for (const attempt of attempts) {
-    const result = await attempt();
+    let result: ProbeResult | null;
+    try {
+      result = await attempt();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Metadata request failed';
+      lastFailure = { ok: false, health: 'no_metadata', error: message.slice(0, 200) };
+      continue;
+    }
     if (!result) continue;
     if (result.ok) return result;
     lastFailure = result;
-    if (result.health === 'blocked' || result.health === 'geo_blocked') return result;
+    if (mode !== 'auto' && (result.health === 'blocked' || result.health === 'geo_blocked')) return result;
   }
 
   return lastFailure ?? { ok: false, health: 'no_metadata', error: 'No now-playing metadata' };
+}
+
+export function inferNowPlayingUrl(streamUrl: string | null): string | null {
+  if (!streamUrl) return null;
+  try {
+    const url = new URL(streamUrl);
+    if (url.hostname !== 'streaming.radio.co') return null;
+    const id = url.pathname.split('/')[1] ?? '';
+    return /^s[a-z0-9]{5,32}$/i.test(id)
+      ? `https://public.radio.co/api/v2/${id}/track/current` : null;
+  } catch { return null; }
 }
 
 function hostOf(url: string): string {
@@ -88,10 +119,34 @@ async function timedFetch(
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
-    return await fetchImpl(url, { ...init, signal: controller.signal, redirect: 'follow' });
+    const response = await fetchImpl(url, { ...init, signal: controller.signal, redirect: 'manual' });
+    if (!response.ok || !response.body) return response;
+    // Metadata endpoints are small. Reject oversized bodies and keep the timeout
+    // active for the entire body read, not only until HTTP headers arrive.
+    const MAX_BODY = 128 * 1024;
+    const length = Number(response.headers.get('content-length') ?? 0);
+    if (length > MAX_BODY) throw new Error('Radio metadata response too large');
+    reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    while (true) {
+      const result = await reader.read();
+      if (result.done) break;
+      if (!result.value) continue;
+      size += result.value.byteLength;
+      if (size > MAX_BODY) throw new Error('Radio metadata response too large');
+      chunks.push(result.value);
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    return new Response(bytes.buffer as ArrayBuffer, { status: response.status, headers: response.headers });
   } finally {
     clearTimeout(timer);
+    if (reader) void reader.cancel().catch(() => undefined);
+    controller.abort();
   }
 }
 
@@ -182,28 +237,51 @@ async function tryIcy(
   timeoutMs: number
 ): Promise<ProbeResult | null> {
   if (!streamUrl) return null;
-  const res = await timedFetch(
-    fetchImpl,
-    streamUrl,
-    {
+  // ICY responses may never end. Never call arrayBuffer() on an audio stream.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  try {
+    const res = await fetchImpl(streamUrl, {
       headers: {
         'User-Agent': userAgent,
         'Icy-MetaData': '1',
         Connection: 'close',
       },
-    },
-    timeoutMs
-  );
-  if (!res.ok) return statusFailure(res.status);
-  const metaintHeader = res.headers.get('icy-metaint');
-  const metaint = metaintHeader ? Number.parseInt(metaintHeader, 10) : NaN;
-  if (!Number.isFinite(metaint) || metaint <= 0) {
-    return { ok: false, health: 'no_metadata', error: 'Missing icy-metaint' };
+      signal: controller.signal,
+      redirect: 'manual',
+      cache: 'no-store',
+    });
+    if (!res.ok) return statusFailure(res.status);
+    const metaint = Number.parseInt(res.headers.get('icy-metaint') ?? '', 10);
+    if (!Number.isFinite(metaint) || metaint <= 0 || metaint > MAX_ICY_META_INTERVAL) {
+      return { ok: false, health: 'no_metadata', error: 'Missing or invalid icy-metaint' };
+    }
+    if (!res.body) return { ok: false, health: 'no_metadata', error: 'Empty audio stream' };
+    reader = res.body.getReader();
+    let bytes = new Uint8Array(0);
+    let needed = metaint + 1;
+    // Read only the first metadata block: at most metaint + 1 + 255*16 bytes.
+    while (bytes.length < needed) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value?.length) continue;
+      const next = new Uint8Array(Math.min(metaint + 1 + 255 * 16, bytes.length + value.length));
+      next.set(bytes);
+      next.set(value.subarray(0, next.length - bytes.length), bytes.length);
+      bytes = next;
+      if (needed === metaint + 1 && bytes.length >= metaint + 1) {
+        needed = metaint + 1 + bytes[metaint] * 16;
+      }
+    }
+    const title = extractIcyStreamTitle(bytes, metaint);
+    if (!title) return { ok: false, health: 'no_metadata', error: 'Empty ICY StreamTitle' };
+    return { ok: true, streamTitle: title, method: 'icy', streamHost: host };
+  } finally {
+    clearTimeout(timer);
+    if (reader) void reader.cancel().catch(() => undefined);
+    controller.abort();
   }
-  const bytes = new Uint8Array(await res.arrayBuffer());
-  const title = extractIcyStreamTitle(bytes, metaint);
-  if (!title) return { ok: false, health: 'no_metadata', error: 'Empty ICY StreamTitle' };
-  return { ok: true, streamTitle: title, method: 'icy', streamHost: host };
 }
 
 function originOf(url: string): string | null {
@@ -225,12 +303,23 @@ function parseShoutcast7(html: string): string | null {
 function titleFromUnknownJson(data: unknown): string | null {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
   const record = data as Record<string, unknown>;
+  // AzuraCast: now_playing.song.artist/title, radio.co: current_track.
+  const nested = [record.now_playing, record.current_track, record.track, record.song];
+  for (const item of nested) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const object = item as Record<string, unknown>;
+    const song = object.song && typeof object.song === 'object' && !Array.isArray(object.song)
+      ? object.song as Record<string, unknown> : object;
+    const artist = typeof song.artist === 'string' ? song.artist.trim() : '';
+    const title = typeof song.title === 'string' ? song.title.trim() : '';
+    if (artist && title) return `${artist} - ${title}`;
+    if (title) return title;
+  }
   const artist = typeof record.artist === 'string' ? record.artist.trim() : '';
   const title = typeof record.title === 'string' ? record.title.trim() : '';
   if (artist && title) return `${artist} - ${title}`;
   if (typeof record.song === 'string' && record.song.trim()) return record.song.trim();
-  if (title) return title;
-  return null;
+  return title || null;
 }
 
 function titleFromIcecast(data: unknown): string | null {

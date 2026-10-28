@@ -16,6 +16,7 @@ Built with **Next.js 16 (App Router)**, React 19, Supabase (PostgreSQL), Stripe 
 - **Combined charts** — `ChartAggregationService` merges fan + expert into overall charts, with anomaly detection that blocks voting on affected releases.
 - **Public preview mode** — When Supabase is not configured, all public routes use a clearly labelled, deterministic demo edition. Set `NEXT_PUBLIC_DATA_MODE=live` to require the live API in staging.
 - **Wave charting** — Rolling weekly arcs (`/charts/archive`, `/history` — same DB archive) and a user-weighted **custom charts** builder (`/custom-charts`).
+- **Radio discovery & airplay** — `/radio` genre/country station directory, current titles from monitored stations, separately labelled observed-airplay rankings. Admin `/admin/radio` manages discovery, provider URLs and monitoring. Always-on worker deployment: `workers/radio-monitor/README.md`.
 - **Public catalog** — SEO artist/release pages (`/artist/[id]`, `/release/[id]`), `/search`, and band claiming.
 - **Genre taxonomy** — Dynamic main genres (`Gothic`, `Metal`, `Dark Electro`, `Crossover`) with granular subgenres; niche charts accumulate over longer windows. See `src/lib/config/genres.ts`.
 - **Roles** — `FAN`, `DJ`, `BAND`, `LABEL`, `ADMIN` with email verification (OAuth paths excepted) before voting.

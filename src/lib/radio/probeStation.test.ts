@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { probeStation } from './probeStation';
+import { probeStation, inferNowPlayingUrl } from './probeStation';
 
 const station = {
   streamUrl: 'http://radio.example:8000/stream',
@@ -107,4 +107,64 @@ describe('probeStation', () => {
     );
     expect(result).toEqual({ ok: false, health: 'dead', error: 'Missing stream URL' });
   });
+  it('reads a bounded ICY metadata frame without waiting for a stream to end', async () => {
+    const label = "StreamTitle='NEUROKLAST - GODSLAYER';";
+    const paddedLength = Math.ceil(label.length / 16) * 16;
+    const bytes = new Uint8Array(16 + 1 + paddedLength);
+    bytes[16] = paddedLength / 16;
+    new TextEncoder().encodeInto(label, bytes.subarray(17));
+    const fetchImpl = vi.fn(async () => new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(bytes.subarray(0, 20));
+        controller.enqueue(bytes.subarray(20));
+        controller.close();
+      },
+    }), { headers: { 'icy-metaint': '16' } }));
+    const result = await probeStation(
+      { ...station, metadataMode: 'icy' },
+      { userAgent: 'test-agent', fetchImpl: fetchImpl as unknown as typeof fetch }
+    );
+    expect(result).toMatchObject({ ok: true, streamTitle: 'NEUROKLAST - GODSLAYER', method: 'icy' });
+  });
+
+  it('parses an AzuraCast nested now-playing response', async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      now_playing: { song: { artist: 'NEUROKLAST', title: 'HELLFIRE' } },
+    })));
+    const result = await probeStation(
+      { ...station, nowPlayingUrl: 'https://radio.example/azuracast', metadataMode: 'nowplaying_url' },
+      { userAgent: 'test-agent', fetchImpl: fetchImpl as unknown as typeof fetch }
+    );
+    expect(result).toMatchObject({ ok: true, streamTitle: 'NEUROKLAST - HELLFIRE' });
+  });
+
+  it('parses a Radio.co current track object', async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      current_track: { artist: 'NEUROKLAST', title: 'MAYHEM' },
+    })));
+    const result = await probeStation(
+      { ...station, nowPlayingUrl: 'https://public.radio.co/api/v2/s000/track/current', metadataMode: 'nowplaying_url' },
+      { userAgent: 'test-agent', fetchImpl: fetchImpl as unknown as typeof fetch }
+    );
+    expect(result).toMatchObject({ ok: true, streamTitle: 'NEUROKLAST - MAYHEM' });
+  });
+
+  it('infers the public Radio.co track API from its official stream URL', () => {
+    expect(inferNowPlayingUrl('https://streaming.radio.co/s1234567/listen'))
+      .toBe('https://public.radio.co/api/v2/s1234567/track/current');
+    expect(inferNowPlayingUrl('https://evil.example.net/s1234567/listen')).toBeNull();
+  });
+
+  it('uses Icecast after a blocked SHOUTcast stats endpoint in auto mode', async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) =>
+      String(input).endsWith('/7.html')
+        ? new Response('denied', { status: 403 })
+        : new Response(JSON.stringify({ icestats: { source: { title: 'NEUROKLAST - HELLFIRE' } } }), { status: 200 })
+    );
+    const result = await probeStation(station, {
+      userAgent: 'test-agent', fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    expect(result).toMatchObject({ ok: true, method: 'icecast_json', streamTitle: 'NEUROKLAST - HELLFIRE' });
+  });
+
 });

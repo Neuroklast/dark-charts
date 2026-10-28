@@ -1,4 +1,5 @@
 import type { AppSupabaseClient } from '@/types/supabase-client';
+import { normalizeName } from './normalizeTitle';
 import type { Database } from '@/types/database';
 import type { DiscoveredStation } from './discovery/types';
 import type { CatalogIndex } from './matchCatalog';
@@ -162,6 +163,17 @@ export async function insertAirplayEvent(
   db: AppSupabaseClient,
   event: RadioAirplayInsert
 ): Promise<'inserted' | 'duplicate'> {
+  // A continuous title is one observed play, not one play per polling window.
+  // With no observed change, a repeat within three hours is ambiguous: count conservatively.
+  const { data: prior, error: priorError } = await db.from('airplay_events')
+    .select('rawArtist,rawTitle,observedAt')
+    .eq('source', 'radio')
+    .eq('sourceStationId', event.sourceStationId)
+    .order('observedAt', { ascending: false }).limit(1).maybeSingle();
+  if (priorError) throw new Error(`Failed to check prior airplay: ${priorError.message}`);
+  if (prior && Date.parse(event.observedAt) - Date.parse(prior.observedAt) < 3 * 60 * 60 * 1000 &&
+      normalizeName(prior.rawArtist ?? '') === normalizeName(event.rawArtist ?? '') &&
+      normalizeName(prior.rawTitle ?? '') === normalizeName(event.rawTitle ?? '')) return 'duplicate';
   const { error } = await db.from('airplay_events').insert(event);
   if (!error) return 'inserted';
   if (error.code === '23505' || /duplicate|unique/i.test(error.message)) return 'duplicate';

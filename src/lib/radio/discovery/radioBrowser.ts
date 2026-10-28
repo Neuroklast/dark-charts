@@ -1,6 +1,6 @@
 import type { DiscoveredStation, DiscoveryOptions } from './types';
 
-const RADIO_BROWSER_SEARCH = 'https://de1.api.radio-browser.info/json/stations/search';
+const RADIO_BROWSER_SEARCH = 'https://all.api.radio-browser.info/json/stations/search';
 
 export async function searchRadioBrowser(
   tags: string[],
@@ -14,6 +14,7 @@ export async function searchRadioBrowser(
   for (const tag of tags) {
     const url = new URL(RADIO_BROWSER_SEARCH);
     url.searchParams.set('tag', tag);
+    if (options.countryCode) url.searchParams.set('countrycode', options.countryCode);
     url.searchParams.set('hidebroken', 'true');
     url.searchParams.set('limit', String(perTag));
     const res = await fetchImpl(url.toString(), {

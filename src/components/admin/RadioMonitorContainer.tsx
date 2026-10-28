@@ -27,6 +27,10 @@ export function RadioMonitorContainer() {
   const [unmatchedOnly, setUnmatchedOnly] = useState(false);
   const [manualName, setManualName] = useState('');
   const [manualUrl, setManualUrl] = useState('');
+  const [manualNowPlayingUrl, setManualNowPlayingUrl] = useState('');
+  const [discoverTags, setDiscoverTags] = useState(DEFAULT_RADIO_MONITOR_SETTINGS.genreTags.join(', '));
+  const [discoverCountry, setDiscoverCountry] = useState('');
+  const [discoverySource, setDiscoverySource] = useState<'radio_browser' | 'shoutcast'>('radio_browser');
 
   const loadStations = useCallback(async () => {
     const res = await authFetch('/api/admin/radio/stations');
@@ -48,7 +52,10 @@ export function RadioMonitorContainer() {
     const res = await authFetch('/api/admin/radio/settings');
     if (!res.ok) throw new Error('settings');
     const data = (await res.json()) as { settings?: RadioMonitorSettings };
-    if (data.settings) setSettings(data.settings);
+    if (data.settings) {
+      setSettings(data.settings);
+      setDiscoverTags(data.settings.genreTags.join(', '));
+    }
   }, []);
 
   const loadAll = useCallback(async () => {
@@ -85,15 +92,33 @@ export function RadioMonitorContainer() {
       events={events}
       settings={settings}
       unmatchedOnly={unmatchedOnly}
-      discoverTags={settings.genreTags.join(', ')}
+      discoverTags={discoverTags}
+      discoverCountry={discoverCountry}
+      discoverySource={discoverySource}
+      onDiscoverTagsChange={setDiscoverTags}
+      onDiscoverCountryChange={setDiscoverCountry}
+      onDiscoverySourceChange={setDiscoverySource}
       manualName={manualName}
       manualUrl={manualUrl}
+      manualNowPlayingUrl={manualNowPlayingUrl}
+      onManualNowPlayingUrlChange={setManualNowPlayingUrl}
       onManualNameChange={setManualName}
       onManualUrlChange={setManualUrl}
       onSettingsChange={setSettings}
       onUnmatchedChange={(value) => {
         setUnmatchedOnly(value);
         void loadEvents(value);
+      }}
+      onDeleteStation={(id) => {
+        void authFetch(`/api/admin/radio/stations/${id}`, { method: 'DELETE' }).then(async (res) => {
+          if (!res.ok) throw new Error('delete');
+          toast.success('Radio station deleted');
+          await loadStations();
+        }).catch(() => toast.error('Failed to delete station'));
+      }}
+      onSaveStation={(id, patch) => {
+        void patchStation(id, patch).then(() => toast.success('Radio station updated'))
+          .catch(() => toast.error('Failed to update station'));
       }}
       onToggleMonitor={(id, enabled) => {
         void patchStation(id, { monitorEnabled: enabled }).catch(() =>
@@ -119,7 +144,9 @@ export function RadioMonitorContainer() {
         const res = await authFetch('/api/admin/radio/discover', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ source: 'radio_browser' }),
+          body: JSON.stringify({ source: discoverySource,
+            tags: discoverTags.split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 20),
+            country: discoverCountry || undefined, limit: 300 }),
         });
         if (!res.ok) {
           toast.error('Discovery failed');
@@ -133,7 +160,8 @@ export function RadioMonitorContainer() {
         const res = await authFetch('/api/admin/radio/stations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: manualName, streamUrl: manualUrl }),
+          body: JSON.stringify({ name: manualName, streamUrl: manualUrl,
+            nowPlayingUrl: manualNowPlayingUrl || undefined }),
         });
         if (!res.ok) {
           toast.error('Could not add station');
@@ -141,6 +169,7 @@ export function RadioMonitorContainer() {
         }
         setManualName('');
         setManualUrl('');
+        setManualNowPlayingUrl('');
         toast.success('Station added as a candidate');
         await loadStations();
       }}

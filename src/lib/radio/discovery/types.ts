@@ -13,4 +13,5 @@ export interface DiscoveredStation {
 export interface DiscoveryOptions {
   fetchImpl?: typeof fetch;
   userAgent: string;
+  countryCode?: string;
 }
