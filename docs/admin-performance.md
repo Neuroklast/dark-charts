@@ -33,3 +33,31 @@ full-page reloads for a row mutation.
 Currently adopted by Artists, Catalog Review, Releases, Votes, Users, Anomalies
 and the background-refreshed Badge panel. Other management panels should adopt
 these primitives whenever they are modified.
+
+## Verified behavior and budgets
+
+- Responsive tables default to 10/25/50/100 server-side rows and a 62vh scroll area.
+- GET lists use a per-component 40-page LRU with 30-second freshness, abort
+  outdated requests and retry only safe GET responses (HTTP 429/503).
+- CSV import is atomic per 100-row batch; database uniqueness is case-insensitive.
+- Admin bulk approvals are queued in PostgreSQL and processed in 50-row
+  atomic transactions by a Vercel Cron every minute. Progress, skipped records
+  and failures are durable. A failed job resumes from its last committed cursor.
+- Radio live views use one latest-title lookup per monitored station; radio
+  charts and badge counts are aggregated in PostgreSQL rather than JavaScript.
+- CI runs `scripts/check-admin-budgets.mjs` on 100,000 synthetic records.
+  It measures local data-filter and selection costs, **not** real browser
+  interaction or server p95 latency.
+
+### Next-level runtime SLOs (monitor in Vercel)
+
+| Measurement | Target |
+|---|---|
+| Admin list API p95 | under 500 ms |
+| Admin interaction INP p75 | under 200 ms |
+| Visible list rows per request | at most 100 |
+| Bulk job retry | no duplicate committed batch |
+| Bulk queue heartbeat | last successful Cron within 2 minutes |
+
+Client-side synthetic budgets must not be presented as live-site latency.
+Watch Vercel Observability and capture browser traces under actual workloads.
