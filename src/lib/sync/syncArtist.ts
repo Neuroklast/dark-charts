@@ -150,7 +150,7 @@ async function upsertItunesRelease(
       return { upserted: true, errors };
     }
 
-    const { error } = await db.from('releases').insert(payload);
+    const { error } = await db.from('releases').insert({ ...payload, isVisible: false });
     if (error) {
       // Unique race on itunesId
       if (error.code === '23505') {
