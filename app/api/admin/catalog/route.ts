@@ -32,8 +32,8 @@ async function moderateBulk(db: ReturnType<typeof createServiceRoleSupabaseClien
   const entity = body.entity;
   if (body.allMatching) {
     let query = entity === 'artists'
-      ? db.from('artists').select('id').order('id', { ascending: true }).limit(BULK_MAX + 1)
-      : db.from('releases').select('id').order('id', { ascending: true }).limit(BULK_MAX + 1);
+      ? db.from('artists').select('id', { count: 'exact' }).order('id', { ascending: true }).limit(BULK_MAX)
+      : db.from('releases').select('id', { count: 'exact' }).order('id', { ascending: true }).limit(BULK_MAX);
     if (body.visibility === 'visible') query = query.eq('isVisible', true);
     if (body.visibility === 'hidden') query = query.eq('isVisible', false);
     if (body.visibility === 'pending' || (!body.visibility && body.filter === 'pending')) {
@@ -43,9 +43,9 @@ async function moderateBulk(db: ReturnType<typeof createServiceRoleSupabaseClien
     }
     const search = (body.search ?? '').replace(/[%_\\]/g, match => '\\' + match);
     if (search) query = query.ilike(entity === 'artists' ? 'name' : 'title', `%${search}%`);
-    const { data, error } = await query;
+    const { data, count, error } = await query;
     if (error) throw new ApiError(500, 'Unable to select matching records');
-    if ((data?.length ?? 0) > BULK_MAX)
+    if ((count ?? 0) > BULK_MAX)
       throw new ApiError(413, 'Too many matches. Narrow the filter (maximum 1000 per action).');
     ids = (data ?? []).map(row => row.id);
   }
