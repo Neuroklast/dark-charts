@@ -234,7 +234,9 @@ async function tryIcy(
       next.set(bytes);
       next.set(value.subarray(0, next.length - bytes.length), bytes.length);
       bytes = next;
-      if (bytes.length === metaint + 1) needed = metaint + 1 + bytes[metaint] * 16;
+      if (needed === metaint + 1 && bytes.length >= metaint + 1) {
+        needed = metaint + 1 + bytes[metaint] * 16;
+      }
     }
     const title = extractIcyStreamTitle(bytes, metaint);
     if (!title) return { ok: false, health: 'no_metadata', error: 'Empty ICY StreamTitle' };
