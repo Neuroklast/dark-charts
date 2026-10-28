@@ -342,50 +342,95 @@ export function ArtistIntakeContainer() {
         </Tabs>
       </Card>}
 
-      <Card className="p-5 md:p-6">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <Card className="p-4 md:p-5 space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h2 className="font-display text-lg uppercase tracking-wide">Artist-Datenbank</h2>
-            <p className="text-sm text-muted-foreground">{total} Treffer, 50 pro Seite</p>
+            <p className="text-sm text-muted-foreground">{total.toLocaleString('de-DE')} Treffer · {refreshing ? 'Aktualisiere…' : 'Bereit'}</p>
           </div>
-          <div className="w-full max-w-sm space-y-2">
-            <Label htmlFor="artist-search">Artist suchen</Label>
-            <Input id="artist-search" value={search} placeholder="Nach Namen suchen"
-              onChange={event => { setSearch(event.target.value); setPage(0); }} />
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="min-w-48 flex-1 space-y-1">
+              <Label htmlFor="artist-search">Artist suchen</Label>
+              <Input id="artist-search" value={search} placeholder="Nach Namen suchen"
+                onChange={event => updateListFilters({ search: event.target.value })} />
+            </div>
+            <label className="space-y-1 text-xs text-muted-foreground">
+              <span className="block">Status</span>
+              <select aria-label="Artists nach Status filtern" value={visibility}
+                onChange={event => updateListFilters({ visibility: event.target.value as typeof visibility })}
+                className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground">
+                <option value="all">Alle Artists</option>
+                <option value="pending">Freigabe ausstehend</option>
+                <option value="visible">Öffentlich</option>
+                <option value="hidden">Nicht öffentlich</option>
+              </select>
+            </label>
+            <Button type="button" variant="outline" size="sm" disabled={refreshing}
+              onClick={() => void refresh(true)}>Aktualisieren</Button>
           </div>
         </div>
-        {loading ? <p className="text-sm text-muted-foreground">Lade Artists ...</p> : rows.length === 0
-          ? <p className="text-sm text-muted-foreground">Keine Artists gefunden. Du kannst oben den ersten anlegen.</p>
-          : <div className="divide-y divide-border">
-            {rows.map(artist => (
-              <div key={artist.id} className="flex flex-col gap-3 py-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="min-w-0">
-                  <p className="font-medium break-words">{artist.name}</p>
-                  <p className="text-xs text-muted-foreground break-words">
-                    {artist.spotifyId ?? 'Ohne Spotify-ID'} · {(artist.genres ?? []).join(', ') || 'Kein Genre'} · {artist.isVisible ? 'Öffentlich' : artist.status}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" disabled={busy}
-                    onClick={() => editArtist(artist)}>Bearbeiten</Button>
-                  {artist.status !== 'BANNED' && artist.status !== 'RESTRICTED' &&
-                    <Button size="sm" variant="outline" disabled={busy}
-                      onClick={() => { void moderate(artist); }}>
-                      {artist.isVisible ? 'Verbergen' : 'Freigeben'}
-                    </Button>}
-                  <Button size="sm" variant="destructive" disabled={busy}
-                    onClick={() => { void deleteArtist(artist); }}>Löschen</Button>
-                </div>
-              </div>
-            ))}
-          </div>}
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <Button variant="outline" size="sm" disabled={busy || page === 0}
-            onClick={() => setPage(page - 1)}>Zurück</Button>
-          <span className="text-xs text-muted-foreground">Seite {page + 1}</span>
-          <Button variant="outline" size="sm" disabled={busy || (page + 1) * 50 >= total}
-            onClick={() => setPage(page + 1)}>Weiter</Button>
+        <AdminBulkToolbar
+          visibleIds={rows.filter(row => !['BANNED', 'RESTRICTED'].includes(row.status)).map(row => row.id)}
+          selectedIds={selectedIds} allMatching={allMatching} total={total}
+          busy={bulkBusy || rowBusy !== null}
+          onSelect={setSelectedIds} onAllMatchingChange={setAllMatching}
+          onApprove={() => void bulkModerate('approve')} onHide={() => void bulkModerate('hide')}
+        />
+        <AdminPagination page={page} pageSize={pageSize} total={total}
+          onPageChange={value => { setPage(value); resetSelection(); }}
+          onPageSizeChange={size => updateListFilters({ size })}
+          disabled={bulkBusy} />
+        <div className="max-h-[62vh] min-h-[10rem] overflow-auto rounded-lg border border-border" aria-busy={loading}>
+          {loading && rows.length === 0 ? <p className="p-5 text-sm text-muted-foreground">Lade Artists…</p> :
+            rows.length === 0 ? <p className="p-5 text-sm text-muted-foreground">Keine passenden Artists.</p> :
+            <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+              <thead className="sticky top-0 z-10 bg-card text-xs uppercase text-muted-foreground">
+                <tr className="border-b border-border">
+                  <th scope="col" className="w-12 px-3 py-2">Auswahl</th>
+                  <th scope="col" className="px-3 py-2">Artist</th>
+                  <th scope="col" className="px-3 py-2">Genres / Land</th>
+                  <th scope="col" className="px-3 py-2">Status</th>
+                  <th scope="col" className="px-3 py-2 text-right">Aktionen</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {rows.map(artist => (
+                  <tr key={artist.id} className={rowBusy === artist.id ? 'opacity-60' : 'hover:bg-muted/30'}>
+                    <td className="px-3 py-2">
+                      <Checkbox aria-label={`${artist.name} auswählen`}
+                        disabled={bulkBusy || ['BANNED', 'RESTRICTED'].includes(artist.status)}
+                        checked={allMatching || selectedIds.includes(artist.id)}
+                        onCheckedChange={checked => {
+                          setAllMatching(false);
+                          setSelectedIds(ids => checked ? [...new Set([...ids, artist.id])] : ids.filter(id => id !== artist.id));
+                        }} />
+                    </td>
+                    <td className="px-3 py-2 font-medium">{artist.name}
+                      <div className="text-[11px] font-normal text-muted-foreground">{artist.spotifyId ? 'Spotify verknüpft' : 'Ohne Spotify-ID'}</div>
+                    </td>
+                    <td className="max-w-72 truncate px-3 py-2 text-muted-foreground" title={(artist.genres ?? []).join(', ')}>
+                      {(artist.genres ?? []).join(', ') || 'Kein Genre'} · {artist.country || '—'}
+                    </td>
+                    <td className="px-3 py-2">{artist.isVisible ? 'Öffentlich' : artist.status}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" disabled={rowBusy !== null || bulkBusy} onClick={() => editArtist(artist)}>Bearbeiten</Button>
+                        {!['BANNED', 'RESTRICTED'].includes(artist.status) &&
+                          <Button size="sm" variant="outline" disabled={rowBusy !== null || bulkBusy}
+                            onClick={() => void moderate(artist)}>{artist.isVisible ? 'Verbergen' : 'Freigeben'}</Button>}
+                        <Button size="sm" variant="destructive" disabled={rowBusy !== null || bulkBusy}
+                          onClick={() => void deleteArtist(artist)}>Löschen</Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>}
         </div>
+        <AdminPagination page={page} pageSize={pageSize} total={total}
+          onPageChange={value => { setPage(value); resetSelection(); }}
+          onPageSizeChange={size => updateListFilters({ size })}
+          disabled={bulkBusy} />
       </Card>
     </div>
   );
