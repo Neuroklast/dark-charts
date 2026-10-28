@@ -1,6 +1,6 @@
 import type { DiscoveredStation, DiscoveryOptions } from './types';
 
-const RADIO_BROWSER_SEARCH = 'https://de1.api.radio-browser.info/json/stations/search';
+const RADIO_BROWSER_SEARCH = 'https://all.api.radio-browser.info/json/stations/search';
 
 export async function searchRadioBrowser(
   tags: string[],
