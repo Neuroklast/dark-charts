@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run test && npm run build",
+  "buildCommand": "NODE_ENV=test npm run test && npm run build",
   "git": {
     "deploymentEnabled": true
   },
