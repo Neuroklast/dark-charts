@@ -41,12 +41,12 @@ export function isDemoRole(value: unknown): value is DemoRole {
   return typeof value === 'string' && (DEMO_ROLES as readonly string[]).includes(value);
 }
 
-export function isDemoLoginAllowed(env: {
+/** Demo logins are disabled for this production-only prototype. */
+export function isDemoLoginAllowed(_env: {
   NODE_ENV?: string;
   ALLOW_DEMO_LOGIN?: string;
 }): boolean {
-  if (env.NODE_ENV === 'production' && env.ALLOW_DEMO_LOGIN !== '1') return false;
-  return true;
+  return false;
 }
 
 export function payloadGrantsDemoAdmin(payload: Record<string, unknown> | null): boolean {
