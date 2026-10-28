@@ -163,8 +163,8 @@ export function ArtistIntakeContainer() {
     let skipped = preview.duplicateCount;
     const errors: string[] = [];
     try {
-      for (let offset = 0; offset < preview.artists.length; offset += 25) {
-        const artists = preview.artists.slice(offset, offset + 25);
+      for (let offset = 0; offset < preview.artists.length; offset += 100) {
+        const artists = preview.artists.slice(offset, offset + 100);
         const response = await postJson('/api/admin/artists', { action: 'import', artists });
         created += response.created ?? 0;
         skipped += response.skipped ?? 0;
