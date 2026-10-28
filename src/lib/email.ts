@@ -1,4 +1,3 @@
-import { logger } from '@/lib/logger';
 
 interface SendEmailParams {
   to: string;
@@ -10,13 +9,9 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM ?? 'Dark Charts <noreply@darkcharts.de>';
 
-  if (!apiKey) {
-    logger.info('[email-dev] Verification email (RESEND_API_KEY not set)', {
-      to: params.to,
-      subject: params.subject,
-      preview: params.html.slice(0, 200),
-    });
-    return;
+  if (!apiKey || !apiKey.startsWith('re_')) {
+    // Never leak verification/recovery URLs to production logs.
+    throw new Error('Email delivery is not configured');
   }
 
   const response = await fetch('https://api.resend.com/emails', {
@@ -34,8 +29,7 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
   });
 
   if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Failed to send email: ${response.status} ${body}`);
+    throw new Error(`Email provider rejected the request (${response.status})`);
   }
 }
 
